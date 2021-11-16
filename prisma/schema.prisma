@@ -1,0 +1,50 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  USER
+}
+
+model Account {
+  id     Int     @id @default(autoincrement())
+  users  User[]  @relation("AccountUsers")
+  stripe Stripe? @relation
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  account   Account? @relation("AccountUsers", fields: [accountId], references: [id])
+  accountId Int?
+  role      Role     @default(ADMIN)
+  answers   UserAnswers[]
+}
+
+model Stripe {
+  id         Int     @id @default(autoincrement())
+  customerId String  @unique
+  accountId  Int     @unique
+  account    Account @relation(fields: [accountId], references: [id])
+}
+
+model Answers {
+  id    Int    @id @default(autoincrement())
+  title String
+  users UserAnswers[]
+}
+
+model UserAnswers {
+  answer   Answers @relation(fields: [answerId], references: [id])
+  answerId Int
+
+  user   User @relation(fields: [userId], references: [id])
+  userId Int
+
+  @@id([userId, answerId])
+}
