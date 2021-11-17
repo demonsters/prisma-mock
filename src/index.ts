@@ -88,7 +88,7 @@ const createPrismaMock = async <T extends PrismaClient>(
   const Delegate = (prop: string, model: DMMF.Model) => {
 
 
-    const connect = (args, isCreating: boolean) => {
+    const nestedUpdate = (args, isCreating: boolean) => {
       let d = args.data;
 
       // Get field schema for default values
@@ -175,7 +175,8 @@ const createPrismaMock = async <T extends PrismaClient>(
                   delegate.update(update);
                 })
               } else {
-                delegate.update(c.update);
+                const item = findOne(args);
+                delegate.update({ data: c.update, where: getFieldRelationshipWhere(item, field) });
               }
             }
           }
@@ -283,7 +284,6 @@ const createPrismaMock = async <T extends PrismaClient>(
     };
 
     const findOne = args => {
-      console.log("findUnique", data[prop], prop, args)
       if (!data[prop]) throw new Error(`${prop} not found in data`)
       return includes(args)(data[prop].find(matchFnc(args)));
     };
@@ -313,9 +313,12 @@ const createPrismaMock = async <T extends PrismaClient>(
       return null;
     };
     const updateMany = args => {
+      // if (!Array.isArray(data[prop])) {
+      //   throw new Error(`${prop} not found in data`)
+      // }
       const newItems = data[prop].map(e => {
         if (matchFnc(args)(e)) {
-          let data = connect(args, false);
+          let data = nestedUpdate(args, false);
           return {
             ...e,
             ...data,
@@ -333,7 +336,7 @@ const createPrismaMock = async <T extends PrismaClient>(
 
     const create = args => {
 
-      const d = connect(args, true)
+      const d = nestedUpdate(args, true)
 
       data = {
         ...data,
