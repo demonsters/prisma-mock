@@ -57,6 +57,17 @@ describe('PrismaClient where', () => {
     ],
   };
 
+  test('multiple', async () => {
+    const client = await createPrismaClient(data);
+    const account = await client.account.findMany({
+      where: {
+        date: { lte: date1 },
+        name: 'Dirk'
+      },
+    });
+    expect(account).not.toEqual([data.account[0]]);
+  });
+
   test('startsWith', async () => {
     const client = await createPrismaClient(data);
     const account = await client.account.findMany({

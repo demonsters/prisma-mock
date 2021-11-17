@@ -272,9 +272,8 @@ const createPrismaMock = async <T extends PrismaClient>(
               if ('in' in filter && match) {
                 match = filter.in.includes(val);
               }
-              return match;
-            }
-            if (val !== filter) {
+              if (!match) return false
+            } else if (val !== filter) {
               return false;
             }
           }
