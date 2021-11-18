@@ -1,9 +1,13 @@
 {
   "name": "prisma-mock",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "description": "Mock prisma for unit testing database",
   "main": "lib/index.js",
   "license": "MIT",
+  "types": "lib/",
+  "files": [
+    "lib/"
+  ],
   "dependencies": {
     "@prisma/generator-helper": "^3.5.0",
     "@prisma/sdk": "^3.5.0",
