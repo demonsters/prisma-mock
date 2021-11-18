@@ -1,11 +1,8 @@
 // @ts-nocheck
 
-import mockPrismaClient from '../';
+import createPrismaClient from '../';
 import { PrismaClient } from '@prisma/client';
 
-const createPrismaClient = data => {
-  return mockPrismaClient(data);
-};
 
 // TODO:
 // OR

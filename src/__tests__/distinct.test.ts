@@ -1,11 +1,7 @@
 // @ts-nocheck
 
-import mockPrismaClient from "../";
+import createPrismaClient from "../";
 import { PrismaClient } from "@prisma/client";
-
-const createPrismaClient = async (data): PrismaClient => {
-  return await mockPrismaClient(data);
-};
 
 describe("PrismaClient distinct", () => {
   const data = {

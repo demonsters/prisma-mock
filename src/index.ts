@@ -1,8 +1,27 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, Prisma } from '@prisma/client';
 import { DMMF } from '@prisma/generator-helper';
 import { getDMMF, getSchemaSync } from '@prisma/sdk';
 import { mockDeep } from 'jest-mock-extended';
 import path from 'path';
+
+type UnwrapPromise<P extends any> = P extends Promise<infer R> ? R : P
+
+type PrismaDelegate = {
+  findUnique: (...args: Array<any>) => Promise<any>;
+}
+
+type IsTable<S> = S extends `\$${infer fnc}` ? never : S;
+type IsString<S extends any> = S extends string ? S : never;
+
+type PrismaList<P extends { [key: string]: any }, K extends string> =
+  P[K] extends PrismaDelegate ?
+  Array<Partial<UnwrapPromise<ReturnType<P[K]["findUnique"]>>>> :
+  never
+
+export type PrismaMockData<P> = Partial<{
+  [key in IsTable<Uncapitalize<IsString<keyof P>>>]: PrismaList<P, key>
+}>
+
 
 // TODO:
 // - groupBy
@@ -63,12 +82,14 @@ const getJoinField = (field: DMMF.Field) => {
   return joinfield;
 }
 
+// type Key = Uncapitalize<ModelName>
 
-const createPrismaMock = async <T extends PrismaClient>(
-  data: { [key: string]: Array<any> } = {},
+
+const createPrismaMock = async <P>(
+  data: PrismaMockData<P> = {},
   pathToSchema?: string,
-  client = mockDeep<T>(),
-) => {
+  client = mockDeep<P>(),
+): Promise<P> => {
 
   if (!cachedSchema) {
     const schemaPath = path.resolve(process.cwd(), 'prisma/schema.prisma')
