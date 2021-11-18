@@ -28,6 +28,16 @@ export type PrismaMockData<P> = Partial<{
 
 let cachedSchema: DMMF.Document;
 
+// type Key = Uncapitalize<ModelName>
+
+
+const createPrismaMock = async <P>(
+  data: PrismaMockData<P> = {},
+  pathToSchema?: string,
+  client = mockDeep<P>(),
+): Promise<P> => {
+
+
 const getCamelCase = (name: any) => {
   return name.substr(0, 1).toLowerCase() + name.substr(1);
 };
@@ -42,7 +52,7 @@ const shallowCompare = (
   return true;
 };
 
-const checkIds = (model: DMMF.Model, data: { [key: string]: any[] }) => {
+const checkIds = (model: DMMF.Model, data: PrismaMockData<P>) => {
   const c = getCamelCase(model.name);
   const idFields = model.idFields || model.primaryKey?.fields
   // console.log("model.name", model.name)
@@ -82,14 +92,6 @@ const getJoinField = (field: DMMF.Field) => {
   return joinfield;
 }
 
-// type Key = Uncapitalize<ModelName>
-
-
-const createPrismaMock = async <P>(
-  data: PrismaMockData<P> = {},
-  pathToSchema?: string,
-  client = mockDeep<P>(),
-): Promise<P> => {
 
   if (!cachedSchema) {
     const schemaPath = path.resolve(process.cwd(), 'prisma/schema.prisma')
