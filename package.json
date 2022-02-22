@@ -1,6 +1,6 @@
 {
   "name": "prisma-mock",
-  "version": "0.0.10",
+  "version": "0.0.11",
   "description": "Mock prisma for unit testing database",
   "main": "lib/index.js",
   "license": "MIT",
@@ -21,7 +21,7 @@
     "typescript": "^4.4.4"
   },
   "scripts": {
-    "prepublish": "tsc",
+    "preversion": "tsc",
     "build": "tsc",
     "watch": "tsc --watch"
   },
