@@ -120,6 +120,9 @@ const getJoinField = (field: DMMF.Field) => {
       });
 
       model.fields.forEach(field => {
+
+        d //?
+
         if (d[field.name] && field.kind === 'object') {
           const c = d[field.name];
           if (c.connect) {
@@ -173,10 +176,17 @@ const getJoinField = (field: DMMF.Field) => {
                   data: c.createMany.data.map(map),
                 });
               } else {
-                delegate.create({
-                  ...create.create,
-                  data: map(create.create),
-                });
+                if (Array.isArray(c.create)) {
+                  delegate.createMany({
+                    ...c.create,
+                    data: c.create.map(map),
+                  });
+                } else {
+                  delegate.create({
+                    ...create.create,
+                    data: map(create.create),
+                  });
+                }
               }
             }
           }
@@ -364,7 +374,7 @@ const getJoinField = (field: DMMF.Field) => {
         ...data,
         [prop]: [...data[prop], d],
       };
-
+      data //?
       data = checkIds(model, data);
 
       return findOne({ where: { id: d.id }, ...args });

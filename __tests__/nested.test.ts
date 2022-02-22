@@ -1,6 +1,6 @@
 // @ts-nocheck
 
-import createPrismaClient from '../'
+import createPrismaClient from '../src/'
 
 describe('Nested', () => {
 
@@ -61,6 +61,38 @@ describe('Nested', () => {
     )
   })
 
+  test('create: create one-to-many (array)', async () => {
+    const client = await createPrismaClient({})
+    // TODO: Check output
+    const account = await client.account.create({
+      data: {
+        users: {
+          create: [{
+            role: "USER",
+          }, {
+            role: "ADMIN",
+          }],
+        }
+      },
+      include: {
+        users: true
+      }
+    })
+    expect(account).toEqual(
+      {
+        id: 2,
+        users: [{
+          id: 2,
+          role: "USER",
+          accountId: 2,
+        }, {
+          id: 3,
+          role: "ADMIN",
+          accountId: 2,
+        }]
+      }
+    )
+  })
   test('create: createMany', async () => {
     const client = await createPrismaClient({
       answers: [],
