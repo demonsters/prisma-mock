@@ -351,6 +351,12 @@ const createPrismaMock = async <P>(
           if ('in' in filter && match) {
             match = filter.in.includes(val);
           }
+          if ('not' in filter && match) {
+            match = val !== filter.not
+          }
+          if ('notIn' in filter && match) {
+            match = !filter.notIn.includes(val);
+          }
           if (!match) return false
         } else if (val !== filter) {
           return false;
@@ -481,9 +487,8 @@ const createPrismaMock = async <P>(
           return field.name === key;
         });
 
-        switch (schema.type) {
-          case "Int":
-            return
+        if (!schema.relationName) {
+          return
         }
 
         // Get delegate for relation

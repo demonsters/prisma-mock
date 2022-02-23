@@ -143,6 +143,28 @@ describe('PrismaClient where', () => {
     expect(account).toEqual([data.account[0], data.account[1]]);
   });
 
+
+  test('not', async () => {
+    const client = await createPrismaClient(data);
+    const account = await client.account.findMany({
+      where: {
+        id: { not: 2 },
+      },
+    });
+    expect(account).toEqual([data.account[0], data.account[2]]);
+  });
+
+
+  test('notIn', async () => {
+    const client = await createPrismaClient(data);
+    const account = await client.account.findMany({
+      where: {
+        name: { notIn: ['Piet', 'Sjors'] },
+      },
+    });
+    expect(account).toEqual([data.account[1]]);
+  });
+
   test('in', async () => {
     const client = await createPrismaClient(data);
     const account = await client.account.findMany({
