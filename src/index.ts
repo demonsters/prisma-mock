@@ -55,7 +55,7 @@ const createPrismaMock = async <P>(
   const checkIds = (model: DMMF.Model, data: PrismaMockData<P>) => {
     const c = getCamelCase(model.name);
     const idFields = model.idFields || model.primaryKey?.fields
-    
+
     const checkId = (ids: string[]) => {
       const id = ids.join('_');
       data = {
@@ -237,7 +237,7 @@ const createPrismaMock = async <P>(
               }
             }
           }
-          
+
           if (c.increment) {
             d = {
               ...d,
@@ -271,7 +271,7 @@ const createPrismaMock = async <P>(
 
         }
 
-        if (isCreating && !d[field.name] && field.default) {
+        if ((isCreating || d[field.name] === null) && (d[field.name] === null || d[field.name] === undefined) && field.hasDefaultValue) {
           if (typeof field.default === 'object') {
             if (field.default.name === 'autoincrement') {
               let m = 1;
@@ -569,7 +569,7 @@ const createPrismaMock = async <P>(
         const model = cachedSchema.datamodel.models.find(model => {
           return getCamelCase(model.name) === prop;
         });
-        
+
 
         const schema = model.fields.find(field => {
           return field.name === key;
@@ -661,7 +661,7 @@ const createPrismaMock = async <P>(
       },
     };
   };
-  
+
   cachedSchema.datamodel.models.forEach(model => {
     if (!model) return
     const c = getCamelCase(model.name);

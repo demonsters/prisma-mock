@@ -29,6 +29,7 @@ model User {
   clicks    Int?
   guestOf   Account[]     @relation("AccountGuest")
   element   Element[]
+  deleted   Boolean       @default(false)
 }
 
 model Stripe {
@@ -56,9 +57,8 @@ model UserAnswers {
   @@id([userId, answerId])
 }
 
-
 model Element {
-  id         Int     @id @default(autoincrement())
+  id Int @id @default(autoincrement())
 
   user   User @relation(fields: [userId], references: [id])
   userId Int

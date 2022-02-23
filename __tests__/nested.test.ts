@@ -27,7 +27,8 @@ describe('Nested', () => {
         users: [{
           id: 2,
           accountId: 2,
-          role: "USER"
+          role: "USER",
+          deleted: false,
         }]
       }
     )
@@ -54,6 +55,7 @@ describe('Nested', () => {
         id: 2,
         accountId: 2,
         role: "USER",
+        deleted: false,
         account: {
           id: 2,
         }
@@ -85,10 +87,12 @@ describe('Nested', () => {
           id: 2,
           role: "USER",
           accountId: 2,
+          deleted: false,
         }, {
           id: 3,
           role: "ADMIN",
           accountId: 2,
+          deleted: false,
         }]
       }
     )

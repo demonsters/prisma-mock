@@ -78,7 +78,8 @@ describe('PrismaClient', () => {
       {
         id: 2,
         name: 'New user',
-        role: "ADMIN"
+        role: "ADMIN",
+        deleted: false
       }
     ])
   })
@@ -100,6 +101,7 @@ describe('PrismaClient', () => {
         id: 2,
         name: 'New user',
         role: "ADMIN",
+        deleted: false,
         accountId: 1,
       }
     ])
