@@ -108,7 +108,7 @@ const createPrismaMock = async <P>(
       return model.name === field.type;
     });
 
-    const joinfield = joinmodel.fields.find(f => {
+    const joinfield = joinmodel?.fields.find(f => {
       return f.relationName === field.relationName;
     });
     return joinfield;
@@ -513,10 +513,51 @@ const createPrismaMock = async <P>(
     };
 
     const deleteMany = args => {
+
+      const relations: DMMF.Field[] = []
+
+      const model = cachedSchema.datamodel.models.find(model => {
+        return getCamelCase(model.name) === prop;
+      });
+
+      const deleted = []
       data = {
         ...data,
-        [prop]: data[prop].filter(e => !matchFnc(args?.where)(e)),
+        [prop]: data[prop].filter(e => {
+          const shouldDelete = matchFnc(args?.where)(e)
+          if (shouldDelete) {
+            deleted.push(e)
+          }
+          return !shouldDelete
+        }),
       };
+
+      // Referential Actions
+      deleted.forEach(item => {
+        model.fields.forEach(field => {
+          const joinfield = getJoinField(field)
+          if (!joinfield) return
+          const delegate = Delegate(getCamelCase(field.type), model);
+          if (joinfield.relationOnDelete === "SetNull") {
+            delegate.update({
+              where: {
+                [joinfield.relationFromFields[0]]: item[joinfield.relationToFields[0]],
+              },
+              data: {
+                [joinfield.relationFromFields[0]]: null,
+              }
+            })
+          } else if (joinfield.relationOnDelete === "Cascade") {
+            delegate.delete({
+              where: {
+                [joinfield.relationFromFields[0]]: item[joinfield.relationToFields[0]],
+              }
+            })
+          }
+        })
+      })
+
+      return deleted
     };
 
     const includes = args => item => {
@@ -530,6 +571,7 @@ const createPrismaMock = async <P>(
         const model = cachedSchema.datamodel.models.find(model => {
           return getCamelCase(model.name) === prop;
         });
+        
 
         const schema = model.fields.find(field => {
           return field.name === key;

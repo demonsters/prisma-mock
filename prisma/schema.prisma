@@ -22,7 +22,7 @@ model Account {
 
 model User {
   id        Int           @id @default(autoincrement())
-  account   Account?      @relation("AccountUsers", fields: [accountId], references: [id])
+  account   Account?      @relation("AccountUsers", fields: [accountId], references: [id], onDelete: SetNull)
   accountId Int?
   role      Role          @default(ADMIN)
   answers   UserAnswers[]
@@ -35,7 +35,7 @@ model Stripe {
   id         Int     @id @default(autoincrement())
   customerId String  @unique
   accountId  Int     @unique
-  account    Account @relation(fields: [accountId], references: [id])
+  account    Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
 }
 
 model Answers {
