@@ -342,7 +342,11 @@ const createPrismaMock = async <P>(
 
     const findOne = args => {
       if (!data[prop]) throw new Error(`${prop} not found in data`)
-      return includes(args)(data[prop].find(matchFnc(args.where)));
+      const items = findMany(args)
+      if (items.length === 0) {
+        return null
+      }
+      return items[0]
     };
     const findMany = args => {
       const res = data[prop].filter(matchFnc(args?.where)).map(includes(args));
@@ -362,13 +366,20 @@ const createPrismaMock = async <P>(
           return shouldInclude;
         });
       }
+      if (args?.select) {
+        return res.map(item => {
+          const newItem = {}
+          Object.keys(args.select).forEach(key => newItem[key] = item[key])
+          return newItem
+        })
+      }
       return res;
     };
-    const findFirst = args => {
-      const item = data[prop].find(matchFnc(args?.where));
-      if (item) return includes(args)(item);
-      return null;
-    };
+    // const findFirst = args => {
+    //   const item = data[prop].find(matchFnc(args?.where));
+    //   if (item) return includes(args)(item);
+    //   return null;
+    // };
     const updateMany = args => {
       // if (!Array.isArray(data[prop])) {
       //   throw new Error(`${prop} not found in data`)
@@ -412,9 +423,10 @@ const createPrismaMock = async <P>(
     };
 
     const includes = args => item => {
-      if (!args?.include || !item) return item;
+      if ((!args?.include && !args?.select) || !item) return item;
       let newItem = item;
-      const keys = Object.keys(args.include);
+      const obj = args?.select || args?.include;
+      const keys = Object.keys(obj);
       keys.forEach(key => {
         // Get field schema for relation info
 
@@ -426,11 +438,16 @@ const createPrismaMock = async <P>(
           return field.name === key;
         });
 
+        switch (schema.type) {
+          case "Int":
+            return
+        }
+
         // Get delegate for relation
         const delegate = Delegate(getCamelCase(schema.type), model);
 
         // Construct arg for relation query
-        let subArgs = args.include[key] === true ? {} : args.include[key];
+        let subArgs = obj[key] === true ? {} : obj[key];
         subArgs = {
           ...subArgs,
           where: {
@@ -459,7 +476,7 @@ const createPrismaMock = async <P>(
       findOne,
       findUnique: findOne,
       findMany,
-      findFirst,
+      findFirst: findOne,
       create,
       createMany: (args) => {
         args.data.forEach((data) => {
