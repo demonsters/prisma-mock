@@ -55,16 +55,16 @@ const createPrismaMock = async <P>(
   const checkIds = (model: DMMF.Model, data: PrismaMockData<P>) => {
     const c = getCamelCase(model.name);
     const idFields = model.idFields || model.primaryKey?.fields
-    // console.log("model.name", model.name)
-    if (idFields?.length > 1) {
-      const id = idFields.join('_');
+    
+    const checkId = (ids: string[]) => {
+      const id = ids.join('_');
       data = {
         ...data,
         [c]: data[c].map(item => {
           const { [id]: idVal, ...rest } = item;
           return {
             ...idVal,
-            [id]: idFields.reduce((prev, field) => {
+            [id]: ids.reduce((prev, field) => {
               return {
                 ...prev,
                 [field]: item[field],
@@ -74,6 +74,17 @@ const createPrismaMock = async <P>(
           };
         }),
       };
+    }
+
+    // console.log("model.name", model.name)
+    if (idFields?.length > 1) {
+      checkId(idFields)
+    }
+
+    if (model.uniqueFields?.length > 0) {
+      for (const uniqueField of model.uniqueFields) {
+        checkId(uniqueField)
+      }
     }
     return data;
   };
@@ -348,6 +359,14 @@ const createPrismaMock = async <P>(
           if (idFields?.length > 1) {
             if (child === idFields.join('_')) {
               return shallowCompare(val, filter);
+            }
+          }
+
+          if (model.uniqueFields?.length > 0) {
+            for (const uniqueField of model.uniqueFields) {
+              if (child === uniqueField.join('_')) {
+                return shallowCompare(val, filter);
+              }
             }
           }
           if (val === undefined) {

@@ -28,6 +28,7 @@ model User {
   answers   UserAnswers[]
   clicks    Int?
   guestOf   Account[]     @relation("AccountGuest")
+  element   Element[]
 }
 
 model Stripe {
@@ -53,4 +54,16 @@ model UserAnswers {
   value String?
 
   @@id([userId, answerId])
+}
+
+
+model Element {
+  id         Int     @id @default(autoincrement())
+
+  user   User @relation(fields: [userId], references: [id])
+  userId Int
+
+  value String
+
+  @@unique([userId, value])
 }
