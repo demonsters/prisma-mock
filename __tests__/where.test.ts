@@ -176,4 +176,38 @@ describe('PrismaClient where', () => {
     });
     expect(accounts).toEqual([data.account[0]]);
   });
+
+  test("OR", async () => {
+    const client = await createPrismaClient(data);
+    const accounts = await client.account.findMany({
+      where: {
+        OR: [{ name: "Dirk" }, { name: "Piet" }],
+      },
+    })
+    expect(accounts.length).toEqual(2);
+    expect(accounts).toEqual([data.account[0], data.account[1]]);
+  })
+
+  test("NOT", async () => {
+    const client = await createPrismaClient(data);
+    const accounts = await client.account.findMany({
+      where: {
+        NOT: [{ name: "Dirk" }, { name: "Piet" }],
+      },
+    })
+    expect(accounts.length).toEqual(1);
+    expect(accounts).toEqual([data.account[2]]);
+  })
+
+  test("AND", async () => {
+    const client = await createPrismaClient(data);
+    const accounts = await client.account.findMany({
+      where: {
+        AND: [{ name: "Dirk" }, { id: 2 }],
+      },
+    })
+    expect(accounts.length).toEqual(1);
+    expect(accounts).toEqual([data.account[1]]);
+  })
+
 });

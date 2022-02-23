@@ -38,59 +38,59 @@ const createPrismaMock = async <P>(
 ): Promise<P> => {
 
 
-const getCamelCase = (name: any) => {
-  return name.substr(0, 1).toLowerCase() + name.substr(1);
-};
+  const getCamelCase = (name: any) => {
+    return name.substr(0, 1).toLowerCase() + name.substr(1);
+  };
 
-const shallowCompare = (
-  a: { [key: string]: any },
-  b: { [key: string]: any },
-) => {
-  for (let key in a) {
-    if (a[key] !== b[key]) return false;
-  }
-  return true;
-};
+  const shallowCompare = (
+    a: { [key: string]: any },
+    b: { [key: string]: any },
+  ) => {
+    for (let key in a) {
+      if (a[key] !== b[key]) return false;
+    }
+    return true;
+  };
 
-const checkIds = (model: DMMF.Model, data: PrismaMockData<P>) => {
-  const c = getCamelCase(model.name);
-  const idFields = model.idFields || model.primaryKey?.fields
-  // console.log("model.name", model.name)
-  if (idFields?.length > 1) {
-    const id = idFields.join('_');
-    data = {
-      ...data,
-      [c]: data[c].map(item => {
-        return {
-          ...item,
-          [id]: idFields.reduce((prev, field) => {
-            return {
-              ...prev,
-              [field]: item[field],
-            };
-          }, {}),
-        };
-      }),
-    };
-  }
-  return data;
-};
+  const checkIds = (model: DMMF.Model, data: PrismaMockData<P>) => {
+    const c = getCamelCase(model.name);
+    const idFields = model.idFields || model.primaryKey?.fields
+    // console.log("model.name", model.name)
+    if (idFields?.length > 1) {
+      const id = idFields.join('_');
+      data = {
+        ...data,
+        [c]: data[c].map(item => {
+          return {
+            ...item,
+            [id]: idFields.reduce((prev, field) => {
+              return {
+                ...prev,
+                [field]: item[field],
+              };
+            }, {}),
+          };
+        }),
+      };
+    }
+    return data;
+  };
 
-const getFieldRelationshipWhere = (item, field: DMMF.Field) => ({
-  [field.relationToFields[0]]: item[field.relationFromFields[0]],
-});
-
-
-const getJoinField = (field: DMMF.Field) => {
-  const joinmodel = cachedSchema.datamodel.models.find(model => {
-    return model.name === field.type;
+  const getFieldRelationshipWhere = (item, field: DMMF.Field) => ({
+    [field.relationToFields[0]]: item[field.relationFromFields[0]],
   });
 
-  const joinfield = joinmodel.fields.find(f => {
-    return f.relationName === field.relationName;
-  });
-  return joinfield;
-}
+
+  const getJoinField = (field: DMMF.Field) => {
+    const joinmodel = cachedSchema.datamodel.models.find(model => {
+      return model.name === field.type;
+    });
+
+    const joinfield = joinmodel.fields.find(f => {
+      return f.relationName === field.relationName;
+    });
+    return joinfield;
+  }
 
 
   if (!cachedSchema) {
@@ -120,8 +120,6 @@ const getJoinField = (field: DMMF.Field) => {
       });
 
       model.fields.forEach(field => {
-
-        d //?
 
         if (d[field.name] && field.kind === 'object') {
           const c = d[field.name];
@@ -239,88 +237,115 @@ const getJoinField = (field: DMMF.Field) => {
       return d
     }
 
-    const matchFnc = args => item => {
-      if (args?.where) {
-        for (let child in args?.where) {
-          const val = item[child];
-          const filter = args.where[child];
-          if (filter instanceof Date) {
-            if (val === undefined) {
-              return false;
-            }
-            if (!(val instanceof Date) || val.getTime() !== filter.getTime()) {
-              return false;
-            }
-          } else {
-            if (typeof filter === 'object') {
-              const info = model.fields.find(field => field.name === child);
-              if (info?.relationName) {
-                const childName = getCamelCase(info.type);
-                const res = data[childName].filter(
-                  matchFnc({
-                    where: {
-                      ...filter,
-                      ...getFieldRelationshipWhere(item, info),
-                    },
-                  }),
-                );
-                return res.length > 0;
-              }
-              const idFields = model.idFields || model.primaryKey?.fields
-              if (idFields?.length > 1) {
-                if (child === idFields.join('_')) {
-                  return shallowCompare(val, filter);
-                }
-              }
-              if (val === undefined) {
-                return false;
-              }
-              let match = true;
-              if ('equals' in filter && match) {
-                match = filter.equals === val;
-              }
-              if ('startsWith' in filter && match) {
-                match = val.indexOf(filter.startsWith) === 0;
-              }
-              if ('endsWith' in filter && match) {
-                match =
-                  val.indexOf(filter.endsWith) ===
-                  val.length - filter.endsWith.length;
-              }
-              if ('contains' in filter && match) {
-                match = val.indexOf(filter.contains) > -1;
-              }
-              if ('gt' in filter && match) {
-                match = val > filter.gt;
-              }
-              if ('gte' in filter && match) {
-                match = val >= filter.gte;
-              }
-              if ('lt' in filter && match) {
-                match = val < filter.lt;
-              }
-              if ('lte' in filter && match) {
-                match = val <= filter.lte;
-              }
-              if ('in' in filter && match) {
-                match = filter.in.includes(val);
-              }
-              if (!match) return false
-            } else if (val !== filter) {
-              return false;
+    const matchItem = (child, item, where) => {
+      const val = item[child];
+      const filter = where[child];
+      if (child === "OR") {
+        return matchOr(item, filter);
+      }
+      if (child === "AND") {
+        return matchAnd(item, filter);
+      }
+      if (child === "NOT") {
+        return !matchOr(item, filter);
+      }
+      if (filter instanceof Date) {
+        if (val === undefined) {
+          return false;
+        }
+        if (!(val instanceof Date) || val.getTime() !== filter.getTime()) {
+          return false;
+        }
+      } else {
+        if (typeof filter === 'object') {
+          const info = model.fields.find(field => field.name === child);
+          if (info?.relationName) {
+            const childName = getCamelCase(info.type);
+            const res = data[childName].filter(
+              matchFnc({
+                ...filter,
+                ...getFieldRelationshipWhere(item, info),
+              }),
+            );
+            return res.length > 0;
+          }
+          const idFields = model.idFields || model.primaryKey?.fields
+          if (idFields?.length > 1) {
+            if (child === idFields.join('_')) {
+              return shallowCompare(val, filter);
             }
           }
+          if (val === undefined) {
+            return false;
+          }
+          let match = true;
+          if ('equals' in filter && match) {
+            match = filter.equals === val;
+          }
+          if ('startsWith' in filter && match) {
+            match = val.indexOf(filter.startsWith) === 0;
+          }
+          if ('endsWith' in filter && match) {
+            match =
+              val.indexOf(filter.endsWith) ===
+              val.length - filter.endsWith.length;
+          }
+          if ('contains' in filter && match) {
+            match = val.indexOf(filter.contains) > -1;
+          }
+          if ('gt' in filter && match) {
+            match = val > filter.gt;
+          }
+          if ('gte' in filter && match) {
+            match = val >= filter.gte;
+          }
+          if ('lt' in filter && match) {
+            match = val < filter.lt;
+          }
+          if ('lte' in filter && match) {
+            match = val <= filter.lte;
+          }
+          if ('in' in filter && match) {
+            match = filter.in.includes(val);
+          }
+          if (!match) return false
+        } else if (val !== filter) {
+          return false;
         }
+      }
+      return true
+    }
+
+    const matchItems = (item, where) => {
+      for (let child in where) {
+        if (!matchItem(child, item, where)) {
+          return false;
+        }
+      }
+      return true
+    }
+
+    const matchAnd = (item, where) => {
+      return where.filter((child) => matchItems(item, child)).length > 0
+    }
+
+    const matchOr = (item, where: Array<{ [key: string]: any }>) => {
+      return where.some((child) => matchItems(item, child))
+    }
+
+    const matchFnc = where => item => {
+      if (where) {
+        return matchItems(item, where);
       }
       return true;
     };
 
     const findOne = args => {
       if (!data[prop]) throw new Error(`${prop} not found in data`)
-      return includes(args)(data[prop].find(matchFnc(args)));
+      return includes(args)(data[prop].find(matchFnc(args.where)));
     };
     const findMany = args => {
-      const res = data[prop].filter(matchFnc(args)).map(includes(args));
+      const res = data[prop].filter(matchFnc(args?.where)).map(includes(args));
       if (args?.distinct) {
         let values = {};
         return res.filter(item => {
@@ -340,7 +365,7 @@ const getJoinField = (field: DMMF.Field) => {
       return res;
     };
     const findFirst = args => {
-      const item = data[prop].find(matchFnc(args));
+      const item = data[prop].find(matchFnc(args?.where));
       if (item) return includes(args)(item);
       return null;
     };
@@ -349,7 +374,7 @@ const getJoinField = (field: DMMF.Field) => {
       //   throw new Error(`${prop} not found in data`)
       // }
       const newItems = data[prop].map(e => {
-        if (matchFnc(args)(e)) {
+        if (matchFnc(args.where)(e)) {
           let data = nestedUpdate(args, false);
           return {
             ...e,
@@ -374,7 +399,6 @@ const getJoinField = (field: DMMF.Field) => {
         ...data,
         [prop]: [...data[prop], d],
       };
-      data //?
       data = checkIds(model, data);
 
       return findOne({ where: { id: d.id }, ...args });
@@ -383,7 +407,7 @@ const getJoinField = (field: DMMF.Field) => {
     const deleteMany = args => {
       data = {
         ...data,
-        [prop]: data[prop].filter(e => !matchFnc(args)(e)),
+        [prop]: data[prop].filter(e => !matchFnc(args?.where)(e)),
       };
     };
 
