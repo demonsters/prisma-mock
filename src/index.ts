@@ -61,14 +61,16 @@ const createPrismaMock = async <P>(
       data = {
         ...data,
         [c]: data[c].map(item => {
+          const { [id]: idVal, ...rest } = item;
           return {
-            ...item,
+            ...idVal,
             [id]: idFields.reduce((prev, field) => {
               return {
                 ...prev,
                 [field]: item[field],
               };
             }, {}),
+            ...item,
           };
         }),
       };

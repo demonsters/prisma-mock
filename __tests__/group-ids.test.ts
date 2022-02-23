@@ -26,6 +26,10 @@ describe('PrismaClient @@id()', () => {
       {
         id: 2,
         title: "Answer"
+      },
+      {
+        id: 3,
+        title: "Answer"
       }
     ],
   }
@@ -41,6 +45,19 @@ describe('PrismaClient @@id()', () => {
       },
     })
     expect(user).toEqual(expect.objectContaining(data.userAnswers[0]))
+  })
+
+  test('findOne NOT found', async () => {
+    const client = await createPrismaClient(data)
+    const user = await client.userAnswers.findUnique({
+      where: {
+        userId_answerId: {
+          userId: 2,
+          answerId: 2
+        }
+      },
+    })
+    expect(user).toBe(null)
   })
 
   test('create', async () => {
@@ -76,14 +93,10 @@ describe('PrismaClient @@id()', () => {
     
   })
 
-  test('upsert update', async () => {
-    
-  })
-
   test('upsert insert', async () => {
     const client = await createPrismaClient(data)
     
-    const newItem = await client.userAnswers.upsert({
+    const newItem1 = await client.userAnswers.upsert({
       create: {
         value: "created"
       },
@@ -91,16 +104,54 @@ describe('PrismaClient @@id()', () => {
         value: "updated"
       },
       where: {
-        copyId_langId: {
+        userId_answerId: {
           userId: 1,
           answerId: 1
         },
       },
     })
-    const userAnswers = await client.userAnswers.findMany({})
-    expect(userAnswers.length).toEqual(2)
-    expect(newItem.value).toEqual("created")
+    expect(newItem1.userId_answerId.answerId).toEqual(1)
+    expect(newItem1.value).toEqual("created")
+
+
+    const newItem3 = await client.userAnswers.upsert({
+      create: {
+        value: "created"
+      },
+      update: {
+        value: "updated"
+      },
+      where: {
+        userId_answerId: {
+          userId: 1,
+          answerId: 3
+        },
+      },
+    })
+    expect(newItem3.userId_answerId.answerId).toEqual(3)
+    expect(newItem3.value).toEqual("created")
+
+    // const userAnswers = await client.userAnswers.findMany({}) //?
+    // expect(userAnswers.length).toEqual(2)
+    // 
+
+    // const found = await client.userAnswers.findUnique({
+    //   where: {
+    //     userId_answerId: {
+    //       userId: 1,
+    //       answerId: 1
+    //     },
+    //   },
+    // })
+    // expect(found.userId).toEqual(1)
+
   })
+
+
+  test('upsert update', async () => {
+    
+  })
+
 
   test.todo("connect")
   test.todo('should throw when there is a duplicate')
