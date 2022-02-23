@@ -1,7 +1,7 @@
   // @ts-nocheck
 
 import { PrismaClient } from '@prisma/client'
-import createPrismaClient from '../src/'
+import createPrismaClient from '../src'
 
 describe('PrismaClient @@unique()', () => {
 
