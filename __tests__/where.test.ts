@@ -210,4 +210,42 @@ describe('PrismaClient where', () => {
     expect(accounts).toEqual([data.account[1]]);
   })
 
+  describe("null & undefined", () => {
+
+    const data = {
+      user: [
+        {
+          id: 1,
+          name: 'Henk',
+        },
+        {
+          id: 2,
+          name: undefined
+        }
+      ]
+    }
+
+    test("null", async () => {
+      const client = await createPrismaClient(data);
+      const users = await client.user.findMany({
+        where: {
+          name: null
+        },
+      })
+      expect(users.length).toEqual(1);
+    })
+
+    test("undefined", async () => {
+      const client = await createPrismaClient(data);
+      const users = await client.user.findMany({
+        where: {
+          name: undefined
+        },
+      })
+      expect(users.length).toEqual(2);
+    })
+  })
+
+
+
 });

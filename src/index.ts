@@ -249,6 +249,13 @@ const createPrismaMock = async <P>(
       if (child === "NOT") {
         return !matchOr(item, filter);
       }
+      if (!filter) {
+        if (filter === null) {
+          return !val;
+        }
+        return true
+      }
+
       if (filter instanceof Date) {
         if (val === undefined) {
           return false;
