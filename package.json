@@ -9,21 +9,23 @@
     "lib/"
   ],
   "dependencies": {
-    "@prisma/generator-helper": "^3.5.0",
-    "@prisma/sdk": "^3.5.0",
-    "prisma": "^3.4.2"
+    "@prisma/client": "3.10.0",
+    "@prisma/generator-helper": "^3.10.0",
+    "@prisma/sdk": "^3.10.0"
   },
   "devDependencies": {
     "@types/jest": "^27.0.2",
     "jest": "^27.3.1",
     "jest-mock-extended": "^2.0.4",
+    "prisma": "3.5.0",
     "ts-jest": "^27.0.7",
     "typescript": "^4.4.4"
   },
   "scripts": {
     "preversion": "tsc",
     "build": "tsc",
-    "watch": "tsc --watch"
+    "watch": "tsc --watch",
+    "postinstall": "prisma generate"
   },
   "peerDependencies": {
     "@prisma/client": "^3.5.0"
