@@ -17,6 +17,7 @@ model Account {
   users  User[]  @relation("AccountUsers")
   stripe Stripe? @relation
   name   String?
+  guest  User[]  @relation("AccountGuest")
 }
 
 model User {
@@ -26,6 +27,7 @@ model User {
   role      Role          @default(ADMIN)
   answers   UserAnswers[]
   clicks    Int?
+  guestOf   Account[]     @relation("AccountGuest")
 }
 
 model Stripe {

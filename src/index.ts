@@ -76,9 +76,18 @@ const createPrismaMock = async <P>(
     return data;
   };
 
-  const getFieldRelationshipWhere = (item, field: DMMF.Field) => ({
-    [field.relationToFields[0]]: item[field.relationFromFields[0]],
-  });
+  const getFieldRelationshipWhere = (item, field: DMMF.Field) => {
+
+    if (field.relationToFields.length === 0) {
+      field = getJoinField(field)
+      return {
+        [field.relationFromFields[0]]: item[field.relationToFields[0]],
+      }
+    }
+    return ({
+      [field.relationToFields[0]]: item[field.relationFromFields[0]],
+    });
+  }
 
 
   const getJoinField = (field: DMMF.Field) => {
@@ -287,7 +296,7 @@ const createPrismaMock = async <P>(
       }
       if (!filter) {
         if (filter === null) {
-          return !val;
+          return val === null || val === undefined;
         }
         return true
       }
@@ -304,12 +313,33 @@ const createPrismaMock = async <P>(
           const info = model.fields.find(field => field.name === child);
           if (info?.relationName) {
             const childName = getCamelCase(info.type);
+            let childWhere = {}
+            if (filter.every) {
+              childWhere = filter.every;
+            } else if (filter.some) {
+              childWhere = filter.some;
+            } else if (filter.none) {
+              childWhere = filter.none;
+            } else {
+              childWhere = filter;
+            }
             const res = data[childName].filter(
               matchFnc({
-                ...filter,
+                ...childWhere,
                 ...getFieldRelationshipWhere(item, info),
               }),
             );
+            if (filter.every) {
+              if (res.length === 0) return false
+              const all = data[childName].filter(
+                matchFnc(getFieldRelationshipWhere(item, info)),
+              );
+              return res.length === all.length;
+            } else if (filter.some) {
+              return res.length > 0;  
+            } else if (filter.none) {
+              return res.length === 0
+            }
             return res.length > 0;
           }
           const idFields = model.idFields || model.primaryKey?.fields
@@ -424,11 +454,7 @@ const createPrismaMock = async <P>(
       }
       return res;
     };
-    // const findFirst = args => {
-    //   const item = data[prop].find(matchFnc(args?.where));
-    //   if (item) return includes(args)(item);
-    //   return null;
-    // };
+    
     const updateMany = args => {
       // if (!Array.isArray(data[prop])) {
       //   throw new Error(`${prop} not found in data`)
@@ -567,7 +593,7 @@ const createPrismaMock = async <P>(
       },
     };
   };
-
+  
   cachedSchema.datamodel.models.forEach(model => {
     if (!model) return
     const c = getCamelCase(model.name);
@@ -578,6 +604,8 @@ const createPrismaMock = async <P>(
       };
     }
     data = checkIds(model, data);
+
+    model.fields //?
 
     const objs = Delegate(c, model);
     Object.keys(objs).forEach(fncName => {

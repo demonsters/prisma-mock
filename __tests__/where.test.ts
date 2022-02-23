@@ -1,19 +1,11 @@
 // @ts-nocheck
 
 import createPrismaClient from '../src';
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, Role } from '@prisma/client';
 
 
 // TODO:
 // Pagination
-// equals?: string | null
-//   in?: Enumerable<string> | null
-//   notIn?: Enumerable<string> | null
-
-// every?: PostWhereInput | null
-// some?: PostWhereInput | null
-// none?: PostWhereInput | null
-// connect & create subitems
 // OrderBy
 
 describe('PrismaClient where', () => {
@@ -228,6 +220,71 @@ describe('PrismaClient where', () => {
     })
     expect(accounts.length).toEqual(1);
     expect(accounts).toEqual([data.account[1]]);
+  })
+
+  describe("join", () => {
+  
+    const data = {
+      account: [
+        { id: 1, name: "A" },
+        { id: 2, name: "B" },
+        { id: 3, name: "C" },
+      ],
+      user: [
+        { id: 1, accountId: 1, role: Role.ADMIN },
+        { id: 2, accountId: 1, role: Role.ADMIN },
+        { id: 3, accountId: 2, role: Role.USER },
+        { id: 4, accountId: 2, role: Role.ADMIN },
+      ]
+    }
+
+    test("every", async () => {
+      const client = await createPrismaClient(data);
+      const accounts = await client.account.findMany({
+        where: {
+          users: {
+            every: {
+              role: Role.ADMIN
+            }
+          }
+        }
+      })
+      expect(accounts.length).toEqual(1);
+      expect(accounts).toEqual([data.account[0]]);
+    })
+    test("some", async () => {
+      const client = await createPrismaClient(data);
+      const accounts = await client.account.findMany({
+        where: {
+          users: {
+            some: {
+              role: Role.ADMIN
+            }
+          }
+        }
+      })
+      expect(accounts.length).toEqual(2);
+      expect(accounts).toEqual([data.account[0], data.account[1]]);
+    })
+
+    test("none", async () => {
+      const client = await createPrismaClient(data);
+      const accounts = await client.account.findMany({
+        where: {
+          users: {
+            none: {
+              role: Role.ADMIN
+            }
+          }
+        }
+      })
+      expect(accounts.length).toEqual(1);
+      expect(accounts).toEqual([data.account[2]]);
+    })
+
+  // every?: PostWhereInput | null
+  // some?: PostWhereInput | null
+  // none?: PostWhereInput | null
   })
 
   describe("null & undefined", () => {
