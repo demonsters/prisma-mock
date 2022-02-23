@@ -25,6 +25,7 @@ model User {
   accountId Int?
   role      Role          @default(ADMIN)
   answers   UserAnswers[]
+  clicks    Int?
 }
 
 model Stripe {

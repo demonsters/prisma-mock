@@ -5,10 +5,8 @@ import { PrismaClient } from '@prisma/client';
 
 
 // TODO:
-// OR
 // Pagination
 // equals?: string | null
-//   not?: string | StringFilter | null
 //   in?: Enumerable<string> | null
 //   notIn?: Enumerable<string> | null
 

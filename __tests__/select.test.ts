@@ -1,7 +1,6 @@
 // @ts-nocheck
 
 import createPrismaClient from "../src";
-import { PrismaClient } from "@prisma/client";
 
 
 describe("PrismaClient select", () => {

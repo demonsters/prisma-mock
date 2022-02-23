@@ -111,7 +111,7 @@ const createPrismaMock = async <P>(
   const Delegate = (prop: string, model: DMMF.Model) => {
 
 
-    const nestedUpdate = (args, isCreating: boolean) => {
+    const nestedUpdate = (args, isCreating: boolean, item) => {
       let d = args.data;
 
       // Get field schema for default values
@@ -121,96 +121,132 @@ const createPrismaMock = async <P>(
 
       model.fields.forEach(field => {
 
-        if (d[field.name] && field.kind === 'object') {
+        if (d[field.name]) {
           const c = d[field.name];
-          if (c.connect) {
-            const { [field.name]: connect, ...rest } = d;
-            d = {
-              ...rest,
-              [field.relationFromFields[0]]:
-                connect.connect[field.relationToFields[0]],
-            };
-          }
-          if (c.create || c.createMany) {
-            const { [field.name]: create, ...rest } = d;
-            d = rest;
-            // @ts-ignore
-            const name = getCamelCase(field.type);
-            const delegate = Delegate(name, model);
 
-            const joinfield = getJoinField(field);
+          if (field.kind === 'object') {
 
-            if (field.relationFromFields.length > 0) {
-              const item = delegate.create({
-                data: create.create
-              })
+            if (c.connect) {
+              const { [field.name]: connect, ...rest } = d;
               d = {
                 ...rest,
                 [field.relationFromFields[0]]:
-                  item[field.relationToFields[0]],
+                  connect.connect[field.relationToFields[0]],
               };
-            } else {
-              const map = (val) => ({
-                ...val,
-                [joinfield.name]: {
-                  connect: joinfield.relationToFields.reduce(
-                    (prev, cur, index) => {
-                      let val = d[cur]
-                      if (!isCreating && !val) {
-                        val = findOne(args)[cur]
-                      }
-                      return {
-                        ...prev,
-                        [cur]: val,
-                      };
-                    },
-                    {},
-                  ),
-                },
-              })
-              if (c.createMany) {
-                delegate.createMany({
-                  ...c.createMany,
-                  data: c.createMany.data.map(map),
-                });
+            }
+            if (c.create || c.createMany) {
+              const { [field.name]: create, ...rest } = d;
+              d = rest;
+              // @ts-ignore
+              const name = getCamelCase(field.type);
+              const delegate = Delegate(name, model);
+
+              const joinfield = getJoinField(field);
+
+              if (field.relationFromFields.length > 0) {
+                const item = delegate.create({
+                  data: create.create
+                })
+                d = {
+                  ...rest,
+                  [field.relationFromFields[0]]:
+                    item[field.relationToFields[0]],
+                };
               } else {
-                if (Array.isArray(c.create)) {
+                const map = (val) => ({
+                  ...val,
+                  [joinfield.name]: {
+                    connect: joinfield.relationToFields.reduce(
+                      (prev, cur, index) => {
+                        let val = d[cur]
+                        if (!isCreating && !val) {
+                          val = findOne(args)[cur]
+                        }
+                        return {
+                          ...prev,
+                          [cur]: val,
+                        };
+                      },
+                      {},
+                    ),
+                  },
+                })
+                if (c.createMany) {
                   delegate.createMany({
-                    ...c.create,
-                    data: c.create.map(map),
+                    ...c.createMany,
+                    data: c.createMany.data.map(map),
                   });
                 } else {
-                  delegate.create({
-                    ...create.create,
-                    data: map(create.create),
-                  });
+                  if (Array.isArray(c.create)) {
+                    delegate.createMany({
+                      ...c.create,
+                      data: c.create.map(map),
+                    });
+                  } else {
+                    delegate.create({
+                      ...create.create,
+                      data: map(create.create),
+                    });
+                  }
+                }
+              }
+            }
+
+            if (c.update || c.updateMany) {
+              const name = getCamelCase(field.type);
+              const delegate = Delegate(name, model);
+              if (c.updateMany) {
+                if (Array.isArray(c.updateMany)) {
+                  c.updateMany.forEach(updateMany => {
+                    delegate.updateMany(updateMany);
+                  })
+                } else {
+                  delegate.updateMany(c.updateMany);
+                }
+              } else {
+                if (Array.isArray(c.update)) {
+                  c.update.forEach(update => {
+                    delegate.update(update);
+                  })
+                } else {
+                  const item = findOne(args);
+                  delegate.update({ data: c.update, where: getFieldRelationshipWhere(item, field) });
                 }
               }
             }
           }
-
-          if (c.update || c.updateMany) {
-            const name = getCamelCase(field.type);
-            const delegate = Delegate(name, model);
-            if (c.updateMany) {
-              if (Array.isArray(c.updateMany)) {
-                c.updateMany.forEach(updateMany => {
-                  delegate.updateMany(updateMany);
-                })
-              } else {
-                delegate.updateMany(c.updateMany);
-              }
-            } else {
-              if (Array.isArray(c.update)) {
-                c.update.forEach(update => {
-                  delegate.update(update);
-                })
-              } else {
-                const item = findOne(args);
-                delegate.update({ data: c.update, where: getFieldRelationshipWhere(item, field) });
-              }
+          
+          if (c.increment) {
+            d = {
+              ...d,
+              [field.name]: item[field.name] + c.increment
             }
           }
+          if (c.decrement) {
+            d = {
+              ...d,
+              [field.name]: item[field.name] - c.decrement
+            }
+          }
+          if (c.multiply) {
+            d = {
+              ...d,
+              [field.name]: item[field.name] * c.multiply
+            }
+          }
+          if (c.divide) {
+            d = {
+              ...d,
+              [field.name]: item[field.name] / c.divide
+            }
+          }
+          if (c.set) {
+            d = {
+              ...d,
+              [field.name]: c.set
+            }
+          }
+
         }
 
         if (isCreating && !d[field.name] && field.default) {
@@ -393,7 +429,7 @@ const createPrismaMock = async <P>(
       // }
       const newItems = data[prop].map(e => {
         if (matchFnc(args.where)(e)) {
-          let data = nestedUpdate(args, false);
+          let data = nestedUpdate(args, false, e);
           return {
             ...e,
             ...data,
@@ -411,7 +447,7 @@ const createPrismaMock = async <P>(
 
     const create = args => {
 
-      const d = nestedUpdate(args, true)
+      const d = nestedUpdate(args, true, null)
 
       data = {
         ...data,
