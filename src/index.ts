@@ -336,7 +336,7 @@ const createPrismaMock = async <P>(
               );
               return res.length === all.length;
             } else if (filter.some) {
-              return res.length > 0;  
+              return res.length > 0;
             } else if (filter.none) {
               return res.length === 0
             }
@@ -420,7 +420,7 @@ const createPrismaMock = async <P>(
     };
 
     const findOne = args => {
-      if (!data[prop]) throw new Error(`${prop} not found in data`)
+      if (!data[prop]) return null
       const items = findMany(args)
       if (items.length === 0) {
         return null
@@ -454,7 +454,7 @@ const createPrismaMock = async <P>(
       }
       return res;
     };
-    
+
     const updateMany = args => {
       // if (!Array.isArray(data[prop])) {
       //   throw new Error(`${prop} not found in data`)
@@ -487,6 +487,7 @@ const createPrismaMock = async <P>(
       };
       data = checkIds(model, data);
 
+      // TODO: Grouped-ids
       return findOne({ where: { id: d.id }, ...args });
     };
 
@@ -546,6 +547,11 @@ const createPrismaMock = async <P>(
       return newItem;
     };
 
+    const update = (args) => {
+      updateMany(args)
+      return findOne(args)
+    }
+
     return {
       findOne,
       findUnique: findOne,
@@ -562,10 +568,7 @@ const createPrismaMock = async <P>(
         return findMany(args)
       },
       delete: deleteMany,
-      update: (args) => {
-        updateMany(args)
-        return findOne(args)
-      },
+      update,
       deleteMany,
       updateMany: (args) => {
         updateMany(args)
@@ -575,15 +578,19 @@ const createPrismaMock = async <P>(
       upsert(args) {
         const res = findOne(args);
         if (res) {
-          updateMany({
+          return update({
             ...args,
             data: args.update,
           });
         } else {
           create({
             ...args,
-            data: args.create,
+            data: {
+              ...args.where,
+              ...args.create
+            },
           });
+          return findOne(args);
         }
       },
 
@@ -604,8 +611,6 @@ const createPrismaMock = async <P>(
       };
     }
     data = checkIds(model, data);
-
-    model.fields //?
 
     const objs = Delegate(c, model);
     Object.keys(objs).forEach(fncName => {

@@ -50,5 +50,7 @@ model UserAnswers {
   user   User @relation(fields: [userId], references: [id])
   userId Int
 
+  value String?
+
   @@id([userId, answerId])
 }

@@ -1,7 +1,6 @@
 // @ts-nocheck
 
 import createPrismaClient from '../src/'
-import { PrismaClient } from '@prisma/client'
 
 
 describe('PrismaClient @@id()', () => {
@@ -82,7 +81,25 @@ describe('PrismaClient @@id()', () => {
   })
 
   test('upsert insert', async () => {
+    const client = await createPrismaClient(data)
     
+    const newItem = await client.userAnswers.upsert({
+      create: {
+        value: "created"
+      },
+      update: {
+        value: "updated"
+      },
+      where: {
+        copyId_langId: {
+          userId: 1,
+          answerId: 1
+        },
+      },
+    })
+    const userAnswers = await client.userAnswers.findMany({})
+    expect(userAnswers.length).toEqual(2)
+    expect(newItem.value).toEqual("created")
   })
 
   test.todo("connect")
