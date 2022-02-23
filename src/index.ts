@@ -307,7 +307,7 @@ const createPrismaMock = async <P>(
       if (child === "NOT") {
         return !matchOr(item, filter);
       }
-      if (!filter) {
+      if (filter == null || filter === undefined) {
         if (filter === null) {
           return val === null || val === undefined;
         }
@@ -513,8 +513,6 @@ const createPrismaMock = async <P>(
     };
 
     const deleteMany = args => {
-
-      const relations: DMMF.Field[] = []
 
       const model = cachedSchema.datamodel.models.find(model => {
         return getCamelCase(model.name) === prop;
