@@ -23,12 +23,14 @@ describe('Nested', () => {
     expect(users.length).toBe(1)
     expect(account).toEqual(
       {
-        id: 2,
+        id: 1,
+        name: null,
         users: [{
-          id: 2,
-          accountId: 2,
+          id: 1,
+          accountId: 1,
           role: "USER",
           deleted: false,
+          clicks: null
         }]
       }
     )
@@ -52,12 +54,14 @@ describe('Nested', () => {
     })
     expect(user).toEqual(
       {
-        id: 2,
-        accountId: 2,
+        id: 1,
+        accountId: 1,
         role: "USER",
         deleted: false,
+        clicks: null,
         account: {
-          id: 2,
+          id: 1,
+          name: null,
         }
       }
     )
@@ -82,17 +86,20 @@ describe('Nested', () => {
     })
     expect(account).toEqual(
       {
-        id: 2,
+        id: 1,
+        name: null,
         users: [{
-          id: 2,
+          id: 1,
           role: "USER",
-          accountId: 2,
+          accountId: 1,
           deleted: false,
+          clicks: null,
         }, {
-          id: 3,
+          id: 2,
           role: "ADMIN",
-          accountId: 2,
+          accountId: 1,
           deleted: false,
+          clicks: null,
         }]
       }
     )
@@ -122,10 +129,11 @@ describe('Nested', () => {
     expect(answer).toEqual(
       {
         title: "Title",
-        id: 2,
+        id: 1,
         users: [{
-          answerId: 2,
+          answerId: 1,
           userId: 1,
+          value: null,
           // userId_answerId: { answerId: 2, userId: 1 },
         }]
       }
@@ -163,6 +171,7 @@ describe('Nested', () => {
         users: [{
           answerId: 1,
           userId: 1,
+          value: null
           // TODO:
           // userId_answerId: { answerId: 1, userId: 1 },
         }]

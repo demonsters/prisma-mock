@@ -79,7 +79,9 @@ describe('PrismaClient', () => {
         id: 2,
         name: 'New user',
         role: "ADMIN",
-        deleted: false
+        deleted: false,
+        clicks: null,
+        accountId: null
       }
     ])
   })
@@ -103,6 +105,7 @@ describe('PrismaClient', () => {
         role: "ADMIN",
         deleted: false,
         accountId: 1,
+        clicks: null
       }
     ])
   })
@@ -205,6 +208,27 @@ describe('PrismaClient', () => {
         guestOf: [ account ]
       }
     ])
+  })
+
+  test("autoincoment", async () => {
+    const client = await createPrismaClient({})
+    const user = await client.user.create({
+      data: {
+        name: 'New user',
+      }
+    })
+    expect(user.id).toBe(1)
+    await client.user.delete({
+      where: {
+        id: user.id
+      }
+    })
+    const user2 = await client.user.create({
+      data: {
+        name: 'New user 2',
+      }
+    })
+    expect(user2.id).toBe(2)
   })
 
 })

@@ -26,6 +26,37 @@ describe("PrismaMock update", () => {
     expect(users[1].clicks).toEqual(15);
   })
 
+  test("increment negative", async () => {
+    const client = await createPrismaClient(data);
+    await client.user.updateMany({
+      data: {
+        clicks: {
+          increment: -1,
+        },
+      },
+    })
+    const users = await client.user.findMany()
+    expect(users[0].clicks).toEqual(1);
+    expect(users[1].clicks).toEqual(4);
+  })
+  
+  test("increment where", async () => {
+    const client = await createPrismaClient(data);
+    await client.user.updateMany({
+      data: {
+        clicks: {
+          increment: 10,
+        },
+      },
+      where: {
+        id: 1
+      }
+    })
+    const users = await client.user.findMany()
+    expect(users[0].clicks).toEqual(12);
+    expect(users[1].clicks).toEqual(5);
+  })
+
   test("decrement", async () => {
     const client = await createPrismaClient(data);
     await client.user.updateMany({

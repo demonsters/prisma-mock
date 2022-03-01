@@ -22,14 +22,7 @@ export type PrismaMockData<P> = Partial<{
   [key in IsTable<Uncapitalize<IsString<keyof P>>>]: PrismaList<P, key>
 }>
 
-
-// TODO:
-// - groupBy
-
 let cachedSchema: DMMF.Document;
-
-// type Key = Uncapitalize<ModelName>
-
 
 const createPrismaMock = async <P>(
   data: PrismaMockData<P> = {},
@@ -37,6 +30,7 @@ const createPrismaMock = async <P>(
   client = mockDeep<P>(),
 ): Promise<P> => {
 
+  let autoincrement: { [key: string]: number } = {}
 
   const getCamelCase = (name: any) => {
     return name.substr(0, 1).toLowerCase() + name.substr(1);
@@ -63,7 +57,6 @@ const createPrismaMock = async <P>(
         [c]: data[c].map(item => {
           const { [id]: idVal, ...rest } = item;
           return {
-            ...idVal,
             [id]: ids.reduce((prev, field) => {
               return {
                 ...prev,
@@ -71,12 +64,12 @@ const createPrismaMock = async <P>(
               };
             }, {}),
             ...item,
+            ...idVal,
           };
         }),
       };
     }
 
-    // console.log("model.name", model.name)
     if (idFields?.length > 1) {
       checkId(idFields)
     }
@@ -126,8 +119,10 @@ const createPrismaMock = async <P>(
   }
 
   // @ts-ignore
-  client["$transaction"].mockImplementation((actions) => {
-    return Promise.all(actions)
+  client["$transaction"].mockImplementation(async (actions) => {
+    for (const action of actions) {
+      await action
+    }
   })
 
   const Delegate = (prop: string, model: DMMF.Model) => {
@@ -268,26 +263,45 @@ const createPrismaMock = async <P>(
               [field.name]: c.set
             }
           }
-
         }
 
-        if ((isCreating || d[field.name] === null) && (d[field.name] === null || d[field.name] === undefined) && field.hasDefaultValue) {
-          if (typeof field.default === 'object') {
-            if (field.default.name === 'autoincrement') {
-              let m = 1;
-              data[prop].forEach(item => {
-                m = Math.max(m, item[field.name]);
-              });
+        if (
+          (isCreating || d[field.name] === null) &&
+          (d[field.name] === null || d[field.name] === undefined)) {
+          if (field.hasDefaultValue) {
+            if (typeof field.default === 'object') {
+              if (field.default.name === 'autoincrement') {
+                const key = `${prop}_${field.name}`
+                let m = autoincrement?.[key];
+                if (m === undefined) {
+                  m = 0
+                  data[prop].forEach(item => {
+                    m = Math.max(m, item[field.name]);
+                  });
+                }
+                m += 1
+                d = {
+                  ...d,
+                  [field.name]: m,
+                };
+                autoincrement = {
+                  ...autoincrement,
+                  [key]: m
+                }
+              }
+            } else {
               d = {
                 ...d,
-                [field.name]: m + 1,
+                [field.name]: field.default,
               };
             }
           } else {
-            d = {
-              ...d,
-              [field.name]: field.default,
-            };
+            if (field.kind !== "object") {
+              d = {
+                ...d,
+                [field.name]: null,
+              };
+            }
           }
         }
         // return field.name === key
@@ -508,7 +522,7 @@ const createPrismaMock = async <P>(
       };
       data = checkIds(model, data);
 
-      // TODO: Grouped-ids
+      // TODO: multi field ids
       return findOne({ where: { id: d.id }, ...args });
     };
 
