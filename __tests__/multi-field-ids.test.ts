@@ -76,12 +76,7 @@ describe('PrismaClient @@id()', () => {
         }
       },
     })
-    expect(user).toEqual(expect.objectContaining({
-      userId_answerId: {
-        userId: 1,
-        answerId: 1
-      }
-    }))
+    expect(user.userId_answerId).toBeFalsy()
     
   })
 
@@ -110,7 +105,7 @@ describe('PrismaClient @@id()', () => {
         },
       },
     })
-    expect(newItem1.userId_answerId.answerId).toEqual(1)
+    expect(newItem1.answerId).toEqual(1)
     expect(newItem1.value).toEqual("created")
 
 
@@ -128,7 +123,6 @@ describe('PrismaClient @@id()', () => {
         },
       },
     })
-    expect(newItem3.userId_answerId.answerId).toEqual(3)
     expect(newItem3.value).toEqual("created")
 
     // const userAnswers = await client.userAnswers.findMany({}) //?
@@ -152,6 +146,29 @@ describe('PrismaClient @@id()', () => {
     
   })
 
+  test('updateMany', async () => {
+    const client = await createPrismaClient(data)
+
+    await client.userAnswers.create({
+      data: {
+        userId_answerId: {
+          userId: 1,
+          answerId: 3
+        },
+      },
+    })
+
+    await client.userAnswers.updateMany({
+      data: {
+        answerId: 2
+      }
+    })
+
+    const items = await client.userAnswers.findMany()
+    expect(items.length).toEqual(2)
+    expect(items[0].answerId).toEqual(2)
+    expect(items[1].answerId).toEqual(2)
+  })
 
   test.todo("connect")
   test.todo('should throw when there is a duplicate')

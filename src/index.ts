@@ -1,17 +1,17 @@
-import { PrismaClient, Prisma } from '@prisma/client';
-import { DMMF } from '@prisma/generator-helper';
-import { getDMMF, getSchemaSync } from '@prisma/sdk';
-import { mockDeep } from 'jest-mock-extended';
-import path from 'path';
+import { PrismaClient, Prisma } from '@prisma/client'
+import { DMMF } from '@prisma/generator-helper'
+import { getDMMF, getSchemaSync } from '@prisma/sdk'
+import { mockDeep } from 'jest-mock-extended'
+import path from 'path'
 
 type UnwrapPromise<P extends any> = P extends Promise<infer R> ? R : P
 
 type PrismaDelegate = {
-  findUnique: (...args: Array<any>) => Promise<any>;
+  findUnique: (...args: Array<any>) => Promise<any>
 }
 
-type IsTable<S> = S extends `\$${infer fnc}` ? never : S;
-type IsString<S extends any> = S extends string ? S : never;
+type IsTable<S> = S extends `\$${infer fnc}` ? never : S
+type IsString<S extends any> = S extends string ? S : never
 
 type PrismaList<P extends { [key: string]: any }, K extends string> =
   P[K] extends PrismaDelegate ?
@@ -22,7 +22,7 @@ export type PrismaMockData<P> = Partial<{
   [key in IsTable<Uncapitalize<IsString<keyof P>>>]: PrismaList<P, key>
 }>
 
-let cachedSchema: DMMF.Document;
+let cachedSchema: DMMF.Document
 
 const createPrismaMock = async <P>(
   data: PrismaMockData<P> = {},
@@ -33,54 +33,48 @@ const createPrismaMock = async <P>(
   let autoincrement: { [key: string]: number } = {}
 
   const getCamelCase = (name: any) => {
-    return name.substr(0, 1).toLowerCase() + name.substr(1);
-  };
+    return name.substr(0, 1).toLowerCase() + name.substr(1)
+  }
 
   const shallowCompare = (
     a: { [key: string]: any },
     b: { [key: string]: any },
   ) => {
-    for (let key in a) {
-      if (a[key] !== b[key]) return false;
+    for (let key in b) {
+      if (a[key] !== b[key]) return false
     }
-    return true;
-  };
+    return true
+  }
 
-  const checkIds = (model: DMMF.Model, data: PrismaMockData<P>) => {
-    const c = getCamelCase(model.name);
+  const removeMultiFieldIds = (model: DMMF.Model, data: PrismaMockData<P>) => {
+    const c = getCamelCase(model.name)
     const idFields = model.idFields || model.primaryKey?.fields
 
-    const checkId = (ids: string[]) => {
-      const id = ids.join('_');
+    const removeId = (ids: string[]) => {
+      const id = ids.join('_')
       data = {
         ...data,
         [c]: data[c].map(item => {
-          const { [id]: idVal, ...rest } = item;
+          const { [id]: idVal, ...rest } = item
           return {
-            [id]: ids.reduce((prev, field) => {
-              return {
-                ...prev,
-                [field]: item[field],
-              };
-            }, {}),
-            ...item,
+            ...rest,
             ...idVal,
-          };
+          }
         }),
-      };
+      }
     }
 
     if (idFields?.length > 1) {
-      checkId(idFields)
+      removeId(idFields)
     }
 
     if (model.uniqueFields?.length > 0) {
       for (const uniqueField of model.uniqueFields) {
-        checkId(uniqueField)
+        removeId(uniqueField)
       }
     }
-    return data;
-  };
+    return data
+  }
 
   const getFieldRelationshipWhere = (item, field: DMMF.Field) => {
 
@@ -92,30 +86,30 @@ const createPrismaMock = async <P>(
     }
     return ({
       [field.relationToFields[0]]: item[field.relationFromFields[0]],
-    });
+    })
   }
 
 
   const getJoinField = (field: DMMF.Field) => {
     const joinmodel = cachedSchema.datamodel.models.find(model => {
-      return model.name === field.type;
-    });
+      return model.name === field.type
+    })
 
     const joinfield = joinmodel?.fields.find(f => {
-      return f.relationName === field.relationName;
-    });
-    return joinfield;
+      return f.relationName === field.relationName
+    })
+    return joinfield
   }
 
 
   if (!cachedSchema) {
     const schemaPath = path.resolve(process.cwd(), 'prisma/schema.prisma')
     var pathToModule =
-      pathToSchema || require.resolve(schemaPath);
-    const datamodel = getSchemaSync(pathToModule);
+      pathToSchema || require.resolve(schemaPath)
+    const datamodel = getSchemaSync(pathToModule)
     cachedSchema = await getDMMF({
       datamodel,
-    });
+    })
   }
 
   // @ts-ignore
@@ -129,36 +123,36 @@ const createPrismaMock = async <P>(
 
 
     const nestedUpdate = (args, isCreating: boolean, item) => {
-      let d = args.data;
+      let d = args.data
 
       // Get field schema for default values
       const model = cachedSchema.datamodel.models.find(model => {
-        return getCamelCase(model.name) === prop;
-      });
+        return getCamelCase(model.name) === prop
+      })
 
       model.fields.forEach(field => {
 
         if (d[field.name]) {
-          const c = d[field.name];
+          const c = d[field.name]
 
           if (field.kind === 'object') {
 
             if (c.connect) {
-              const { [field.name]: connect, ...rest } = d;
+              const { [field.name]: connect, ...rest } = d
               d = {
                 ...rest,
                 [field.relationFromFields[0]]:
                   connect.connect[field.relationToFields[0]],
-              };
+              }
             }
             if (c.create || c.createMany) {
-              const { [field.name]: create, ...rest } = d;
-              d = rest;
+              const { [field.name]: create, ...rest } = d
+              d = rest
               // @ts-ignore
-              const name = getCamelCase(field.type);
-              const delegate = Delegate(name, model);
+              const name = getCamelCase(field.type)
+              const delegate = Delegate(name, model)
 
-              const joinfield = getJoinField(field);
+              const joinfield = getJoinField(field)
 
               if (field.relationFromFields.length > 0) {
                 const item = delegate.create({
@@ -168,7 +162,7 @@ const createPrismaMock = async <P>(
                   ...rest,
                   [field.relationFromFields[0]]:
                     item[field.relationToFields[0]],
-                };
+                }
               } else {
                 const map = (val) => ({
                   ...val,
@@ -182,7 +176,7 @@ const createPrismaMock = async <P>(
                         return {
                           ...prev,
                           [cur]: val,
-                        };
+                        }
                       },
                       {},
                     ),
@@ -192,44 +186,46 @@ const createPrismaMock = async <P>(
                   delegate.createMany({
                     ...c.createMany,
                     data: c.createMany.data.map(map),
-                  });
+                  })
                 } else {
                   if (Array.isArray(c.create)) {
                     delegate.createMany({
                       ...c.create,
                       data: c.create.map(map),
-                    });
+                    })
                   } else {
                     delegate.create({
                       ...create.create,
                       data: map(create.create),
-                    });
+                    })
                   }
                 }
               }
             }
 
             if (c.update || c.updateMany) {
-              const name = getCamelCase(field.type);
-              const delegate = Delegate(name, model);
+              const name = getCamelCase(field.type)
+              const delegate = Delegate(name, model)
               if (c.updateMany) {
                 if (Array.isArray(c.updateMany)) {
                   c.updateMany.forEach(updateMany => {
-                    delegate.updateMany(updateMany);
+                    delegate.updateMany(updateMany)
                   })
                 } else {
-                  delegate.updateMany(c.updateMany);
+                  delegate.updateMany(c.updateMany)
                 }
               } else {
                 if (Array.isArray(c.update)) {
                   c.update.forEach(update => {
-                    delegate.update(update);
+                    delegate.update(update)
                   })
                 } else {
-                  const item = findOne(args);
-                  delegate.update({ data: c.update, where: getFieldRelationshipWhere(item, field) });
+                  const item = findOne(args)
+                  delegate.update({ data: c.update, where: getFieldRelationshipWhere(item, field) })
                 }
               }
+              const { [field.name]: _update, ...rest } = d
+              d = rest //?
             }
           }
 
@@ -272,18 +268,18 @@ const createPrismaMock = async <P>(
             if (typeof field.default === 'object') {
               if (field.default.name === 'autoincrement') {
                 const key = `${prop}_${field.name}`
-                let m = autoincrement?.[key];
+                let m = autoincrement?.[key]
                 if (m === undefined) {
                   m = 0
                   data[prop].forEach(item => {
-                    m = Math.max(m, item[field.name]);
-                  });
+                    m = Math.max(m, item[field.name])
+                  })
                 }
                 m += 1
                 d = {
                   ...d,
                   [field.name]: m,
-                };
+                }
                 autoincrement = {
                   ...autoincrement,
                   [key]: m
@@ -293,138 +289,138 @@ const createPrismaMock = async <P>(
               d = {
                 ...d,
                 [field.name]: field.default,
-              };
+              }
             }
           } else {
             if (field.kind !== "object") {
               d = {
                 ...d,
                 [field.name]: null,
-              };
+              }
             }
           }
         }
         // return field.name === key
-      });
+      })
       return d
     }
 
     const matchItem = (child, item, where) => {
-      const val = item[child];
-      const filter = where[child];
+      const val = item[child]
+      const filter = where[child]
       if (child === "OR") {
-        return matchOr(item, filter);
+        return matchOr(item, filter)
       }
       if (child === "AND") {
-        return matchAnd(item, filter);
+        return matchAnd(item, filter)
       }
       if (child === "NOT") {
-        return !matchOr(item, filter);
+        return !matchOr(item, filter)
       }
       if (filter == null || filter === undefined) {
         if (filter === null) {
-          return val === null || val === undefined;
+          return val === null || val === undefined
         }
         return true
       }
 
       if (filter instanceof Date) {
         if (val === undefined) {
-          return false;
+          return false
         }
         if (!(val instanceof Date) || val.getTime() !== filter.getTime()) {
-          return false;
+          return false
         }
       } else {
         if (typeof filter === 'object') {
-          const info = model.fields.find(field => field.name === child);
+          const info = model.fields.find(field => field.name === child)
           if (info?.relationName) {
-            const childName = getCamelCase(info.type);
+            const childName = getCamelCase(info.type)
             let childWhere = {}
             if (filter.every) {
-              childWhere = filter.every;
+              childWhere = filter.every
             } else if (filter.some) {
-              childWhere = filter.some;
+              childWhere = filter.some
             } else if (filter.none) {
-              childWhere = filter.none;
+              childWhere = filter.none
             } else {
-              childWhere = filter;
+              childWhere = filter
             }
             const res = data[childName].filter(
               matchFnc({
                 ...childWhere,
                 ...getFieldRelationshipWhere(item, info),
               }),
-            );
+            )
             if (filter.every) {
               if (res.length === 0) return false
               const all = data[childName].filter(
                 matchFnc(getFieldRelationshipWhere(item, info)),
-              );
-              return res.length === all.length;
+              )
+              return res.length === all.length
             } else if (filter.some) {
-              return res.length > 0;
+              return res.length > 0
             } else if (filter.none) {
               return res.length === 0
             }
-            return res.length > 0;
+            return res.length > 0
           }
           const idFields = model.idFields || model.primaryKey?.fields
           if (idFields?.length > 1) {
             if (child === idFields.join('_')) {
-              return shallowCompare(val, filter);
+              return shallowCompare(item, filter)
             }
           }
 
           if (model.uniqueFields?.length > 0) {
             for (const uniqueField of model.uniqueFields) {
               if (child === uniqueField.join('_')) {
-                return shallowCompare(val, filter);
+                return shallowCompare(item, filter)
               }
             }
           }
           if (val === undefined) {
-            return false;
+            return false
           }
-          let match = true;
+          let match = true
           if ('equals' in filter && match) {
-            match = filter.equals === val;
+            match = filter.equals === val
           }
           if ('startsWith' in filter && match) {
-            match = val.indexOf(filter.startsWith) === 0;
+            match = val.indexOf(filter.startsWith) === 0
           }
           if ('endsWith' in filter && match) {
             match =
               val.indexOf(filter.endsWith) ===
-              val.length - filter.endsWith.length;
+              val.length - filter.endsWith.length
           }
           if ('contains' in filter && match) {
-            match = val.indexOf(filter.contains) > -1;
+            match = val.indexOf(filter.contains) > -1
           }
           if ('gt' in filter && match) {
-            match = val > filter.gt;
+            match = val > filter.gt
           }
           if ('gte' in filter && match) {
-            match = val >= filter.gte;
+            match = val >= filter.gte
           }
           if ('lt' in filter && match) {
-            match = val < filter.lt;
+            match = val < filter.lt
           }
           if ('lte' in filter && match) {
-            match = val <= filter.lte;
+            match = val <= filter.lte
           }
           if ('in' in filter && match) {
-            match = filter.in.includes(val);
+            match = filter.in.includes(val)
           }
           if ('not' in filter && match) {
             match = val !== filter.not
           }
           if ('notIn' in filter && match) {
-            match = !filter.notIn.includes(val);
+            match = !filter.notIn.includes(val)
           }
           if (!match) return false
         } else if (val !== filter) {
-          return false;
+          return false
         }
       }
       return true
@@ -433,7 +429,7 @@ const createPrismaMock = async <P>(
     const matchItems = (item, where) => {
       for (let child in where) {
         if (!matchItem(child, item, where)) {
-          return false;
+          return false
         }
       }
       return true
@@ -449,10 +445,10 @@ const createPrismaMock = async <P>(
 
     const matchFnc = where => item => {
       if (where) {
-        return matchItems(item, where);
+        return matchItems(item, where)
       }
-      return true;
-    };
+      return true
+    }
 
     const findOne = args => {
       if (!data[prop]) return null
@@ -461,24 +457,24 @@ const createPrismaMock = async <P>(
         return null
       }
       return items[0]
-    };
+    }
     const findMany = args => {
-      const res = data[prop].filter(matchFnc(args?.where)).map(includes(args));
+      const res = data[prop].filter(matchFnc(args?.where)).map(includes(args))
       if (args?.distinct) {
-        let values = {};
+        let values = {}
         return res.filter(item => {
-          let shouldInclude = true;
+          let shouldInclude = true
           args.distinct.forEach(key => {
-            const vals = values[key] || [];
+            const vals = values[key] || []
             if (vals.includes(item[key])) {
-              shouldInclude = false;
+              shouldInclude = false
             } else {
-              vals.push(item[key]);
-              values[key] = vals;
+              vals.push(item[key])
+              values[key] = vals
             }
-          });
-          return shouldInclude;
-        });
+          })
+          return shouldInclude
+        })
       }
       if (args?.select) {
         return res.map(item => {
@@ -487,8 +483,8 @@ const createPrismaMock = async <P>(
           return newItem
         })
       }
-      return res;
-    };
+      return res
+    }
 
     const updateMany = args => {
       // if (!Array.isArray(data[prop])) {
@@ -496,20 +492,21 @@ const createPrismaMock = async <P>(
       // }
       const newItems = data[prop].map(e => {
         if (matchFnc(args.where)(e)) {
-          let data = nestedUpdate(args, false, e);
+          let data = nestedUpdate(args, false, e)
           return {
             ...e,
             ...data,
-          };
+          }
         }
-        return e;
+        return e
       })
       data = {
         ...data,
         [prop]: newItems,
-      };
+      }
+      data = removeMultiFieldIds(model, data)
       return data
-    };
+    }
 
 
     const create = args => {
@@ -519,18 +516,18 @@ const createPrismaMock = async <P>(
       data = {
         ...data,
         [prop]: [...data[prop], d],
-      };
-      data = checkIds(model, data);
+      }
+      data = removeMultiFieldIds(model, data)
 
       // TODO: multi field ids
-      return findOne({ where: { id: d.id }, ...args });
-    };
+      return findOne({ where: { id: d.id }, ...args })
+    }
 
     const deleteMany = args => {
 
       const model = cachedSchema.datamodel.models.find(model => {
-        return getCamelCase(model.name) === prop;
-      });
+        return getCamelCase(model.name) === prop
+      })
 
       const deleted = []
       data = {
@@ -542,14 +539,14 @@ const createPrismaMock = async <P>(
           }
           return !shouldDelete
         }),
-      };
+      }
 
       // Referential Actions
       deleted.forEach(item => {
         model.fields.forEach(field => {
           const joinfield = getJoinField(field)
           if (!joinfield) return
-          const delegate = Delegate(getCamelCase(field.type), model);
+          const delegate = Delegate(getCamelCase(field.type), model)
           if (joinfield.relationOnDelete === "SetNull") {
             delegate.update({
               where: {
@@ -570,61 +567,77 @@ const createPrismaMock = async <P>(
       })
 
       return deleted
-    };
+    }
 
     const includes = args => item => {
-      if ((!args?.include && !args?.select) || !item) return item;
-      let newItem = item;
-      const obj = args?.select || args?.include;
-      const keys = Object.keys(obj);
+      if ((!args?.include && !args?.select) || !item) return item
+      let newItem = item
+      const obj = args?.select || args?.include
+      const keys = Object.keys(obj)
       keys.forEach(key => {
         // Get field schema for relation info
 
         const model = cachedSchema.datamodel.models.find(model => {
-          return getCamelCase(model.name) === prop;
-        });
+          return getCamelCase(model.name) === prop
+        })
 
 
         const schema = model.fields.find(field => {
-          return field.name === key;
-        });
+          return field.name === key
+        })
 
         if (!schema.relationName) {
           return
         }
 
         // Get delegate for relation
-        const delegate = Delegate(getCamelCase(schema.type), model);
+        const delegate = Delegate(getCamelCase(schema.type), model)
 
         // Construct arg for relation query
-        let subArgs = obj[key] === true ? {} : obj[key];
+        let subArgs = obj[key] === true ? {} : obj[key]
         subArgs = {
           ...subArgs,
           where: {
             ...subArgs.where,
             ...getFieldRelationshipWhere(item, schema),
           },
-        };
+        }
 
         if (schema.isList) {
           // Add relation
           newItem = {
             ...newItem,
             [key]: delegate.findMany(subArgs),
-          };
+          }
         } else {
           newItem = {
             ...newItem,
             [key]: delegate.findUnique(subArgs),
-          };
+          }
         }
-      });
-      return newItem;
-    };
+      })
+      return newItem
+    }
 
     const update = (args) => {
-      updateMany(args)
-      return findOne(args)
+      let updatedItem
+      const newItems = data[prop].map(e => {
+        if (matchFnc(args.where)(e)) {
+          let data = nestedUpdate(args, false, e)
+          updatedItem = {
+            ...e,
+            ...data,
+          }
+          return updatedItem
+        }
+        return e
+      })
+      data = {
+        ...data,
+        [prop]: newItems,
+      }
+      data = removeMultiFieldIds(model, data)
+      return findOne({ ...args, where: updatedItem })
     }
 
     return {
@@ -651,12 +664,12 @@ const createPrismaMock = async <P>(
       },
 
       upsert(args) {
-        const res = findOne(args);
+        const res = findOne(args)
         if (res) {
           return update({
             ...args,
             data: args.update,
-          });
+          })
         } else {
           create({
             ...args,
@@ -664,39 +677,39 @@ const createPrismaMock = async <P>(
               ...args.where,
               ...args.create
             },
-          });
-          return findOne(args);
+          })
+          return findOne(args)
         }
       },
 
       count(args) {
-        const res = findMany(args);
-        return res.length;
+        const res = findMany(args)
+        return res.length
       },
-    };
-  };
+    }
+  }
 
   cachedSchema.datamodel.models.forEach(model => {
     if (!model) return
-    const c = getCamelCase(model.name);
+    const c = getCamelCase(model.name)
     if (!data[c]) {
       data = {
         ...(data || {}),
         [c]: [],
-      };
+      }
     }
-    data = checkIds(model, data);
+    data = removeMultiFieldIds(model, data)
 
-    const objs = Delegate(c, model);
+    const objs = Delegate(c, model)
     Object.keys(objs).forEach(fncName => {
       client[c][fncName].mockImplementation(async (...params) => {
-        return objs[fncName](...params);
-      });
-    });
-  });
+        return objs[fncName](...params)
+      })
+    })
+  })
 
-  return client;
-};
+  return client
+}
 
-export default createPrismaMock;
+export default createPrismaMock
 

@@ -43,7 +43,7 @@ describe('PrismaClient @@unique()', () => {
         }
       }
     })
-
+    
     expect(newItem2.userId).toEqual(1)
     expect(newItem2.value).toEqual("updated")
 
