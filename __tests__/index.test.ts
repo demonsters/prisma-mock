@@ -232,3 +232,20 @@ describe('PrismaClient', () => {
   })
 
 })
+
+test("autoincoment: alternative id name", async () => {
+  const client = await createPrismaClient({})
+  const element = await client.element.create({
+    data: {
+      value: 'New user',
+    }
+  })
+  expect(element.e_id).toBe(1)
+  const element2 = await client.element.create({
+    data: {
+      name: 'New user 2',
+    }
+  })
+  expect(element2.e_id).toBe(2)
+})
+

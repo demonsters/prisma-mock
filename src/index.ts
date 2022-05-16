@@ -519,8 +519,13 @@ const createPrismaMock = async <P>(
       }
       data = removeMultiFieldIds(model, data)
 
-      // TODO: multi field ids
-      return findOne({ where: { id: d.id }, ...args })
+      let where = {}
+      for (const field of model.fields) {
+        if (field.default) {
+          where[field.name] = d[field.name]
+        }
+      }
+      return findOne({ where, ...args })
     }
 
     const deleteMany = args => {
