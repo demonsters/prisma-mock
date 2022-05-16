@@ -37,6 +37,7 @@ model Stripe {
   customerId String  @unique
   accountId  Int     @unique
   account    Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  active     Boolean @default(false)
 }
 
 model Answers {
@@ -58,7 +59,7 @@ model UserAnswers {
 }
 
 model Element {
-  id Int @id @default(autoincrement())
+  e_id Int @id @default(autoincrement())
 
   user   User @relation(fields: [userId], references: [id])
   userId Int

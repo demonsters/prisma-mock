@@ -2,7 +2,7 @@
 
 import createPrismaClient from '../src/'
 
-describe('Nested', () => {
+describe('Create', () => {
 
   test('create: create one-to-many', async () => {
     const client = await createPrismaClient({})
@@ -140,7 +140,11 @@ describe('Nested', () => {
     )
   })
 
-  test('update: createMany', async () => {
+})
+
+describe("Update", () => {
+
+  test('createMany', async () => {
     const client = await createPrismaClient({
       answers: [
         { id: 1, title: "Title" }
@@ -180,7 +184,7 @@ describe('Nested', () => {
   })
 
 
-  test('update: updateMany', async () => {
+  test('updateMany', async () => {
     const client = await createPrismaClient({
       account: [
         { id: 1, }
@@ -227,7 +231,7 @@ describe('Nested', () => {
   })
 
 
-  test('update: update one-to-many', async () => {
+  test('update one-to-many', async () => {
     const client = await createPrismaClient({
       account: [
         { id: 1, }
@@ -273,7 +277,7 @@ describe('Nested', () => {
     )
   })
 
-  test('update: update one-to-one', async () => {
+  test('update one-to-one', async () => {
     const client = await createPrismaClient({
       account: [
         { id: 1, name: "A" }
@@ -309,6 +313,55 @@ describe('Nested', () => {
         }
       }
     )
+  })
+
+})
+
+
+describe('Select', () => {
+
+  test("one-to-one", async () => {
+    const client = await createPrismaClient({
+      account: [
+        { id: 1, name: "A", },
+        { id: 2, name: "B", },
+      ],
+      stripe: [{
+        id: 1,
+        accountId: 1,
+        active: false
+      }, {
+        id: 2,
+        accountId: 2,
+        active: true
+      }],
+    })
+
+    const accounts = await client.account.findMany({
+      where: {
+        stripe: { active: true }
+      }
+    })
+    expect(accounts).toHaveLength(1)
+  })
+
+  test("one-to-many", async () => {
+    const client = await createPrismaClient({
+      account: [
+        { id: 1, name: "A", },
+        { id: 2, name: "B", },
+      ],
+      user: [
+        { id: 1, role: "USER", accountId: 1, delete: true },
+      ]
+    })
+
+    const accounts = await client.account.findMany({
+      where: {
+        users: { delete: true }
+      }
+    })
+    expect(accounts).toHaveLength(1)
   })
 
 })
