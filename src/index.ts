@@ -245,10 +245,23 @@ const createPrismaMock = async <P>(
               }
             }
             if (c.disconnect) {
-              d = {
-                ...d,
-                [field.relationFromFields[0]]: null
+              if (field.relationFromFields.length > 0) {
+                d = {
+                  ...d,
+                  [field.relationFromFields[0]]: null
+                }
+              } else {
+                const joinfield = getJoinField(field)
+                delegate.update({
+                  data: {
+                    [joinfield.relationFromFields[0]]: null
+                  },
+                  where: {
+                    [joinfield.relationFromFields[0]]: item[joinfield.relationToFields[0]]
+                  }
+                })
               }
+
             }
             const { [field.name]: _update, ...rest } = d
             d = rest
