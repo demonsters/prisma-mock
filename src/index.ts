@@ -216,7 +216,8 @@ const createPrismaMock = async <P>(
                 } else {
                   delegate.updateMany(c.updateMany)
                 }
-              } else if (c.update) {
+              }
+              if (c.update) {
                 if (Array.isArray(c.update)) {
                   c.update.forEach(update => {
                     delegate.update(update)
@@ -225,7 +226,8 @@ const createPrismaMock = async <P>(
                   const item = findOne(args)
                   delegate.update({ data: c.update, where: getFieldRelationshipWhere(item, field) })
                 }
-              } else {
+              }
+              if (c.deleteMany) {
                 if (Array.isArray(c.deleteMany)) {
                   c.deleteMany.forEach(where => {
                     delegate.deleteMany({ where })
