@@ -22,7 +22,7 @@ export type PrismaMockData<P> = Partial<{
   [key in IsTable<Uncapitalize<IsString<keyof P>>>]: PrismaList<P, key>
 }>
 
-let cachedSchema: DMMF.Document
+let cachedSchema
 
 const createPrismaMock = async <P>(
   data: PrismaMockData<P> = {},
@@ -102,15 +102,17 @@ const createPrismaMock = async <P>(
   }
 
 
-  if (!cachedSchema) {
-    const schemaPath = path.resolve(process.cwd(), 'prisma/schema.prisma')
-    var pathToModule =
-      pathToSchema || require.resolve(schemaPath)
-    const datamodel = getSchemaSync(pathToModule)
-    cachedSchema = await getDMMF({
-      datamodel,
-    })
-  }
+  // if (!cachedSchema) {
+  //   const schemaPath = path.resolve(process.cwd(), 'prisma/schema.prisma')
+  //   var pathToModule =
+  //     pathToSchema || require.resolve(schemaPath)
+  //   const datamodel = getSchemaSync(pathToModule)
+  //   cachedSchema = await getDMMF({
+  //     datamodel,
+  //   }) //?
+  //   Prisma.dmmf //?
+  // }
+  let cachedSchema = Prisma.dmmf
 
   // @ts-ignore
   client["$transaction"].mockImplementation(async (actions) => {
@@ -203,7 +205,7 @@ const createPrismaMock = async <P>(
               }
             }
 
-            if (c.update || c.updateMany) {
+            if (c.update || c.updateMany || c.deleteMany) {
               const name = getCamelCase(field.type)
               const delegate = Delegate(name, model)
               if (c.updateMany) {
@@ -214,7 +216,7 @@ const createPrismaMock = async <P>(
                 } else {
                   delegate.updateMany(c.updateMany)
                 }
-              } else {
+              } else if (c.update) {
                 if (Array.isArray(c.update)) {
                   c.update.forEach(update => {
                     delegate.update(update)
@@ -223,9 +225,17 @@ const createPrismaMock = async <P>(
                   const item = findOne(args)
                   delegate.update({ data: c.update, where: getFieldRelationshipWhere(item, field) })
                 }
+              } else {
+                if (Array.isArray(c.deleteMany)) {
+                  c.deleteMany.forEach(where => {
+                    delegate.deleteMany({ where })
+                  })
+                } else {
+                  delegate.deleteMany({ where: c.deleteMany })
+                }
               }
               const { [field.name]: _update, ...rest } = d
-              d = rest //?
+              d = rest
             }
           }
 
