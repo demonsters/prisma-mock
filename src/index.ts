@@ -244,6 +244,12 @@ const createPrismaMock = async <P>(
                 delegate.delete({ where: c.delete })
               }
             }
+            if (c.disconnect) {
+              d = {
+                ...d,
+                [field.relationFromFields[0]]: null
+              }
+            }
             const { [field.name]: _update, ...rest } = d
             d = rest
           }

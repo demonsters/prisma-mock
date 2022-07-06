@@ -113,12 +113,13 @@ Alot of the functionality is implemented, but parts are missing. Here is a list 
 - createMany
 - update
 - updateMany
+- delete
+- deleteMany
 - connect
+- disconnect
 - TODO: set
-- TODO: disconnect
 - TODO: connectOrCreate
 - TODO: upsert
-- TODO: delete
 
 
 ## Filter conditions and operators
