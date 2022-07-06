@@ -333,6 +333,7 @@ describe("Update", () => {
     await client.account.update({
       data: {
         users: {
+          update: [{ where: {id: 1}, name: "Piet" }],
           deleteMany: [
             { id: 2 } ,
           ]
@@ -353,7 +354,6 @@ describe("Update", () => {
         users: true
       }
     })
-    account //?
     expect(account.users.length).toEqual(1)
   })
 
@@ -393,7 +393,86 @@ describe("Update", () => {
         users: true
       }
     })
-    account //?
+    expect(account.users.length).toEqual(1)
+  })
+
+  test("delete array", async () => {
+    const client = await createPrismaClient({
+      account: [
+        { id: 1, name: "A" }
+      ],
+      user: [{
+        id: 2,
+        accountId: 1,
+      }, {
+        id: 3,
+        accountId: 1,
+      }],
+    })
+
+    await client.account.update({
+      data: {
+        users: {
+          update: [{ where: {id: 1}, name: "Piet" }],
+          delete: [
+            { id: 2 } ,
+          ]
+        }
+      },
+      where: {
+        id: 1
+      },
+      include: {
+        users: true
+      }
+    })
+    const account = await client.account.findUnique({
+      where: {
+        id: 1
+      },
+      include: {
+        users: true
+      }
+    })
+    expect(account.users.length).toEqual(1)
+  })
+
+  test("delete object", async () => {
+    const client = await createPrismaClient({
+      account: [
+        { id: 1, name: "A" }
+      ],
+      user: [{
+        id: 2,
+        accountId: 1,
+      }, {
+        id: 3,
+        accountId: 1,
+      }],
+    })
+
+    await client.account.update({
+      data: {
+        users: {
+          delete: 
+            { id: 2 } ,
+        }
+      },
+      where: {
+        id: 1
+      },
+      include: {
+        users: true
+      }
+    })
+    const account = await client.account.findUnique({
+      where: {
+        id: 1
+      },
+      include: {
+        users: true
+      }
+    })
     expect(account.users.length).toEqual(1)
   })
 

@@ -205,40 +205,47 @@ const createPrismaMock = async <P>(
               }
             }
 
-            if (c.update || c.updateMany || c.deleteMany) {
-              const name = getCamelCase(field.type)
-              const delegate = Delegate(name, model)
-              if (c.updateMany) {
-                if (Array.isArray(c.updateMany)) {
-                  c.updateMany.forEach(updateMany => {
-                    delegate.updateMany(updateMany)
-                  })
-                } else {
-                  delegate.updateMany(c.updateMany)
-                }
+            const name = getCamelCase(field.type)
+            const delegate = Delegate(name, model)
+            if (c.updateMany) {
+              if (Array.isArray(c.updateMany)) {
+                c.updateMany.forEach(updateMany => {
+                  delegate.updateMany(updateMany)
+                })
+              } else {
+                delegate.updateMany(c.updateMany)
               }
-              if (c.update) {
-                if (Array.isArray(c.update)) {
-                  c.update.forEach(update => {
-                    delegate.update(update)
-                  })
-                } else {
-                  const item = findOne(args)
-                  delegate.update({ data: c.update, where: getFieldRelationshipWhere(item, field) })
-                }
-              }
-              if (c.deleteMany) {
-                if (Array.isArray(c.deleteMany)) {
-                  c.deleteMany.forEach(where => {
-                    delegate.deleteMany({ where })
-                  })
-                } else {
-                  delegate.deleteMany({ where: c.deleteMany })
-                }
-              }
-              const { [field.name]: _update, ...rest } = d
-              d = rest
             }
+            if (c.update) {
+              if (Array.isArray(c.update)) {
+                c.update.forEach(update => {
+                  delegate.update(update)
+                })
+              } else {
+                const item = findOne(args)
+                delegate.update({ data: c.update, where: getFieldRelationshipWhere(item, field) })
+              }
+            }
+            if (c.deleteMany) {
+              if (Array.isArray(c.deleteMany)) {
+                c.deleteMany.forEach(where => {
+                  delegate.deleteMany({ where })
+                })
+              } else {
+                delegate.deleteMany({ where: c.deleteMany })
+              }
+            }
+            if (c.delete) {
+              if (Array.isArray(c.delete)) {
+                c.delete.forEach(where => {
+                  delegate.delete({ where })
+                })
+              } else {
+                delegate.delete({ where: c.delete })
+              }
+            }
+            const { [field.name]: _update, ...rest } = d
+            d = rest
           }
 
           if (c.increment) {
