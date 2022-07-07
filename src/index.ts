@@ -514,6 +514,20 @@ const createPrismaMock = async <P>(
           return shouldInclude
         })
       }
+      if (args?.orderBy) {
+        const keys = Object.keys(args.orderBy)
+        res.sort((a, b) => {
+          for (const key of keys) {
+            const dir = args.orderBy[key]
+            if (a[key] > b[key]) {
+              return dir === "asc" ? 1 : -1
+            } else if (a[key] < b[key]) {
+              return dir === "asc" ? -1 : 1
+            }
+          }
+          return 0
+        })
+      }
       if (args?.select) {
         return res.map(item => {
           const newItem = {}
