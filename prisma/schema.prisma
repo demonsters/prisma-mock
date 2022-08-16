@@ -1,0 +1,70 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  USER
+}
+
+model Account {
+  id     Int     @id @default(autoincrement())
+  users  User[]  @relation("AccountUsers")
+  stripe Stripe? @relation
+  name   String?
+  guest  User[]  @relation("AccountGuest")
+}
+
+model User {
+  id        Int           @id @default(autoincrement())
+  account   Account?      @relation("AccountUsers", fields: [accountId], references: [id], onDelete: SetNull)
+  accountId Int?
+  role      Role          @default(ADMIN)
+  answers   UserAnswers[]
+  clicks    Int?
+  guestOf   Account[]     @relation("AccountGuest")
+  element   Element[]
+  deleted   Boolean       @default(false)
+}
+
+model Stripe {
+  id         Int     @id @default(autoincrement())
+  customerId String  @unique
+  accountId  Int     @unique
+  account    Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  active     Boolean @default(false)
+}
+
+model Answers {
+  id    Int           @id @default(autoincrement())
+  title String
+  users UserAnswers[]
+}
+
+model UserAnswers {
+  answer   Answers @relation(fields: [answerId], references: [id])
+  answerId Int
+
+  user   User @relation(fields: [userId], references: [id])
+  userId Int
+
+  value String?
+
+  @@id([userId, answerId])
+}
+
+model Element {
+  e_id Int @id @default(autoincrement())
+
+  user   User @relation(fields: [userId], references: [id])
+  userId Int
+
+  value String
+
+  @@unique([userId, value])
+}
