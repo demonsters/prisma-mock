@@ -104,8 +104,8 @@ Alot of the functionality is implemented, but parts are missing. Here is a list 
 - distinct
 - include
 - where
-- TODO: select
-- TODO: orderBy
+- select
+- orderBy
 - TODO: select: _count
 
 ## Nested queries
