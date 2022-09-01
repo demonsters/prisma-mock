@@ -66,3 +66,48 @@ test("orderBy", async () => {
   ]);
 });
 
+
+
+test("nested orderBy", async () => {
+  const client = await createPrismaClient({
+
+    account: [
+      {
+        id: 1,
+        name: "B",
+      },
+      {
+        id: 2,
+        name: "A",
+      },
+    ],
+    stripe: [
+      {
+        id: 1,
+        accountId: 2,
+      },
+      {
+        id: 2,
+        accountId: 1,
+      },
+    ],
+  });
+  const accounts = await client.account.findMany({
+    orderBy: {
+      stripe: {
+        id: "asc"
+      },
+    }
+  });
+  expect(accounts).toEqual([
+    expect.objectContaining({
+      id: 2,
+      name: "A",
+    }),
+    expect.objectContaining({
+      id: 1,
+      name: "B",
+    }),
+  ]);
+});
+

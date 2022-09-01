@@ -22,8 +22,6 @@ export type PrismaMockData<P> = Partial<{
   [key in IsTable<Uncapitalize<IsString<keyof P>>>]: PrismaList<P, key>
 }>
 
-let cachedSchema
-
 const createPrismaMock = async <P>(
   data: PrismaMockData<P> = {},
   pathToSchema?: string,
@@ -101,17 +99,6 @@ const createPrismaMock = async <P>(
     return joinfield
   }
 
-
-  // if (!cachedSchema) {
-  //   const schemaPath = path.resolve(process.cwd(), 'prisma/schema.prisma')
-  //   var pathToModule =
-  //     pathToSchema || require.resolve(schemaPath)
-  //   const datamodel = getSchemaSync(pathToModule)
-  //   cachedSchema = await getDMMF({
-  //     datamodel,
-  //   }) //?
-  //   Prisma.dmmf //?
-  // }
   let cachedSchema = Prisma.dmmf
 
   // @ts-ignore
@@ -123,6 +110,25 @@ const createPrismaMock = async <P>(
 
   const Delegate = (prop: string, model: DMMF.Model) => {
 
+
+    const sortFunc = (orderBy) => (a, b) => {
+      const keys = Object.keys(orderBy)
+      const incl = includes({ include: keys.reduce((acc, key) => ({ ...acc, [key]: true }), {}) })
+      for (const key of keys) {
+        const dir = orderBy[key]
+        if (typeof dir === "object") {
+          return sortFunc(dir)(incl(a)[key], incl(b)[key])
+        }
+        if (a[key] > b[key]) {
+          return dir === "asc" ? 1 : -1
+        } else if (a[key] < b[key]) {
+          return dir === "asc" ? -1 : 1
+        }
+      }
+      return 0
+    }
+    
+  
 
     const nestedUpdate = (args, isCreating: boolean, item) => {
       let d = args.data
@@ -515,18 +521,7 @@ const createPrismaMock = async <P>(
         })
       }
       if (args?.orderBy) {
-        const keys = Object.keys(args.orderBy)
-        res.sort((a, b) => {
-          for (const key of keys) {
-            const dir = args.orderBy[key]
-            if (a[key] > b[key]) {
-              return dir === "asc" ? 1 : -1
-            } else if (a[key] < b[key]) {
-              return dir === "asc" ? -1 : 1
-            }
-          }
-          return 0
-        })
+        res.sort(sortFunc(args?.orderBy))
       }
       if (args?.select) {
         return res.map(item => {
