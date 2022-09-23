@@ -32,11 +32,11 @@ jest.mock("db", () => ({
   default: mockDeep()
 }))
 
-import db from "db"
+import db, { Prisma } from "db"
 
 beforeEach(() => {
   mockReset(db)
-  return createPrismaMock({}, "db/schema.prisma", db)
+  return createPrismaMock({}, Prisma.dmmf.datamodel, db)
 })
 ```
 
@@ -46,7 +46,7 @@ beforeEach(() => {
 ```ts
 createPrismaMock(
   data: PrismaMockData<P> = {},
-  pathToSchema?: string,
+  datamodel?: Prisma.DMMF.Datamodel,
   client = mockDeep<P>()
 ): Promise<P>
 ```
@@ -74,8 +74,8 @@ createPrismaMock({
 ```
 
 
-## pathToSchema
-Path to the schema file. If not provided, the schema is `prisma/schema.prisma`.
+## datamodel
+The datamodel of the prisma client, value of `Prisma.dmmf.datamodel`.
 
 ## client
 `jest-mock-extended` instance used. If not provided, a new instance is created.

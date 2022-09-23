@@ -1,8 +1,6 @@
-import { PrismaClient, Prisma } from '@prisma/client'
-import { DMMF } from '@prisma/generator-helper'
-import { getDMMF, getSchemaSync } from '@prisma/sdk'
+import { Prisma } from '@prisma/client'
 import { mockDeep } from 'jest-mock-extended'
-import path from 'path'
+
 
 type UnwrapPromise<P extends any> = P extends Promise<infer R> ? R : P
 
@@ -22,11 +20,16 @@ export type PrismaMockData<P> = Partial<{
   [key in IsTable<Uncapitalize<IsString<keyof P>>>]: PrismaList<P, key>
 }>
 
-const createPrismaMock = async <P>(
+
+const createPrismaMock = <P>(
   data: PrismaMockData<P> = {},
-  pathToSchema?: string,
+  datamodel?: Prisma.DMMF.Datamodel,
   client = mockDeep<P>(),
-): Promise<P> => {
+): P => {
+
+  if (!datamodel || typeof datamodel === "string") {
+    datamodel = Prisma.dmmf.datamodel
+  }
 
   let autoincrement: { [key: string]: number } = {}
 
@@ -44,7 +47,7 @@ const createPrismaMock = async <P>(
     return true
   }
 
-  const removeMultiFieldIds = (model: DMMF.Model, data: PrismaMockData<P>) => {
+  const removeMultiFieldIds = (model: Prisma.DMMF.Model, data: PrismaMockData<P>) => {
     const c = getCamelCase(model.name)
     const idFields = model.idFields || model.primaryKey?.fields
 
@@ -74,7 +77,7 @@ const createPrismaMock = async <P>(
     return data
   }
 
-  const getFieldRelationshipWhere = (item, field: DMMF.Field) => {
+  const getFieldRelationshipWhere = (item, field: Prisma.DMMF.Field) => {
 
     if (field.relationToFields.length === 0) {
       field = getJoinField(field)
@@ -88,8 +91,8 @@ const createPrismaMock = async <P>(
   }
 
 
-  const getJoinField = (field: DMMF.Field) => {
-    const joinmodel = cachedSchema.datamodel.models.find(model => {
+  const getJoinField = (field: Prisma.DMMF.Field) => {
+    const joinmodel = datamodel.models.find(model => {
       return model.name === field.type
     })
 
@@ -99,7 +102,6 @@ const createPrismaMock = async <P>(
     return joinfield
   }
 
-  let cachedSchema = Prisma.dmmf
 
   // @ts-ignore
   client["$transaction"].mockImplementation(async (actions) => {
@@ -108,7 +110,7 @@ const createPrismaMock = async <P>(
     }
   })
 
-  const Delegate = (prop: string, model: DMMF.Model) => {
+  const Delegate = (prop: string, model: Prisma.DMMF.Model) => {
 
 
     const sortFunc = (orderBy) => (a, b) => {
@@ -134,7 +136,7 @@ const createPrismaMock = async <P>(
       let d = args.data
 
       // Get field schema for default values
-      const model = cachedSchema.datamodel.models.find(model => {
+      const model = datamodel.models.find(model => {
         return getCamelCase(model.name) === prop
       })
 
@@ -577,7 +579,7 @@ const createPrismaMock = async <P>(
 
     const deleteMany = args => {
 
-      const model = cachedSchema.datamodel.models.find(model => {
+      const model = datamodel.models.find(model => {
         return getCamelCase(model.name) === prop
       })
 
@@ -626,19 +628,19 @@ const createPrismaMock = async <P>(
       let newItem = item
       const obj = args?.select || args?.include
       const keys = Object.keys(obj)
+
       keys.forEach(key => {
         // Get field schema for relation info
 
-        const model = cachedSchema.datamodel.models.find(model => {
+        const model = datamodel.models.find(model => {
           return getCamelCase(model.name) === prop
         })
-
 
         const schema = model.fields.find(field => {
           return field.name === key
         })
-
-        if (!schema.relationName) {
+        
+        if (!schema?.relationName) {
           return
         }
 
@@ -741,7 +743,7 @@ const createPrismaMock = async <P>(
     }
   }
 
-  cachedSchema.datamodel.models.forEach(model => {
+  datamodel.models.forEach(model => {
     if (!model) return
     const c = getCamelCase(model.name)
     if (!data[c]) {
