@@ -129,8 +129,8 @@ const createPrismaMock = <P>(
       }
       return 0
     }
-    
-  
+
+
 
     const nestedUpdate = (args, isCreating: boolean, item) => {
       let d = args.data
@@ -504,11 +504,12 @@ const createPrismaMock = <P>(
       }
       return items[0]
     }
+
     const findMany = args => {
-      const res = data[prop].filter(matchFnc(args?.where)).map(includes(args))
+      let res = data[prop].filter(matchFnc(args?.where)).map(includes(args))
       if (args?.distinct) {
         let values = {}
-        return res.filter(item => {
+        res = res.filter(item => {
           let shouldInclude = true
           args.distinct.forEach(key => {
             const vals = values[key] || []
@@ -526,11 +527,16 @@ const createPrismaMock = <P>(
         res.sort(sortFunc(args?.orderBy))
       }
       if (args?.select) {
-        return res.map(item => {
+        res = res.map(item => {
           const newItem = {}
-          Object.keys(args.select).forEach(key => newItem[key] = item[key])
+          Object.keys(args.select).forEach(key => (newItem[key] = item[key]))
           return newItem
         })
+      }
+      if (args?.skip !== undefined || args?.take !== undefined) {
+        const start = args?.skip !== undefined ? args?.skip : 0
+        const end = args?.take !== undefined ? start + args.take : undefined
+        res = res.slice(start, end)
       }
       return res
     }
@@ -639,7 +645,7 @@ const createPrismaMock = <P>(
         const schema = model.fields.find(field => {
           return field.name === key
         })
-        
+
         if (!schema?.relationName) {
           return
         }
