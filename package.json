@@ -25,7 +25,8 @@
   "scripts": {
     "preversion": "tsc",
     "build": "tsc",
-    "watch": "tsc --watch"
+    "watch": "tsc --watch",
+    "prepack": "tsc"
   },
   "peerDependencies": {
     "@prisma/client": "4.6.1"
