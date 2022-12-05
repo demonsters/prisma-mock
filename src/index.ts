@@ -20,6 +20,10 @@ export type PrismaMockData<P> = Partial<{
   [key in IsTable<Uncapitalize<IsString<keyof P>>>]: PrismaList<P, key>
 }>
 
+function IsFieldDefault(f: Prisma.DMMF.FieldDefault | Prisma.DMMF.FieldDefaultScalar[] | Prisma.DMMF.FieldDefaultScalar): f is Prisma.DMMF.FieldDefault {
+  return (f as Prisma.DMMF.FieldDefault).name !== undefined;
+}
+
 
 const createPrismaMock = <P>(
   data: PrismaMockData<P> = {},
@@ -311,7 +315,7 @@ const createPrismaMock = <P>(
           (isCreating || d[field.name] === null) &&
           (d[field.name] === null || d[field.name] === undefined)) {
           if (field.hasDefaultValue) {
-            if (typeof field.default === 'object') {
+            if (IsFieldDefault(field.default)) {
               if (field.default.name === 'autoincrement') {
                 const key = `${prop}_${field.name}`
                 let m = autoincrement?.[key]
@@ -772,4 +776,3 @@ const createPrismaMock = <P>(
 }
 
 export default createPrismaMock
-
