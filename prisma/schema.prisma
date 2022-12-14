@@ -21,15 +21,16 @@ model Account {
 }
 
 model User {
-  id        Int           @id @default(autoincrement())
-  account   Account?      @relation("AccountUsers", fields: [accountId], references: [id], onDelete: SetNull)
-  accountId Int?
-  role      Role          @default(ADMIN)
-  answers   UserAnswers[]
-  clicks    Int?
-  guestOf   Account[]     @relation("AccountGuest")
-  element   Element[]
-  deleted   Boolean       @default(false)
+  id          Int           @id @default(autoincrement())
+  account     Account?      @relation("AccountUsers", fields: [accountId], references: [id], onDelete: SetNull)
+  accountId   Int?
+  role        Role          @default(ADMIN)
+  answers     UserAnswers[]
+  clicks      Int?
+  guestOf     Account[]     @relation("AccountGuest")
+  element     Element[]
+  deleted     Boolean       @default(false)
+  uniqueField String        @unique
 }
 
 model Stripe {

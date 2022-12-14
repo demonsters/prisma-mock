@@ -12,7 +12,8 @@ test('create', async () => {
         create: {
 
         },
-      }
+      },
+      uniqueField: 'user',
     },
     include: {
       account: true
@@ -28,7 +29,8 @@ test('create', async () => {
       account: {
         id: 1,
         name: null,
-      }
+      },
+      uniqueField: 'user',
     }
   )
 })

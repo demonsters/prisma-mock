@@ -149,10 +149,22 @@ const createPrismaMock = <P>(
 
             if (c.connect) {
               const { [field.name]: connect, ...rest } = d
+              let connectionValue = connect.connect[field.relationToFields[0]]
+              const keyToMatch = Object.keys(connect.connect)[0]
+              const keyToGet = field.relationToFields[0]
+              if (keyToMatch !== keyToGet) {
+                const valueToMatch = connect.connect[keyToMatch]
+                const matchingRow = data[field.type.toLowerCase()].find(row => {
+                  return row[keyToMatch] === valueToMatch
+                })
+                if (matchingRow) {
+                  connectionValue = matchingRow[keyToGet]
+                }
+              }
+
               d = {
                 ...rest,
-                [field.relationFromFields[0]]:
-                  connect.connect[field.relationToFields[0]],
+                [field.relationFromFields[0]]: connectionValue,
               }
             }
             if (c.create || c.createMany) {
@@ -772,4 +784,3 @@ const createPrismaMock = <P>(
 }
 
 export default createPrismaMock
-
