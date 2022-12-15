@@ -1,4 +1,5 @@
 import { Prisma } from '@prisma/client'
+import { PrismaClientKnownRequestError } from '@prisma/client/runtime'
 import { mockDeep } from 'jest-mock-extended'
 
 
@@ -157,9 +158,10 @@ const createPrismaMock = <P>(
                 const matchingRow = data[field.type.toLowerCase()].find(row => {
                   return row[keyToMatch] === valueToMatch
                 })
-                if (matchingRow) {
-                  connectionValue = matchingRow[keyToGet]
+                if (!matchingRow) {
+                  throw new PrismaClientKnownRequestError('An operation failed because it depends on one or more records that were required but not found. {cause}', 'P2025', '1.2.3')
                 }
+                connectionValue = matchingRow[keyToGet]
               }
 
               d = {

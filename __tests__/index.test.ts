@@ -1,5 +1,6 @@
 // @ts-nocheck
 
+import { PrismaClientKnownRequestError } from '@prisma/client/runtime'
 import createPrismaClient from '../src/'
 
 describe('PrismaClient', () => {
@@ -232,6 +233,19 @@ describe('PrismaClient', () => {
       "userId": 1,
       "value": "test element",
     }])
+  })
+
+  test('connect on secondary key with invalid value', async () => {
+    const client = await createPrismaClient(data)
+
+    await expect(client.element.create({
+      data: {
+        value: 'test element',
+        user: {
+          connect: { uniqueField: 'second' },
+        },
+      },
+    })).rejects.toThrow(new PrismaClientKnownRequestError('An operation failed because it depends on one or more records that were required but not found. {cause}', 'P2025', '1.2.3'))
   })
 
   test("autoincoment", async () => {
