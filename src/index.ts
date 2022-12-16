@@ -149,12 +149,12 @@ const createPrismaMock = <P>(
           if (field.kind === 'object') {
 
             if (c.connect) {
-              const { [field.name]: connect, ...rest } = d
-              let connectionValue = connect.connect[field.relationToFields[0]]
-              const keyToMatch = Object.keys(connect.connect)[0]
+              const { [field.name]: { connect }, ...rest } = d
+              let connectionValue = connect[field.relationToFields[0]]
+              const keyToMatch = Object.keys(connect)[0]
               const keyToGet = field.relationToFields[0]
               if (keyToMatch !== keyToGet) {
-                const valueToMatch = connect.connect[keyToMatch]
+                const valueToMatch = connect[keyToMatch]
                 const matchingRow = data[getCamelCase(field.type)].find(row => {
                   return row[keyToMatch] === valueToMatch
                 })
