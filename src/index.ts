@@ -155,7 +155,7 @@ const createPrismaMock = <P>(
               const keyToGet = field.relationToFields[0]
               if (keyToMatch !== keyToGet) {
                 const valueToMatch = connect.connect[keyToMatch]
-                const matchingRow = data[field.type.toLowerCase()].find(row => {
+                const matchingRow = data[getCamelCase(field.type)].find(row => {
                   return row[keyToMatch] === valueToMatch
                 })
                 if (!matchingRow) {
