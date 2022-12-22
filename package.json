@@ -9,25 +9,22 @@
   "files": [
     "lib/"
   ],
-  "dependencies": {
-    "@prisma/client": "3.10.0",
-    "@prisma/generator-helper": "^3.10.0",
-    "@prisma/sdk": "^3.10.0"
-  },
   "devDependencies": {
+    "@prisma/client": "4.7.1",
     "@types/jest": "^27.0.2",
     "jest": "^27.3.1",
     "jest-mock-extended": "^2.0.4",
-    "prisma": "3.5.0",
+    "prisma": "4.7.1",
     "ts-jest": "^27.0.7",
     "typescript": "^4.4.4"
   },
   "scripts": {
     "preversion": "tsc",
     "build": "tsc",
+    "test": "jest",
     "watch": "tsc --watch"
   },
   "peerDependencies": {
-    "@prisma/client": "^3.5.0"
+    "@prisma/client": "^3.5.0 || ^4.7.0"
   }
 }

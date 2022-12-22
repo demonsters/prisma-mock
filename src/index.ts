@@ -21,7 +21,6 @@ export type PrismaMockData<P> = Partial<{
   [key in IsTable<Uncapitalize<IsString<keyof P>>>]: PrismaList<P, key>
 }>
 
-
 const createPrismaMock = <P>(
   data: PrismaMockData<P> = {},
   datamodel?: Prisma.DMMF.Datamodel,
@@ -159,6 +158,13 @@ const createPrismaMock = <P>(
                   return row[keyToMatch] === valueToMatch
                 })
                 if (!matchingRow) {
+                  // PrismaClientKnownRequestError prototype changed in version 4.7.0
+                  // from: constructor(message: string, code: string, clientVersion: string, meta?: any)
+                  // to: constructor(message: string, { code, clientVersion, meta, batchRequestIdx }: KnownErrorParams)
+                  if (PrismaClientKnownRequestError.length === 2) {
+                    throw new PrismaClientKnownRequestError('An operation failed because it depends on one or more records that were required but not found. {cause}', { code: 'P2025', clientVersion: '1.2.3' })
+                  }
+                  // @ts-ignore
                   throw new PrismaClientKnownRequestError('An operation failed because it depends on one or more records that were required but not found. {cause}', 'P2025', '1.2.3')
                 }
                 connectionValue = matchingRow[keyToGet]
@@ -325,7 +331,7 @@ const createPrismaMock = <P>(
           (isCreating || d[field.name] === null) &&
           (d[field.name] === null || d[field.name] === undefined)) {
           if (field.hasDefaultValue) {
-            if (typeof field.default === 'object') {
+            if (typeof field.default === 'object' && !Array.isArray(field.default)) {
               if (field.default.name === 'autoincrement') {
                 const key = `${prop}_${field.name}`
                 let m = autoincrement?.[key]
