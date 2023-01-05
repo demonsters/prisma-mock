@@ -42,6 +42,13 @@ describe('PrismaClient where', () => {
         date: date2,
       },
     ],
+    stripe: [
+      {
+        id: 1,
+        customerId: 'cus_123',
+        accountId: 2,
+      }
+    ]
   };
 
   test('multiple', async () => {
@@ -167,12 +174,26 @@ describe('PrismaClient where', () => {
     expect(account).toEqual([data.account[0], data.account[2]]);
   });
 
-  test('Deep', async () => {
+  test('Nested', async () => {
     const client = await createPrismaClient(data);
     const account = await client.user.findMany({
       where: {
         account: {
           name: 'Dirk',
+        },
+      },
+    });
+    expect(account.length).toEqual(1);
+  });
+
+  test('Nested deep', async () => {
+    const client = await createPrismaClient(data);
+    const account = await client.user.findMany({
+      where: {
+        account: {
+          stripe: {
+            customerId: 'cus_123'
+          }
         },
       },
     });

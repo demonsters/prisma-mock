@@ -399,6 +399,7 @@ const createPrismaMock = <P>(
         }
       } else {
         if (typeof filter === 'object') {
+
           const info = model.fields.find(field => field.name === child)
           if (info?.relationName) {
             const childName = getCamelCase(info.type)
@@ -412,17 +413,24 @@ const createPrismaMock = <P>(
             } else {
               childWhere = filter
             }
-            const res = data[childName].filter(
-              matchFnc({
+            const submodel = datamodel.models.find(model => {
+              return getCamelCase(model.name) === childName
+            })
+            const delegate = Delegate(getCamelCase(childName), submodel)
+            const res = delegate.findMany({
+              where: {
                 ...childWhere,
                 ...getFieldRelationshipWhere(item, info),
-              }),
-            )
+              }
+            })
             if (filter.every) {
               if (res.length === 0) return false
-              const all = data[childName].filter(
-                matchFnc(getFieldRelationshipWhere(item, info)),
-              )
+              // const all = data[childName].filter(
+              //   matchFnc(getFieldRelationshipWhere(item, info)),
+              // )
+              const all = delegate.findMany({
+                where: getFieldRelationshipWhere(item, info)
+              })
               return res.length === all.length
             } else if (filter.some) {
               return res.length > 0
