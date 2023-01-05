@@ -71,6 +71,7 @@ describe('PrismaClient', () => {
     await client.user.create({
       data: {
         name: 'New user',
+        sort: 1,
         uniqueField: 'new',
       }
     })
@@ -84,6 +85,7 @@ describe('PrismaClient', () => {
         role: "ADMIN",
         deleted: false,
         clicks: null,
+        sort: 1,
         accountId: null,
         uniqueField: 'new',
       }
@@ -97,6 +99,7 @@ describe('PrismaClient', () => {
       data: {
         name: 'New user',
         uniqueField: 'new',
+        sort: 1,
         account: { connect: { id: 1 } }
       }
     })
@@ -111,6 +114,7 @@ describe('PrismaClient', () => {
         deleted: false,
         accountId: 1,
         clicks: null,
+        sort: 1,
         uniqueField: 'new',
       }
     ])
@@ -175,7 +179,8 @@ describe('PrismaClient', () => {
       },
       create: {
         id: 3,
-        name: "New name"
+        name: "New name",
+        sort: 1,
       }
     })
     const users = await client.account.findMany()
@@ -183,7 +188,8 @@ describe('PrismaClient', () => {
       ...data.account,
       {
         id: 3,
-        name: "New name"
+        name: "New name",
+        sort: 1,
       }
     ])
   })

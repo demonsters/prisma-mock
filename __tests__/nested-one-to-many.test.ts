@@ -26,11 +26,13 @@ describe('Create', () => {
       {
         id: 1,
         name: null,
+        sort: null,
         users: [{
           id: 1,
           accountId: 1,
           role: "USER",
           deleted: false,
+          sort: null,
           clicks: null,
           uniqueField: 'user',
         }]
@@ -61,12 +63,14 @@ describe('Create', () => {
       {
         id: 1,
         name: null,
+        sort: null,
         users: [{
           id: 1,
           role: "USER",
           accountId: 1,
           deleted: false,
           clicks: null,
+          sort: null,
           uniqueField: 'user',
         }, {
           id: 2,
@@ -74,6 +78,7 @@ describe('Create', () => {
           accountId: 1,
           deleted: false,
           clicks: null,
+          sort: null,
           uniqueField: 'admin',
         }]
       }

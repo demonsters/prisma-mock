@@ -119,7 +119,11 @@ const createPrismaMock = <P>(
       for (const key of keys) {
         const dir = orderBy[key]
         if (typeof dir === "object") {
-          return sortFunc(dir)(incl(a)[key], incl(b)[key])
+          const submodel = datamodel.models.find(model => {
+            return getCamelCase(model.name) === key
+          })
+          const delegate = Delegate(key, submodel)
+          return delegate._sortFunc(dir)(incl(a)[key], incl(b)[key])
         }
         if (a[key] > b[key]) {
           return dir === "asc" ? 1 : -1
@@ -774,6 +778,8 @@ const createPrismaMock = <P>(
         const res = findMany(args)
         return res.length
       },
+
+      _sortFunc: sortFunc,
     }
   }
 
@@ -790,6 +796,7 @@ const createPrismaMock = <P>(
 
     const objs = Delegate(c, model)
     Object.keys(objs).forEach(fncName => {
+      if (fncName.indexOf("_") === 0) return
       client[c][fncName].mockImplementation(async (...params) => {
         return objs[fncName](...params)
       })

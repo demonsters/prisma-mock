@@ -18,6 +18,7 @@ model Account {
   stripe Stripe? @relation
   name   String?
   guest  User[]  @relation("AccountGuest")
+  sort   Int?
 }
 
 model User {
@@ -31,6 +32,7 @@ model User {
   element     Element[]
   deleted     Boolean       @default(false)
   uniqueField String        @unique
+  sort   Int?
 }
 
 model Stripe {
@@ -39,6 +41,7 @@ model Stripe {
   accountId  Int     @unique
   account    Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
   active     Boolean @default(false)
+  sort   Int?
 }
 
 model Answers {
