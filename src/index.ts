@@ -123,18 +123,20 @@ const createPrismaMock = <P>(
             return getCamelCase(model.name) === key
           })
           const delegate = Delegate(key, submodel)
-          return delegate._sortFunc(dir)(incl(a)[key], incl(b)[key])
-        }
-        if (a[key] > b[key]) {
-          return dir === "asc" ? 1 : -1
-        } else if (a[key] < b[key]) {
-          return dir === "asc" ? -1 : 1
+          const res = delegate._sortFunc(dir)(incl(a)[key], incl(b)[key])
+          if (res !== 0) {
+            return res
+          }
+        } else {
+          if (a[key] > b[key]) {
+            return dir === "asc" ? 1 : -1
+          } else if (a[key] < b[key]) {
+            return dir === "asc" ? -1 : 1
+          }
         }
       }
       return 0
     }
-
-
 
     const nestedUpdate = (args, isCreating: boolean, item) => {
       let d = args.data
