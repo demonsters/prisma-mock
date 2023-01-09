@@ -1,5 +1,6 @@
 // @ts-nocheck
 
+import { PrismaClientValidationError } from "@prisma/client/runtime"
 import createPrismaClient from "../src"
 
 
@@ -111,7 +112,40 @@ test("nested orderBy", async () => {
   ])
 })
 
+test("Should throw error when more then one key in orderBy field", async () => {
+  const client = await createPrismaClient({
+    account: [
+      {
+        id: 1,
+        name: "B",
+      },
+      {
+        id: 2,
+        name: "A",
+      },
+    ],
+    stripe: [
+      {
+        id: 1,
+        accountId: 2,
+      },
+      {
+        id: 2,
+        accountId: 1,
+      },
+    ],
+  })
 
+  await expect(client.stripe.findMany({
+    orderBy: {
+      account: {
+        sort: "asc",
+      },
+      sort: "asc",
+    }
+  })).rejects.toThrow(new PrismaClientValidationError('Argument orderBy of needs exactly one argument, but you provided account and sort. Please choose one.'))
+
+})
 
 test("Deep nested orderBy", async () => {
   const client = await createPrismaClient()
@@ -162,15 +196,21 @@ test("Deep nested orderBy", async () => {
     }]
   })
   const users = await client.element.findMany({
-    orderBy: {
-      user: {
-        account: {
-          sort: "asc"
-        },
-        sort: "asc",
+    orderBy: [
+      {
+        user: {
+          account: {
+            sort: "asc"
+          },
+        }
       },
-      sort: "asc",
-    }
+      {
+        user: {
+          sort: "asc",
+        }
+      },
+      { sort: "asc", }
+    ]
   })
   expect(users).toEqual([
     expect.objectContaining({

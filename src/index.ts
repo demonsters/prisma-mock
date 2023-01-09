@@ -1,5 +1,5 @@
 import { Prisma } from '@prisma/client'
-import { PrismaClientKnownRequestError } from '@prisma/client/runtime'
+import { PrismaClientKnownRequestError, PrismaClientValidationError } from '@prisma/client/runtime'
 import { mockDeep } from 'jest-mock-extended'
 
 
@@ -114,7 +114,19 @@ const createPrismaMock = <P>(
 
 
     const sortFunc = (orderBy) => (a, b) => {
+      if (Array.isArray(orderBy)) {
+        for (const order of orderBy) {
+          const res = sortFunc(order)(a, b)
+          if (res !== 0) {
+            return res
+          }
+        }
+        return 0
+      }
       const keys = Object.keys(orderBy)
+      if (keys.length > 1) {
+        throw new PrismaClientValidationError(`Argument orderBy of needs exactly one argument, but you provided ${keys.join(' and ')}. Please choose one.`)
+      }
       const incl = includes({ include: keys.reduce((acc, key) => ({ ...acc, [key]: true }), {}) })
       for (const key of keys) {
         const dir = orderBy[key]
