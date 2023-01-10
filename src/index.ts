@@ -131,15 +131,29 @@ const createPrismaMock = <P>(
       for (const key of keys) {
         const dir = orderBy[key]
         if (typeof dir === "object") {
+          const schema = model.fields.find(field => {
+            return field.name === key;
+          });
+          if (!schema) {
+            return 0
+          }
           const submodel = datamodel.models.find(model => {
-            return getCamelCase(model.name) === key
+            return model.name === schema.type
           })
-          const delegate = Delegate(key, submodel)
-          const res = delegate._sortFunc(dir)(incl(a)[key], incl(b)[key])
+          const delegate = Delegate(getCamelCase(schema.type), submodel)
+          const valA = incl(a)
+          const valB = incl(b)
+          if (!valB || !valB[key]) {
+            return 0
+          }
+          if (!valA || !valA[key]) {
+            return 0
+          }
+          const res = delegate._sortFunc(dir)(valA[key], valB[key])
           if (res !== 0) {
             return res
           }
-        } else {
+        } else if (!!a && !!b) {
           if (a[key] > b[key]) {
             return dir === "asc" ? 1 : -1
           } else if (a[key] < b[key]) {

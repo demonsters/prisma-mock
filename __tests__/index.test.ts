@@ -37,6 +37,24 @@ describe('PrismaClient', () => {
     expect(user).toBe(data.user[0])
   })
 
+  test("findOne to", async () => {
+    const client = await createPrismaClient(data)
+    const user = await client.user.findUnique({
+      where: {
+        id: 1,
+      },
+      select: {
+        id: 1,
+        account: true,
+      },
+    })
+    expect(user).toEqual({
+      id: data.user[0].id,
+      account: data.account[0],
+    })
+  })
+
+
   test('findOne by id', async () => {
     const client = await createPrismaClient(data)
     const user = await client.account.findUnique({

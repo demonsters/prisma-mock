@@ -30,24 +30,6 @@ const data = {
   ],
 }
 
-test("findOne to", async () => {
-  const client = await createPrismaClient(data)
-  const user = await client.user.findUnique({
-    where: {
-      id: 1,
-    },
-    select: {
-      id: 1,
-      account: true,
-    },
-  })
-  expect(user).toEqual({
-    id: data.user[0].id,
-    account: data.account[0],
-  })
-})
-
-
 test("orderBy", async () => {
   const client = await createPrismaClient(data)
   const accounts = await client.account.findMany({
@@ -197,6 +179,15 @@ test("Deep nested orderBy", async () => {
   })
   const users = await client.element.findMany({
     orderBy: [
+      {
+        user: {
+          nonExisingField: {
+            value: {
+              sort: "asc"
+            }
+          }
+        }
+      },
       {
         user: {
           account: {
