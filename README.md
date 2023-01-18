@@ -1,4 +1,3 @@
-
 # Prisma Mock
 
 This is a mock of the Prisma API intended for unit testing. All the data is stored in memory.
@@ -173,7 +172,7 @@ TODO (path, string_contains, string_starts_with, string_ends_with, array_contain
 ## Attribute functions
 - autoincrement()
 - TODO: auto()
-- TODO: cuid()
+- cuid()
 - TODO: uuid()
 - TODO: now()
 - TODO: dbgenerated()
@@ -182,4 +181,3 @@ TODO (path, string_contains, string_starts_with, string_ends_with, array_contain
 - onDelete (SetNull, Cascade)
 - TODO: onDelete: Restrict, NoAction, SetDefault
 - TODO: onUpdate
-

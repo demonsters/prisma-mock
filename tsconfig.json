@@ -4,23 +4,15 @@
     "module": "commonjs",
     "declaration": true,
     "outDir": "lib/",
-    "lib": [
-      "es2020"
-    ],
+    "lib": ["es2020", "dom"],
     "strict": true,
     "noImplicitAny": false,
     "strictNullChecks": false,
     "alwaysStrict": true,
-    "types": [
-      "jest"
-    ],
+    "types": ["jest"],
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true
   },
-  "include": [
-    "src"
-  ],
-  "exclude": [
-    "node_modules"
-  ]
+  "include": ["src"],
+  "exclude": ["node_modules"]
 }

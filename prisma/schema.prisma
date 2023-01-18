@@ -32,7 +32,7 @@ model User {
   element     Element[]
   deleted     Boolean       @default(false)
   uniqueField String        @unique
-  sort   Int?
+  sort        Int?
 }
 
 model Stripe {
@@ -41,7 +41,7 @@ model Stripe {
   accountId  Int     @unique
   account    Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
   active     Boolean @default(false)
-  sort   Int?
+  sort       Int?
 }
 
 model Answers {
@@ -71,4 +71,9 @@ model Element {
   value String
 
   @@unique([userId, value])
+}
+
+model Document {
+  id   String @id @default(cuid())
+  name String
 }

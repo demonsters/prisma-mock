@@ -4,6 +4,7 @@ import {
   PrismaClientValidationError,
 } from "@prisma/client/runtime";
 import { mockDeep } from "jest-mock-extended";
+import HandleDefault, { ResetDefaults } from "./defaults";
 
 type UnwrapPromise<P extends any> = P extends Promise<infer R> ? R : P;
 
@@ -42,6 +43,8 @@ const createPrismaMock = <P>(
   if (!datamodel || typeof datamodel === "string") {
     datamodel = Prisma.dmmf.datamodel;
   }
+
+  ResetDefaults();
 
   const getCamelCase = (name: any) => {
     return name.substr(0, 1).toLowerCase() + name.substr(1);
@@ -207,21 +210,27 @@ const createPrismaMock = <P>(
                   }
                 );
                 if (!matchingRow) {
+                  const message =
+                    "An operation failed because it depends on one or more records that were required but not found. {cause}";
+                  const code = "P2025";
+                  const clientVersion = "1.2.3";
                   // PrismaClientKnownRequestError prototype changed in version 4.7.0
                   // from: constructor(message: string, code: string, clientVersion: string, meta?: any)
                   // to: constructor(message: string, { code, clientVersion, meta, batchRequestIdx }: KnownErrorParams)
                   if (PrismaClientKnownRequestError.length === 2) {
                     // @ts-ignore
-                    throw new PrismaClientKnownRequestError(
-                      "An operation failed because it depends on one or more records that were required but not found. {cause}",
-                      { code: "P2025", clientVersion: "1.2.3" }
-                    );
+                    throw new PrismaClientKnownRequestError(message, {
+                      code,
+                      clientVersion,
+                    });
                   }
+
                   // @ts-ignore
                   throw new PrismaClientKnownRequestError(
-                    "An operation failed because it depends on one or more records that were required but not found. {cause}",
-                    "P2025",
-                    "1.2.3"
+                    message,
+                    code,
+                    // @ts-ignore
+                    clientVersion
                   );
                 }
                 connectionValue = matchingRow[keyToGet];
@@ -393,23 +402,11 @@ const createPrismaMock = <P>(
         ) {
           if (field.hasDefaultValue) {
             if (IsFieldDefault(field.default)) {
-              if (field.default.name === "autoincrement") {
-                const key = `${prop}_${field.name}`;
-                let m = autoincrement?.[key];
-                if (m === undefined) {
-                  m = 0;
-                  data[prop].forEach((item) => {
-                    m = Math.max(m, item[field.name]);
-                  });
-                }
-                m += 1;
+              const defaultValue = HandleDefault(prop, field, data);
+              if (defaultValue) {
                 d = {
                   ...d,
-                  [field.name]: m,
-                };
-                autoincrement = {
-                  ...autoincrement,
-                  [key]: m,
+                  [field.name]: defaultValue,
                 };
               }
             } else {
