@@ -12,7 +12,8 @@ test('create', async () => {
         create: {
 
         },
-      }
+      },
+      uniqueField: 'user',
     },
     include: {
       account: true
@@ -25,10 +26,13 @@ test('create', async () => {
       role: "USER",
       deleted: false,
       clicks: null,
+      sort: null,
       account: {
         id: 1,
         name: null,
-      }
+        sort: null,
+      },
+      uniqueField: 'user',
     }
   )
 })

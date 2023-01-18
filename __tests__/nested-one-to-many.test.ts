@@ -11,7 +11,8 @@ describe('Create', () => {
       data: {
         users: {
           create: {
-            role: "USER"
+            role: "USER",
+            uniqueField: 'user',
           },
         }
       },
@@ -25,12 +26,15 @@ describe('Create', () => {
       {
         id: 1,
         name: null,
+        sort: null,
         users: [{
           id: 1,
           accountId: 1,
           role: "USER",
           deleted: false,
-          clicks: null
+          sort: null,
+          clicks: null,
+          uniqueField: 'user',
         }]
       }
     )
@@ -44,8 +48,10 @@ describe('Create', () => {
         users: {
           create: [{
             role: "USER",
+            uniqueField: 'user',
           }, {
             role: "ADMIN",
+            uniqueField: 'admin',
           }],
         }
       },
@@ -57,18 +63,23 @@ describe('Create', () => {
       {
         id: 1,
         name: null,
+        sort: null,
         users: [{
           id: 1,
           role: "USER",
           accountId: 1,
           deleted: false,
           clicks: null,
+          sort: null,
+          uniqueField: 'user',
         }, {
           id: 2,
           role: "ADMIN",
           accountId: 1,
           deleted: false,
           clicks: null,
+          sort: null,
+          uniqueField: 'admin',
         }]
       }
     )
