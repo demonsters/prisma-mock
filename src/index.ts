@@ -38,7 +38,8 @@ function IsFieldDefault(
 const createPrismaMock = <P>(
   data: PrismaMockData<P> = {},
   datamodel?: Prisma.DMMF.Datamodel,
-  client = mockDeep<P>()
+  client = mockDeep<P>(),
+  options = { caseInsensitive: false }
 ): P => {
   if (!datamodel || typeof datamodel === "string") {
     datamodel = Prisma.dmmf.datamodel;
@@ -466,7 +467,7 @@ const createPrismaMock = <P>(
     };
 
     const matchItem = (child, item, where) => {
-      const val = item[child];
+      let val = item[child];
       const filter = where[child];
       if (child === "OR") {
         return matchOr(item, filter);
@@ -550,6 +551,19 @@ const createPrismaMock = <P>(
             return false;
           }
           let match = true;
+          if (options.caseInsensitive) {
+            val = val.toLowerCase ? val.toLowerCase() : val;
+            Object.keys(filter).forEach((key) => {
+              const value = filter[key];
+              if (value.toLowerCase) {
+                filter[key] = value.toLowerCase();
+              } else if (value instanceof Array) {
+                filter[key] = value.map((v) =>
+                  v.toLowerCase ? v.toLowerCase() : v
+                );
+              }
+            });
+          }
           if ("equals" in filter && match) {
             match = filter.equals === val;
           }
