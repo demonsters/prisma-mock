@@ -199,47 +199,83 @@ const createPrismaMock = <P>(
                 [field.name]: { connect },
                 ...rest
               } = d;
-              let connectionValue = connect[field.relationToFields[0]];
-              const keyToMatch = Object.keys(connect)[0];
-              const keyToGet = field.relationToFields[0];
-              if (keyToMatch !== keyToGet) {
-                const valueToMatch = connect[keyToMatch];
-                const matchingRow = data[getCamelCase(field.type)].find(
-                  (row) => {
-                    return row[keyToMatch] === valueToMatch;
-                  }
-                );
-                if (!matchingRow) {
-                  const message =
-                    "An operation failed because it depends on one or more records that were required but not found. {cause}";
-                  const code = "P2025";
-                  const clientVersion = "1.2.3";
-                  // PrismaClientKnownRequestError prototype changed in version 4.7.0
-                  // from: constructor(message: string, code: string, clientVersion: string, meta?: any)
-                  // to: constructor(message: string, { code, clientVersion, meta, batchRequestIdx }: KnownErrorParams)
-                  if (PrismaClientKnownRequestError.length === 2) {
-                    // @ts-ignore
-                    throw new PrismaClientKnownRequestError(message, {
-                      code,
-                      clientVersion,
-                    });
+              const connections =
+                connect instanceof Array ? connect : [connect];
+              connections.forEach((connect, idx) => {
+                const keyToMatch = Object.keys(connect)[0];
+
+                if (field.relationToFields.length > 0) {
+                  const keyToGet = field.relationToFields[0];
+                  const targetKey = field.relationFromFields[0];
+                  let connectionValue = connect[keyToGet];
+                  if (keyToMatch !== keyToGet) {
+                    const valueToMatch = connect[keyToMatch];
+                    const matchingRow = data[getCamelCase(field.type)].find(
+                      (row) => {
+                        return row[keyToMatch] === valueToMatch;
+                      }
+                    );
+                    if (!matchingRow) {
+                      const message =
+                        "An operation failed because it depends on one or more records that were required but not found. {cause}";
+                      const code = "P2025";
+                      const clientVersion = "1.2.3";
+                      // PrismaClientKnownRequestError prototype changed in version 4.7.0
+                      // from: constructor(message: string, code: string, clientVersion: string, meta?: any)
+                      // to: constructor(message: string, { code, clientVersion, meta, batchRequestIdx }: KnownErrorParams)
+                      if (PrismaClientKnownRequestError.length === 2) {
+                        // @ts-ignore
+                        throw new PrismaClientKnownRequestError(message, {
+                          code,
+                          clientVersion,
+                        });
+                      }
+
+                      // @ts-ignore
+                      throw new PrismaClientKnownRequestError(
+                        message,
+                        code,
+                        // @ts-ignore
+                        clientVersion
+                      );
+                    }
+                    connectionValue = matchingRow[keyToGet];
                   }
 
-                  // @ts-ignore
-                  throw new PrismaClientKnownRequestError(
-                    message,
-                    code,
-                    // @ts-ignore
-                    clientVersion
+                  d = {
+                    ...rest,
+                    [targetKey]: connectionValue,
+                  };
+                } else {
+                  d = rest;
+                  const otherModel = datamodel.models.find((model) => {
+                    return model.name === field.type;
+                  });
+                  const inverse = otherModel.fields.find(
+                    (otherField) =>
+                      field.relationName === otherField.relationName
                   );
-                }
-                connectionValue = matchingRow[keyToGet];
-              }
+                  const targetKey = inverse.relationToFields[0];
+                  const fromKey = inverse.relationFromFields[0];
 
-              d = {
-                ...rest,
-                [field.relationFromFields[0]]: connectionValue,
-              };
+                  const delegate = Delegate(
+                    getCamelCase(otherModel.name),
+                    otherModel
+                  );
+                  delegate.update({
+                    where: {
+                      [fromKey]: connect[keyToMatch],
+                    },
+                    data: {
+                      [getCamelCase(inverse.name)]: {
+                        connect: {
+                          [targetKey]: d[targetKey],
+                        },
+                      },
+                    },
+                  });
+                }
+              });
             }
             if (c.create || c.createMany) {
               const { [field.name]: create, ...rest } = d;
