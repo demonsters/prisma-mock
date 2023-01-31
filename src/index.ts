@@ -453,10 +453,10 @@ const createPrismaMock = <P>(
               };
             }
           } else if (field.isUpdatedAt) {
-              d = {
-                ...d,
-                [field.name]: new Date(),
-              };
+            d = {
+              ...d,
+              [field.name]: new Date(),
+            };
           } else {
             if (field.kind !== "object") {
               d = {
@@ -855,7 +855,13 @@ const createPrismaMock = <P>(
         });
         return findMany(args);
       },
-      delete: deleteMany,
+      delete: (args) => {
+        const deleted = deleteMany(args);
+        if (deleted.length) {
+          return deleted[0];
+        }
+        return null;
+      },
       update,
       deleteMany,
       updateMany: (args) => {
