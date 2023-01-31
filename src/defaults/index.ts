@@ -4,6 +4,7 @@ import { PrismaMockData } from "..";
 
 import autoincrement, { reset as ResetAutoInc } from "./autoincrement";
 import Cuid from "./cuid";
+import Now from "./now";
 
 type FieldDefault = Prisma.DMMF.FieldDefault;
 
@@ -11,6 +12,7 @@ type FieldDefault = Prisma.DMMF.FieldDefault;
 const registry = new Map();
 registry.set("autoincrement", autoincrement);
 registry.set("cuid", Cuid);
+registry.set("now", Now);
 
 export default function HandleDefault<P>(
   prop: string,
