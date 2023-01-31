@@ -452,6 +452,11 @@ const createPrismaMock = <P>(
                 [field.name]: field.default,
               };
             }
+          } else if (field.isUpdatedAt) {
+              d = {
+                ...d,
+                [field.name]: new Date(),
+              };
           } else {
             if (field.kind !== "object") {
               d = {
