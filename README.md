@@ -18,27 +18,25 @@ beforeEach(async () => {
 }
 ```
 
-
 An example how to mock a global prisma instance inside and schema a "db" directory (like blitzjs):
 
 ```js
-import createPrismaMock from "prisma-mock"
-import { mockDeep, mockReset } from "jest-mock-extended"
+import createPrismaMock from "prisma-mock";
+import { mockDeep, mockReset } from "jest-mock-extended";
 
 jest.mock("db", () => ({
   __esModule: true,
-  ...jest.requireActual('db'),
-  default: mockDeep()
-}))
+  ...jest.requireActual("db"),
+  default: mockDeep(),
+}));
 
-import db, { Prisma } from "db"
+import db, { Prisma } from "db";
 
 beforeEach(() => {
-  mockReset(db)
-  return createPrismaMock({}, Prisma.dmmf.datamodel, db)
-})
+  mockReset(db);
+  return createPrismaMock({}, Prisma.dmmf.datamodel, db);
+});
 ```
-
 
 # API
 
@@ -60,30 +58,32 @@ createPrismaMock({
     {
       id: 1,
       name: "John Doe",
-      accountId: 1
-    }
+      accountId: 1,
+    },
   ],
   account: [
     {
       id: 1,
       name: "Company",
-    }
-  ]
-})
+    },
+  ],
+});
 ```
 
-
 ## datamodel
+
 The datamodel of the prisma client, value of `Prisma.dmmf.datamodel`.
 
 ## client
+
 `jest-mock-extended` instance used. If not provided, a new instance is created.
 
-
 # Supported features
+
 Alot of the functionality is implemented, but parts are missing. Here is a list of the (missing) features:
 
 ## Model queries
+
 - findUnique,
 - findMany,
 - findFirst,
@@ -98,16 +98,17 @@ Alot of the functionality is implemented, but parts are missing. Here is a list 
 - TODO: aggregate
 - TODO: groupBy
 
-
 ## Model query options
+
 - distinct
 - include
 - where
 - select
 - orderBy
-- TODO: select: _count
+- TODO: select: \_count
 
 ## Nested queries
+
 - create
 - createMany
 - update
@@ -120,8 +121,8 @@ Alot of the functionality is implemented, but parts are missing. Here is a list 
 - TODO: connectOrCreate
 - TODO: upsert
 
-
 ## Filter conditions and operators
+
 - equals
 - gt
 - gte
@@ -140,18 +141,22 @@ Alot of the functionality is implemented, but parts are missing. Here is a list 
 - TODO: mode
 
 ## Relation filters
+
 - some
 - every
 - none
 - TODO: is
 
 ## Scalar list methods
+
 TODO (set, push)
 
 ## Scalar list filters
+
 TODO (has, hasEvery, hasSome, isEmpty, equals)
 
 ## Atomic number operations
+
 - increment
 - decrement
 - multiply
@@ -159,25 +164,29 @@ TODO (has, hasEvery, hasSome, isEmpty, equals)
 - set
 
 ## JSON filters
+
 TODO (path, string_contains, string_starts_with, string_ends_with, array_contains, array_starts_with, array_ends_with)
 
 ## Attributes
+
 - @@id
 - @default
 - @unique (TODO: no error if duplicate)
 - @@unique (TODO: no error if duplicate)
 - @relation
-- TODO: @updatedAt
+- @updatedAt: Parially supported, value is set at creation (TODO: update value on update)
 
 ## Attribute functions
+
 - autoincrement()
 - TODO: auto()
 - cuid()
 - TODO: uuid()
-- TODO: now()
+- now()
 - TODO: dbgenerated()
 
 ## Referential actions
+
 - onDelete (SetNull, Cascade)
 - TODO: onDelete: Restrict, NoAction, SetDefault
 - TODO: onUpdate
