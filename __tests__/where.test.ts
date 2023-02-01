@@ -53,6 +53,20 @@ describe("PrismaClient where", () => {
         accountId: 2,
       },
     ],
+    element: [
+      {
+        id: 1,
+        json: {
+          data: "first"
+        }
+      },
+      {
+        id: 2,
+        json: {
+          data: "second"
+        }
+      }
+    ]
   };
 
   describe.each([false, true])(
@@ -117,6 +131,22 @@ describe("PrismaClient where", () => {
           },
         });
         expect(account).toEqual([data.account[1]]);
+      });
+
+      test("Json: equals", async () => {
+        const client = createPrismaClient(data, undefined, undefined, {
+          caseInsensitive,
+        });
+        const element = await client.element.findMany({
+          where: {
+            json: {
+              equals: {
+                data: "first"
+              }
+            }
+          },
+        });
+        expect(element).toEqual([data.element[0]]);
       });
 
       test("gt", async () => {
@@ -185,6 +215,23 @@ describe("PrismaClient where", () => {
           data.account[2],
           data.account[3],
         ]);
+      });
+
+
+      test("Json: not", async () => {
+        const client = createPrismaClient(data, undefined, undefined, {
+          caseInsensitive,
+        });
+        const elements = await client.element.findMany({
+          where: {
+            json: {
+              not: {
+                data: "first"
+              }
+            }
+          },
+        });
+        expect(elements).toEqual([data.element[1]]);
       });
 
       test("notIn", async () => {

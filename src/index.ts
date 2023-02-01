@@ -5,6 +5,8 @@ import {
 } from "@prisma/client/runtime";
 import { mockDeep } from "jest-mock-extended";
 import HandleDefault, { ResetDefaults } from "./defaults";
+import { shallowCompare } from "./utils/shallowCompare"
+import { deepEqual } from "./utils/deepEqual"
 
 type UnwrapPromise<P extends any> = P extends Promise<infer R> ? R : P;
 
@@ -49,16 +51,6 @@ const createPrismaMock = <P>(
 
   const getCamelCase = (name: any) => {
     return name.substr(0, 1).toLowerCase() + name.substr(1);
-  };
-
-  const shallowCompare = (
-    a: { [key: string]: any },
-    b: { [key: string]: any }
-  ) => {
-    for (let key in b) {
-      if (a[key] !== b[key]) return false;
-    }
-    return true;
   };
 
   const removeMultiFieldIds = (
@@ -571,7 +563,7 @@ const createPrismaMock = <P>(
             });
           }
           if ("equals" in matchFilter && match) {
-            match = matchFilter.equals === val;
+            match = deepEqual(matchFilter.equals, val);
           }
           if ("startsWith" in matchFilter && match) {
             match = val.indexOf(matchFilter.startsWith) === 0;
@@ -600,7 +592,7 @@ const createPrismaMock = <P>(
             match = matchFilter.in.includes(val);
           }
           if ("not" in matchFilter && match) {
-            match = val !== matchFilter.not;
+            match = !deepEqual(matchFilter.not, val);
           }
           if ("notIn" in matchFilter && match) {
             match = !matchFilter.notIn.includes(val);

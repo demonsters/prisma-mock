@@ -253,6 +253,7 @@ describe("PrismaClient", () => {
     expect(elements).toEqual([
       {
         e_id: 1,
+        json: null,
         userId: 1,
         value: "test element",
       },

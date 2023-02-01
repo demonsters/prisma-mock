@@ -69,6 +69,7 @@ model Element {
   userId Int
 
   value String
+  json  Json?
 
   @@unique([userId, value])
 }
