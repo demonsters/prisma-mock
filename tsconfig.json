@@ -1,24 +1,18 @@
 {
   "compilerOptions": {
-    "target": "es2017",
+    "target": "es2020",
     "module": "commonjs",
     "declaration": true,
     "outDir": "lib/",
-    "lib": [
-      "es2020"
-    ],
+    "lib": ["es2020", "dom"],
     "strict": true,
     "noImplicitAny": false,
     "strictNullChecks": false,
     "alwaysStrict": true,
-    "types": [
-      "jest"
-    ],
+    "types": ["jest"],
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true
   },
   "include": ["src"],
-  "exclude": [
-    "node_modules"
-  ]
+  "exclude": ["node_modules"]
 }
