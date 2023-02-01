@@ -174,7 +174,7 @@ TODO (path, string_contains, string_starts_with, string_ends_with, array_contain
 - @unique (TODO: no error if duplicate)
 - @@unique (TODO: no error if duplicate)
 - @relation
-- @updatedAt: Parially supported, value is set at creation (TODO: update value on update)
+- @updatedAt: Partially supported, value is set at creation (TODO: update value on update)
 
 ## Attribute functions
 
