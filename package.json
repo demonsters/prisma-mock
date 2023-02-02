@@ -27,7 +27,5 @@
   "peerDependencies": {
     "@prisma/client": "^3.5.0 || ^4.7.0"
   },
-  "dependencies": {
-    "@paralleldrive/cuid2": "^2.0.0"
-  }
+  "dependencies": {}
 }

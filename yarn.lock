@@ -515,18 +515,6 @@
     "@jridgewell/resolve-uri" "3.1.0"
     "@jridgewell/sourcemap-codec" "1.4.14"
 
-"@noble/hashes@^1.1.5":
-  version "1.1.5"
-  resolved "https://registry.yarnpkg.com/@noble/hashes/-/hashes-1.1.5.tgz#1a0377f3b9020efe2fae03290bd2a12140c95c11"
-  integrity sha512-LTMZiiLc+V4v1Yi16TD6aX2gmtKszNye0pQgbaLqkvhIqP7nVsSaJsWloGQjJfJ8offaoP5GtX3yY5swbcJxxQ==
-
-"@paralleldrive/cuid2@^2.0.0":
-  version "2.0.0"
-  resolved "https://registry.yarnpkg.com/@paralleldrive/cuid2/-/cuid2-2.0.0.tgz#e966ed7e91ff8cbfd6e48587ae149c1442c52d75"
-  integrity sha512-+Z8jistzuQCQ6BlwJZTPxZoKkSGUXdU9iqvgNbb9JkGo1jPd3gn2WVf1flk2ej+NZswsqEEe1p/o9Ebp/lnaNA==
-  dependencies:
-    "@noble/hashes" "^1.1.5"
-
 "@prisma/client@4.7.1":
   version "4.7.1"
   resolved "https://registry.yarnpkg.com/@prisma/client/-/client-4.7.1.tgz#66fe84aca25de17cb3d9141dec003f34714914b9"
