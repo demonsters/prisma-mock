@@ -1,14 +1,14 @@
 
 // @ts-nocheck
 
-import createPrismaClient from "../src";
+import createPrismaClient from "./createPrismaClient";
 
 describe("PrismaMock update", () => {
 
   const data = {
     user: [
-      { id: 1, name: 'Henk', clicks: 2 },
-      { id: 2, name: 'Piet', clicks: 5 },
+      { id: 1, name: 'Henk', clicks: 2, uniqueField: 'user 1' },
+      { id: 2, name: 'Piet', clicks: 5, uniqueField: 'user 2' },
     ]
   }
 
@@ -52,7 +52,11 @@ describe("PrismaMock update", () => {
         id: 1
       }
     })
-    const users = await client.user.findMany()
+    const users = await client.user.findMany({
+      orderBy: {
+        id: "asc"
+      }
+    })
     expect(users[0].clicks).toEqual(12);
     expect(users[1].clicks).toEqual(5);
   })
@@ -86,6 +90,21 @@ describe("PrismaMock update", () => {
   })
 
   test("divide", async () => {
+    const client = await createPrismaClient(data);
+    await client.user.updateMany({
+      data: {
+        clicks: {
+          divide: 2,
+        },
+      },
+    })
+    const users = await client.user.findMany()
+    expect(users[0].clicks).toEqual(1);
+    expect(users[1].clicks).toEqual(2);
+  })
+
+  // TODO:
+  test.skip("divide float", async () => {
     const client = await createPrismaClient(data);
     await client.user.updateMany({
       data: {

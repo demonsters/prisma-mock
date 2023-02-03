@@ -38,14 +38,16 @@ function IsFieldDefault(
 }
 
 const createPrismaMock = <P>(
-  data: PrismaMockData<P> = {},
   datamodel?: Prisma.DMMF.Datamodel,
-  client = mockDeep<P>(),
   options = { caseInsensitive: false }
 ): P => {
+
   if (!datamodel || typeof datamodel === "string") {
     datamodel = Prisma.dmmf.datamodel;
   }
+  let client = {} as P
+
+  let data = {}
 
   ResetDefaults();
 
@@ -110,11 +112,15 @@ const createPrismaMock = <P>(
   };
 
   // @ts-ignore
-  client["$transaction"].mockImplementation(async (actions) => {
+  client["$transaction"] = async (actions) => {
     for (const action of actions) {
       await action;
     }
-  });
+  }
+  
+  client["$connect"] = async () => {}
+  client["$disconnect"] = async () => {}
+  client["$use"] = async () => {}
 
   const Delegate = (prop: string, model: Prisma.DMMF.Model) => {
     const sortFunc = (orderBy) => (a, b) => {
@@ -412,9 +418,10 @@ const createPrismaMock = <P>(
             };
           }
           if (c.divide) {
+            const newValue = item[field.name] / c.divide
             d = {
               ...d,
-              [field.name]: item[field.name] / c.divide,
+              [field.name]: field.type === "Int" ? Math.floor(newValue) : newValue,
             };
           }
           if (c.set) {
@@ -515,7 +522,7 @@ const createPrismaMock = <P>(
               },
             });
             if (filter.every) {
-              if (res.length === 0) return false;
+              if (res.length === 0) return true;
               // const all = data[childName].filter(
               //   matchFnc(getFieldRelationshipWhere(item, info)),
               // )
@@ -549,7 +556,7 @@ const createPrismaMock = <P>(
           }
           let match = true;
           const matchFilter = { ...filter };
-          if (options.caseInsensitive) {
+          if (options.caseInsensitive || ("mode" in matchFilter && matchFilter.mode === "insensitive")) {
             val = val.toLowerCase ? val.toLowerCase() : val;
             Object.keys(matchFilter).forEach((key) => {
               const value = matchFilter[key];
@@ -839,12 +846,19 @@ const createPrismaMock = <P>(
       findFirst: findOne,
       create,
       createMany: (args) => {
-        args.data.forEach((data) => {
+        if (!Array.isArray(args.data)) {
           create({
             ...args,
-            data,
+            data: args.data,
           });
-        });
+        } else {
+          args.data.forEach((data) => {
+            create({
+              ...args,
+              data,
+            });
+          });
+        }
         return findMany(args);
       },
       delete: (args) => {
@@ -903,12 +917,14 @@ const createPrismaMock = <P>(
     const objs = Delegate(c, model);
     Object.keys(objs).forEach((fncName) => {
       if (fncName.indexOf("_") === 0) return;
-      client[c][fncName].mockImplementation(async (...params) => {
+      if (!client[c]) client[c] = {};
+      client[c][fncName] = async (...params) => {
         return objs[fncName](...params);
-      });
+      }
     });
   });
 
+  // @ts-ignore
   return client;
 };
 

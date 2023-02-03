@@ -1,7 +1,7 @@
 // @ts-nocheck
 
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime";
-import createPrismaClient from "../src/";
+import createPrismaClient from "./createPrismaClient";
 
 describe("defaults", () => {
   test("autoincrement", async () => {
@@ -9,6 +9,7 @@ describe("defaults", () => {
     const user = await client.user.create({
       data: {
         name: "New user",
+        uniqueField: "new",
       },
     });
     expect(user.id).toBe(1);
@@ -20,6 +21,7 @@ describe("defaults", () => {
     const user2 = await client.user.create({
       data: {
         name: "New user 2",
+        uniqueField: "new2",
       },
     });
     expect(user2.id).toBe(2);
@@ -30,12 +32,14 @@ describe("defaults", () => {
     const element = await client.element.create({
       data: {
         value: "New user",
+        user: { create: { name: "New user", uniqueField: "new" } }
       },
     });
     expect(element.e_id).toBe(1);
     const element2 = await client.element.create({
       data: {
-        name: "New user 2",
+        value: "New user 2",
+        user: { create: { name: "New user", uniqueField: "new2" } }
       },
     });
     expect(element2.e_id).toBe(2);
@@ -49,7 +53,7 @@ describe("defaults", () => {
       },
     });
     expect(document.id).not.toBeFalsy();
-    expect(document.id).toHaveLength(24);
+    expect(document.id).toHaveLength(25);
     const firstId = document.id;
     await client.document.delete({
       where: {
@@ -62,7 +66,7 @@ describe("defaults", () => {
       },
     });
     expect(document2.id).not.toBeFalsy();
-    expect(document2.id).toHaveLength(24);
+    expect(document2.id).toHaveLength(25);
     expect(document2.id).not.toEqual(firstId);
   });
 });

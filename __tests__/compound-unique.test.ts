@@ -1,20 +1,22 @@
   // @ts-nocheck
 
 import { PrismaClient } from '@prisma/client'
-import createPrismaClient from '../src'
+import createPrismaClient from './createPrismaClient'
 
 describe('PrismaClient @@unique()', () => {
 
   test('upsert insert', async () => {
     const client = await createPrismaClient<PrismaClient>({
-      user: {
+      user: [{
         id: 1,
-      }
+        uniqueField: "user"
+      }]
     })
     
     const newItem1 = await client.element.upsert({
       create: {
-        value: "new"
+        value: "new",
+        userId: 1
       },
       update: {
         
@@ -32,6 +34,9 @@ describe('PrismaClient @@unique()', () => {
 
     const newItem2 = await client.element.upsert({
       create: {
+        value: "newer",
+        userId: 1,
+        value: "new"
       },
       update: {
         value: "updated"

@@ -9,7 +9,7 @@ function pad(s: string, size: number) {
 // Format from: https://cuid.marcoonroad.dev/
 const Cuid = () => {
   ciud_cache++
-  return `c00p6qup2${pad(String(ciud_cache), 4)}ckkzslahp5p`;
+  return `c00p6qup2${pad(String(ciud_cache), 4)}ckkzslahp5pn`;
 }
 
 export function ResetCuid() {

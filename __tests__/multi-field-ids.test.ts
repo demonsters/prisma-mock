@@ -1,19 +1,13 @@
 // @ts-nocheck
 
-import createPrismaClient from "../src";
+import createPrismaClient from "./createPrismaClient";
 
 describe("PrismaClient @@id()", () => {
   const data = {
     user: [
       {
-        id: 1,
         name: "sadfsdf",
-      },
-    ],
-    userAnswers: [
-      {
-        userId: 1,
-        answerId: 2,
+        uniqueField: "user1",
       },
     ],
     answers: [
@@ -30,15 +24,21 @@ describe("PrismaClient @@id()", () => {
         title: "Answer",
       },
     ],
+    userAnswers: [
+      {
+        userId: 1,
+        answerId: 2,
+      },
+    ],
     element: [
       {
-        id: 1,
-        value: "Element",
+        e_id: 1,
+        value: "Element1",
         userId: 1,
       },
       {
-        id: 2,
-        value: "Element",
+        e_id: 2,
+        value: "Element2",
         userId: 1,
       },
     ],
@@ -54,7 +54,13 @@ describe("PrismaClient @@id()", () => {
         },
       },
     });
-    expect(user).toEqual(expect.objectContaining(data.userAnswers[0]));
+    expect(user).toMatchInlineSnapshot(`
+Object {
+  "answerId": 2,
+  "userId": 1,
+  "value": null,
+}
+`)
   });
 
   test("findOne NOT found", async () => {
@@ -99,6 +105,8 @@ describe("PrismaClient @@id()", () => {
     const newItem1 = await client.userAnswers.upsert({
       create: {
         value: "created",
+        answer: { connect: { id: 1 } },
+        user: { connect: { id: 1 } },
       },
       update: {
         value: "updated",
@@ -116,6 +124,8 @@ describe("PrismaClient @@id()", () => {
     const newItem3 = await client.userAnswers.upsert({
       create: {
         value: "created",
+        answer: { connect: { id: 3 } },
+        user: { connect: { id: 1 } },
       },
       update: {
         value: "updated",
@@ -149,25 +159,22 @@ describe("PrismaClient @@id()", () => {
   test("updateMany", async () => {
     const client = await createPrismaClient(data);
 
-    await client.userAnswers.create({
-      data: {
-        userId_answerId: {
-          userId: 1,
-          answerId: 3,
-        },
-      },
-    });
-
     await client.userAnswers.updateMany({
       data: {
-        answerId: 2,
+        answerId: 3,
       },
     });
 
     const items = await client.userAnswers.findMany();
-    expect(items.length).toEqual(2);
-    expect(items[0].answerId).toEqual(2);
-    expect(items[1].answerId).toEqual(2);
+    expect(items).toMatchInlineSnapshot(`
+Array [
+  Object {
+    "answerId": 3,
+    "userId": 1,
+    "value": null,
+  },
+]
+`)
   });
 
   test("connect multiple records at creation", async () => {
@@ -175,8 +182,9 @@ describe("PrismaClient @@id()", () => {
 
     const user = await client.user.create({
       data: {
+        uniqueField: "user2",
         element: {
-          connect: [{ id: 1 }, { id: 2 }],
+          connect: [{ e_id: 1 }, { e_id: 2 }],
         },
       },
     });
