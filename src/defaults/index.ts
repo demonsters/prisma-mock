@@ -3,7 +3,7 @@ import { Prisma } from "@prisma/client";
 import { PrismaMockData } from "..";
 
 import autoincrement, { reset as ResetAutoInc } from "./autoincrement";
-import Cuid from "./cuid";
+import Cuid, { ResetCuid } from "./cuid";
 import Now from "./now";
 
 type FieldDefault = Prisma.DMMF.FieldDefault;
@@ -26,4 +26,5 @@ export default function HandleDefault<P>(
 
 export function ResetDefaults() {
   ResetAutoInc();
+  ResetCuid()
 }

@@ -12,4 +12,8 @@ const Cuid = () => {
   return `c00p6qup2${pad(String(ciud_cache), 4)}ckkzslahp5p`;
 }
 
+export function ResetCuid() {
+  ciud_cache = 0
+}
+
 export default Cuid
