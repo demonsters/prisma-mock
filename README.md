@@ -87,6 +87,7 @@ Alot of the functionality is implemented, but parts are missing. Here is a list 
 - findUnique,
 - findMany,
 - findFirst,
+- findFirstOrThrow,
 - create,
 - createMany
 - delete,
