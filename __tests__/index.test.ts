@@ -75,6 +75,24 @@ describe("PrismaClient", () => {
     expect(accounts).toEqual(data.account[0]);
   });
 
+  test("findFirstOrThrow", async () => {
+    const client = await createPrismaClient(data);
+    const accounts = await client.account.findFirstOrThrow({
+      where: { id: 1 },
+    });
+    expect(accounts).toEqual(data.account[0]);
+    try {
+      const result = await client.account.findFirstOrThrow({
+        where: { id: 0 },
+      });
+      throw new Error("Test should not reach here");
+    } catch (e) {
+      expect(e.message).toContain(
+        "An operation failed because it depends on one or more records that were required but not found"
+      );
+    }
+  });
+
   test("count", async () => {
     const client = await createPrismaClient(data);
     const accounts = await client.account.count();

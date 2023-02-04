@@ -5,8 +5,8 @@ import {
 } from "@prisma/client/runtime";
 import { mockDeep } from "jest-mock-extended";
 import HandleDefault, { ResetDefaults } from "./defaults";
-import { shallowCompare } from "./utils/shallowCompare"
-import { deepEqual } from "./utils/deepEqual"
+import { shallowCompare } from "./utils/shallowCompare";
+import { deepEqual } from "./utils/deepEqual";
 
 type UnwrapPromise<P extends any> = P extends Promise<infer R> ? R : P;
 
@@ -837,6 +837,18 @@ const createPrismaMock = <P>(
       findUnique: findOne,
       findMany,
       findFirst: findOne,
+      findFirstOrThrow: (args) => {
+        const found = findOne(args);
+        if (!found) {
+          throw new PrismaClientKnownRequestError(
+            "An operation failed because it depends on one or more records that were required but not found. {cause}",
+            "P2025",
+            // @ts-ignore
+            "1.2.3"
+          );
+        }
+        return found;
+      },
       create,
       createMany: (args) => {
         args.data.forEach((data) => {
