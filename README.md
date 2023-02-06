@@ -138,8 +138,8 @@ Alot of the functionality is implemented, but parts are missing. Here is a list 
 - AND
 - OR
 - NOT
+- mode
 - TODO: search
-- TODO: mode
 
 ## Relation filters
 
