@@ -1,36 +1,82 @@
+// @ts-nocheck
+
+import { PrismaClientKnownRequestError } from "@prisma/client/runtime"
+import createPrismaClient from "./createPrismaClient"
+
+const data = {
+  account: [
+    {
+      name: "sadfsdf",
+      sort: null,
+    },
+    {
+      name: "adsfasdf2",
+      sort: null,
+    },
+  ],
+  user: [
+    {
+      accountId: 1,
+      clicks: null,
+      deleted: false,
+      name: "Admin",
+      sort: null,
+      role: "ADMIN",
+      uniqueField: "first",
+    },
+  ],
+}
+
+test("findFirstOrThrow", async () => {
+  const client = await createPrismaClient(data)
+  const accounts = await client.account.findFirstOrThrow({
+    where: { id: 1 },
+  })
+  expect(accounts).toMatchInlineSnapshot(`
+Object {
+  "id": 1,
+  "name": "sadfsdf",
+  "sort": null,
+}
+`)
+  try {
+    const result = await client.account.findFirstOrThrow({
+      where: { id: 0 },
+    })
+    throw new Error("Test should not reach here")
+  } catch (e) {
+    expect(e instanceof PrismaClientKnownRequestError).toBe(true)
+    expect(e.message).toContain(
+      "No Account found"
+    )
+  }
+})
+
+
+
+test("delete", async () => {
+  const client = await createPrismaClient()
+  try {
+    const user = await client.account.delete({
+      where: {
+        id: 1,
+      },
+    })
+    throw new Error("Test should not reach here")
+  } catch (e) {
+    expect(e.code).toBe("P2025")
+    expect(e.meta.cause).toBe("Record to delete does not exist.")
+    expect(e instanceof PrismaClientKnownRequestError).toBe(true)
+    expect(e.message).toContain(
+      "An operation failed because it depends on one or more records that were required but not found. Record to delete does not exist."
+    )
+  }
+})
+
 
 
 test.todo("Should throw when foreign key is invalid")
 test.todo("Argument create is missing.")
 test.todo("Argument uniqueField for data.uniqueField is missing.")
-// const client = await createPrismaClient({})
-//     const account = await client.account.create({
-//       data: {
-//         id: 1,
-//         name: "New account",
-//       },
-//     })
-//     const user = await client.user.create({
-//       data: {
-//         name: "New user",
-//         guestOf: { connect: { id: 1 } },
-//       },
-//     })
-//     const users = await client.user.findMany({
-//       include: {
-//         guestOf: true,
-//       },
-//     })
-
-//     expect(users).toEqual([
-//       {
-//         ...user,
-//         guestOf: [account],
-//       },
-//     ])
-
-
 test.todo("Unique constraint failed on the fields: (`")
-
-
 test.todo("Unknown arg `disconnect` in data.account.disconnect (when not optional)")
