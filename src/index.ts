@@ -38,13 +38,17 @@ function IsFieldDefault(
 }
 
 const createPrismaMock = <P>(
-  datamodel?: Prisma.DMMF.Datamodel,
-  options = { caseInsensitive: false }
+  options: MockPrismaProps = {
+    caseInsensitive: false,
+    datamodel: Prisma.dmmf.datamodel,
+    data: {},
+  }
 ): P => {
 
-  if (!datamodel || typeof datamodel === "string") {
-    datamodel = Prisma.dmmf.datamodel;
-  }
+  let data = options.data || {}
+  const datamodel = options.datamodel || Prisma.dmmf.datamodel
+  const caseInsensitive = options.caseInsensitive || false
+
   let client = {} as P
 
   let data = {}

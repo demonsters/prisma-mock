@@ -13,39 +13,42 @@ import createPrismaMock from "prisma-mock"
 
 let client
 
-beforeEach(async () => {
-  client = await createPrismaMock()
+beforeEach(() => {
+  client = createPrismaMock()
 })
 ```
 
 An example how to mock a global prisma instance inside and schema a "db" directory (like blitzjs):
 
 ```js
-import createPrismaMock from "prisma-mock";
-import { mockDeep, mockReset } from "jest-mock-extended";
+import createPrismaMock from "prisma-mock"
+import { mockDeep, mockReset } from "jest-mock-extended"
 
 jest.mock("db", () => ({
   __esModule: true,
   ...jest.requireActual("db"),
   default: mockDeep(),
-}));
+}))
 
-import db, { Prisma } from "db";
+import db, { Prisma } from "db"
 
 beforeEach(() => {
-  mockReset(db);
-  return createPrismaMock({}, Prisma.dmmf.datamodel, db);
-});
+  mockReset(db)
+  createPrismaMock({
+    data: {},
+    datamodel: Prisma.dmmf.datamodel,
+  })
+})
 ```
 
 # API
 
 ```ts
-createPrismaMock(
-  data: PrismaMockData<P> = {},
+createPrismaMock(options: {
+  data?: PrismaMockData<P> = {},
   datamodel?: Prisma.DMMF.Datamodel,
-  client = mockDeep<P>()
-): Promise<P>
+  caseInsensitive?: boolean
+}): Promise<P>
 ```
 
 ## data
@@ -54,29 +57,32 @@ Object with an array per table of default data (using `create` is preferred). Ex
 
 ```js
 createPrismaMock({
-  users: [
-    {
-      id: 1,
-      name: "John Doe",
-      accountId: 1,
-    },
-  ],
-  account: [
-    {
-      id: 1,
-      name: "Company",
-    },
-  ],
-});
+  data: {
+    users: [
+      {
+        id: 1,
+        name: "John Doe",
+        accountId: 1,
+      },
+    ],
+    account: [
+      {
+        id: 1,
+        name: "Company",
+      },
+    ],
+  },
+})
 ```
 
 ## datamodel
 
 The datamodel of the prisma client, value of `Prisma.dmmf.datamodel`.
 
-## client
+## caseInsensitive
 
-`jest-mock-extended` instance used. If not provided, a new instance is created.
+If true, all string comparisons are case insensitive.
+
 
 # Supported features
 

@@ -25,12 +25,11 @@ const push = async () => await new Promise((res, rej) => {
   )
 })
 
-export default async function createPrismaClient(data: any, options?: any) {
+export default async function createPrismaClient(data?: any, options?: any) {
 
   const isReal = process.env.PROVIDER === "postgresql"
 
-  let client = isReal ? new PrismaClient() : createPrismaMock<PrismaClient>(undefined, options)
-
+  let client = isReal ? new PrismaClient() : createPrismaMock<PrismaClient>(options)
 
   if (isReal) {
 
