@@ -93,6 +93,31 @@ describe("PrismaClient", () => {
     })
   })
 
+  test.only("findFirstOrThrow", async () => {
+    const client = await createPrismaClient(data);
+    const accounts = await client.account.findFirstOrThrow({
+      where: { id: 1 },
+    });
+    expect(accounts).toMatchInlineSnapshot(`
+Object {
+  "id": 1,
+  "name": "sadfsdf",
+  "sort": null,
+}
+`)
+    try {
+      const result = await client.account.findFirstOrThrow({
+        where: { id: 0 },
+      });
+      throw new Error("Test should not reach here");
+    } catch (e) {
+      expect(e instanceof PrismaClientKnownRequestError).toBe(true);
+      expect(e.message).toContain(
+        "No Account found"
+      );
+    }
+  });
+
   test("count", async () => {
     const client = await createPrismaClient(data)
     const accounts = await client.account.count()

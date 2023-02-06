@@ -15,7 +15,7 @@ let client
 
 beforeEach(async () => {
   client = await createPrismaMock()
-}
+})
 ```
 
 An example how to mock a global prisma instance inside and schema a "db" directory (like blitzjs):
@@ -87,6 +87,7 @@ Alot of the functionality is implemented, but parts are missing. Here is a list 
 - findUnique,
 - findMany,
 - findFirst,
+- findFirstOrThrow,
 - create,
 - createMany
 - delete,
