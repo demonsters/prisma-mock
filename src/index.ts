@@ -74,7 +74,7 @@ export type MockPrismaOptions = {
 }
 
 const createPrismaMock = <P>(
-  data = {},
+  data: PrismaMockData<P> = {},
   datamodel = Prisma.dmmf.datamodel,
   client = mockDeep<P>(),
   options: MockPrismaOptions = {
