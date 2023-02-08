@@ -206,3 +206,35 @@ TODO (path, string_contains, string_starts_with, string_ends_with, array_contain
 - $transaction
 - TODO: $transaction (interactive)
 - TODO: $transaction (isolation) 
+
+
+# Contribution
+
+## Requirements
+
+Create a `.env-cmdrc` file in the root of your project with the following content:
+
+```json
+{
+  "postgres": {
+    "PROVIDER": "postgresql",
+    "DATABASE_URL": "postgresql://postgres:postgres@localhost:5432/postgres?schema=public"
+  }
+}
+```
+
+## Writing Tests
+Create your tests in the `__tests__` directory.
+
+## Running Tests
+To run tests against a postgres database, run the following command:
+
+```bash
+yarn run test:postgres
+```
+
+To run tests against prisma-mock (in-memory database), run:
+
+```bash
+yarn test
+```
