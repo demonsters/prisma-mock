@@ -177,6 +177,11 @@ const createPrismaMock = <P>(
 
     const nestedUpdate = (args, isCreating: boolean, item) => {
       let d = args.data;
+      Object.entries(d).forEach(([key, value]) => {
+        if (typeof value === "undefined") {
+          delete d[key];
+        }
+      });
 
       // Get field schema for default values
       const model = datamodel.models.find((model) => {
