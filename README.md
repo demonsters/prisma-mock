@@ -45,6 +45,9 @@ createPrismaMock(
   data: PrismaMockData<P> = {},
   datamodel?: Prisma.DMMF.Datamodel,
   client = mockDeep<P>(),
+  options: {
+    caseInsensitive?: boolean
+  } = {}
 ): Promise<P>
 ```
 
