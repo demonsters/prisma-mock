@@ -34,21 +34,18 @@ import db, { Prisma } from "db"
 
 beforeEach(() => {
   mockReset(db)
-  createPrismaMock({
-    data: {},
-    datamodel: Prisma.dmmf.datamodel,
-  })
+  createPrismaMock({}, Prisma.dmmf.datamodel)
 })
 ```
 
 # API
 
 ```ts
-createPrismaMock(options: {
-  data?: PrismaMockData<P> = {},
+createPrismaMock(
+  data: PrismaMockData<P> = {},
   datamodel?: Prisma.DMMF.Datamodel,
-  caseInsensitive?: boolean
-}): Promise<P>
+  client = mockDeep<P>(),
+): Promise<P>
 ```
 
 ## data
@@ -57,21 +54,19 @@ Object with an array per table of default data (using `create` is preferred). Ex
 
 ```js
 createPrismaMock({
-  data: {
-    users: [
-      {
-        id: 1,
-        name: "John Doe",
-        accountId: 1,
-      },
-    ],
-    account: [
-      {
-        id: 1,
-        name: "Company",
-      },
-    ],
-  },
+  users: [
+    {
+      id: 1,
+      name: "John Doe",
+      accountId: 1,
+    },
+  ],
+  account: [
+    {
+      id: 1,
+      name: "Company",
+    },
+  ],
 })
 ```
 

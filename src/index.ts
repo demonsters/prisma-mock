@@ -37,11 +37,6 @@ function IsFieldDefault(
   return (f as Prisma.DMMF.FieldDefault).name !== undefined
 }
 
-export type MockPrismaProps = {
-  caseInsensitive?: boolean
-  datamodel?: Prisma.DMMF.Datamodel
-  data?: any
-}
 
 const throwUnkownError = (message: string, cause?: string) => {
   const code = "P2025"
@@ -71,19 +66,27 @@ const throwUnkownError = (message: string, cause?: string) => {
   throw error
 }
 
+
+export type MockPrismaProps = {
+  caseInsensitive?: boolean
+  // datamodel?: Prisma.DMMF.Datamodel
+  // data?: any
+}
+
 const createPrismaMock = <P>(
+  data = {},
+  datamodel = Prisma.dmmf.datamodel,
+  client = mockDeep<P>(),
   options: MockPrismaProps = {
     caseInsensitive: false,
-    datamodel: Prisma.dmmf.datamodel,
-    data: {},
   }
 ): P => {
 
-  let data = options.data || {}
-  const datamodel = options.datamodel || Prisma.dmmf.datamodel
+  // let data = options.data || {}
+  // const datamodel = options.datamodel || Prisma.dmmf.datamodel
   const caseInsensitive = options.caseInsensitive || false
 
-  let client = {} as P
+  // let client = {} as P
 
   ResetDefaults()
 
@@ -148,15 +151,15 @@ const createPrismaMock = <P>(
   }
 
   // @ts-ignore
-  client["$transaction"] = async (actions) => {
+  client["$transaction"].mockImplementation(async (actions) => {
     for (const action of actions) {
       await action
     }
-  }
+  })
 
-  client["$connect"] = async () => { }
-  client["$disconnect"] = async () => { }
-  client["$use"] = async () => { }
+  // client["$connect"] = async () => { }
+  // client["$disconnect"] = async () => { }
+  // client["$use"] = async () => { }
 
   const Delegate = (prop: string, model: Prisma.DMMF.Model) => {
     const sortFunc = (orderBy) => (a, b) => {
@@ -952,9 +955,9 @@ const createPrismaMock = <P>(
     Object.keys(objs).forEach((fncName) => {
       if (fncName.indexOf("_") === 0) return
       if (!client[c]) client[c] = {}
-      client[c][fncName] = async (...params) => {
+      client[c][fncName].mockImplementation(async (...params) => {
         return objs[fncName](...params)
-      }
+      })
     })
   })
 
