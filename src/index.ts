@@ -236,7 +236,6 @@ const createPrismaMock = <P>(
       model.fields.forEach((field) => {
         if (d[field.name]) {
           const c = d[field.name]
-
           if (field.kind === "object") {
             if (c.connect) {
               const {
@@ -816,8 +815,12 @@ const createPrismaMock = <P>(
           return
         }
 
+        const submodel = datamodel.models.find((model) => {
+          return model.name === schema.type
+        })
+
         // Get delegate for relation
-        const delegate = Delegate(getCamelCase(schema.type), model)
+        const delegate = Delegate(getCamelCase(schema.type), submodel)
 
         // Construct arg for relation query
         let subArgs = obj[key] === true ? {} : obj[key]
