@@ -67,7 +67,7 @@ const throwUnkownError = (message: string, cause?: string) => {
 }
 
 
-export type MockPrismaProps = {
+export type MockPrismaOptions = {
   caseInsensitive?: boolean
   // datamodel?: Prisma.DMMF.Datamodel
   // data?: any
@@ -77,7 +77,7 @@ const createPrismaMock = <P>(
   data = {},
   datamodel = Prisma.dmmf.datamodel,
   client = mockDeep<P>(),
-  options: MockPrismaProps = {
+  options: MockPrismaOptions = {
     caseInsensitive: false,
   }
 ): P => {
