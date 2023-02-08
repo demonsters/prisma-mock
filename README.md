@@ -224,7 +224,9 @@ Create a `.env-cmdrc` file in the root of your project with the following conten
 ```
 
 ## Writing Tests
-Create your tests in the `__tests__` directory.
+Create your tests in the `__tests__` directory. You can use snapshot testing with either `expect(res).toMatchSnapshot()` or `expect(res).toMatchInlineSnapshot()`. This captures the result of your tests in a snapshot, which you can use to compare agains prisma-mock results.
+
+Note: If you choose to use snapshot testing, make shore to first run your tests against the real database to create a snapshot of the expected result. 
 
 ## Running Tests
 To run tests against a postgres database, run the following command:
