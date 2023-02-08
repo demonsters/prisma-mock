@@ -1,6 +1,6 @@
 // @ts-nocheck
 
-import createPrismaClient from '../src'
+import createPrismaClient from './createPrismaClient'
 
 describe("Referential actions", () => {
 
@@ -9,12 +9,12 @@ describe("Referential actions", () => {
     test("SetNull", async () => {
 
       const client = await createPrismaClient({
-        user: [
-          { id: 1, name: "sadfsdf", accountId: 1 },
-        ],
         account: [
           { id: 1, name: "A" }
-        ]
+        ],
+        user: [
+          { id: 1, name: "sadfsdf", accountId: 1, uniqueField: "user" },
+        ],
       })
       await client.account.delete({
         where: { id: 1 }
@@ -30,12 +30,12 @@ describe("Referential actions", () => {
     test("Cascade", async () => {
 
       const client = await createPrismaClient({
-        stripe: [
-          { id: 1, accountId: 1 },
-        ],
         account: [
           { id: 1, name: "A" }
-        ]
+        ],
+        stripe: [
+          { id: 1, accountId: 1, customerId: "1" },
+        ],
       })
       await client.account.delete({
         where: { id: 1 }

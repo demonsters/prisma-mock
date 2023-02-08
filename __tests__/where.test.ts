@@ -1,50 +1,80 @@
 // @ts-nocheck
 
-import createPrismaClient from "../src";
-import { Role } from "@prisma/client";
-
-// TODO:
-// Pagination
-// OrderBy
+import createPrismaClient from "./createPrismaClient"
+import { Role } from "@prisma/client"
 
 describe("PrismaClient where", () => {
-  const date1 = new Date(2020, 1, 1);
-  const date2 = new Date(2020, 1, 2);
+  const date1 = new Date(2020, 1, 1)
+  const date2 = new Date(2020, 1, 2)
 
   const data = {
+    account: [
+      {
+        name: "Piet",
+      },
+      {
+        name: "Dirk",
+      },
+      {
+        name: "Sjors",
+      },
+      {
+        name: "ABBY",
+      },
+    ],
     user: [
       {
         id: 1,
         name: "Henk",
         accountId: 1,
+        uniqueField: "user 1",
       },
       {
         id: 2,
         name: "Dirk",
         accountId: 2,
+        uniqueField: "user 2",
       },
     ],
-    account: [
+    post: [
       {
-        id: 1,
-        name: "Piet",
-        date: date1,
+        title: "Piet",
+        updated: date1,
+        created: date1,
       },
       {
-        id: 2,
-        name: "Dirk",
-        date: date2,
+        title: "Dirk",
+        updated: date2,
+        created: date2,
       },
       {
-        id: 3,
-        name: "Sjors",
-        date: date2,
+        title: "Sjors",
+        updated: date2,
+        created: date2,
       },
       {
-        id: 3,
-        name: "ABBY",
-        date: date2,
+        title: "ABBY",
+        updated: date2,
+        created: date2,
       },
+    ],
+    element: [
+      {
+        e_id: 1,
+        json: {
+          data: "first"
+        },
+        userId: 1,
+        value: "value 1",
+      },
+      {
+        e_id: 2,
+        json: {
+          data: "second"
+        },
+        userId: 2,
+        value: "value 2",
+      }
     ],
     stripe: [
       {
@@ -53,293 +83,327 @@ describe("PrismaClient where", () => {
         accountId: 2,
       },
     ],
-    element: [
-      {
-        id: 1,
-        json: {
-          data: "first"
-        }
-      },
-      {
-        id: 2,
-        json: {
-          data: "second"
-        }
-      }
-    ]
-  };
+  }
 
   describe.each([false, true])(
     "caseInsensitive %p",
     (caseInsensitive: boolean) => {
-      test("multiple", async () => {
-        const client = createPrismaClient(data, undefined, undefined, {
-          caseInsensitive,
-        });
-        const account = await client.account.findMany({
-          where: {
-            date: { lte: date1 },
-            name: caseInsensitive ? "dirk" : "Dirk",
-          },
-        });
-        expect(account).not.toEqual([data.account[0]]);
-      });
 
-      test("startsWith", async () => {
-        const client = createPrismaClient(data, undefined, undefined, {
-          caseInsensitive,
-        });
-        const account = await client.account.findMany({
-          where: {
-            name: { startsWith: caseInsensitive ? "di" : "Di" },
-          },
-        });
-        expect(account).toEqual([data.account[1]]);
-      });
+      describe("No mode", () => {
 
-      test("endsWith", async () => {
-        const client = createPrismaClient(data, undefined, undefined, {
-          caseInsensitive,
-        });
-        const account = await client.account.findMany({
-          where: {
-            name: { endsWith: "rk" },
-          },
-        });
-        expect(account).toEqual([data.account[1]]);
-      });
+        if (process.env.PROVIDER === "postgresql" && caseInsensitive) {
+          // Can't test case insensitive for postgresql without mode right now
+          return
+        }
 
-      test("contains", async () => {
-        const client = createPrismaClient(data, undefined, undefined, {
-          caseInsensitive,
-        });
-        const account = await client.account.findMany({
-          where: {
-            name: { contains: "BB" },
-          },
-        });
-        expect(account).toEqual([data.account[3]]);
-      });
-
-      test("equals", async () => {
-        const client = createPrismaClient(data, undefined, undefined, {
-          caseInsensitive,
-        });
-        const account = await client.account.findMany({
-          where: {
-            name: { equals: caseInsensitive ? "dirk" : "Dirk" },
-          },
-        });
-        expect(account).toEqual([data.account[1]]);
-      });
-
-      test("Json: equals", async () => {
-        const client = createPrismaClient(data, undefined, undefined, {
-          caseInsensitive,
-        });
-        const element = await client.element.findMany({
-          where: {
-            json: {
-              equals: {
-                data: "first"
-              }
-            }
-          },
-        });
-        expect(element).toEqual([data.element[0]]);
-      });
-
-      test("gt", async () => {
-        const client = createPrismaClient(data, undefined, undefined, {
-          caseInsensitive,
-        });
-        const account = await client.account.findMany({
-          where: {
-            id: { gt: 1 },
-          },
-        });
-        expect(account).toEqual([
-          data.account[1],
-          data.account[2],
-          data.account[3],
-        ]);
-      });
-
-      test("gte", async () => {
-        const client = createPrismaClient(data, undefined, undefined, {
-          caseInsensitive,
-        });
-        const account = await client.account.findMany({
-          where: {
-            id: { gte: 1 },
-          },
-        });
-        expect(account).toEqual(data.account);
-      });
-
-      test("lt", async () => {
-        const client = createPrismaClient(data, undefined, undefined, {
-          caseInsensitive,
-        });
-        const account = await client.account.findMany({
-          where: {
-            id: { lt: 2 },
-          },
-        });
-        expect(account).toEqual([data.account[0]]);
-      });
-
-      test("lte", async () => {
-        const client = createPrismaClient(data, undefined, undefined, {
-          caseInsensitive,
-        });
-        const account = await client.account.findMany({
-          where: {
-            id: { lte: 2 },
-          },
-        });
-        expect(account).toEqual([data.account[0], data.account[1]]);
-      });
-
-      test("not", async () => {
-        const client = createPrismaClient(data, undefined, undefined, {
-          caseInsensitive,
-        });
-        const account = await client.account.findMany({
-          where: {
-            id: { not: 2 },
-          },
-        });
-        expect(account).toEqual([
-          data.account[0],
-          data.account[2],
-          data.account[3],
-        ]);
-      });
-
-
-      test("Json: not", async () => {
-        const client = createPrismaClient(data, undefined, undefined, {
-          caseInsensitive,
-        });
-        const elements = await client.element.findMany({
-          where: {
-            json: {
-              not: {
-                data: "first"
-              }
-            }
-          },
-        });
-        expect(elements).toEqual([data.element[1]]);
-      });
-
-      test("notIn", async () => {
-        const client = createPrismaClient(data, undefined, undefined, {
-          caseInsensitive,
-        });
-        const account = await client.account.findMany({
-          where: {
-            name: { notIn: ["Piet", "Sjors"] },
-          },
-        });
-        expect(account).toEqual([data.account[1], data.account[3]]);
-      });
-
-      test("in", async () => {
-        const client = createPrismaClient(data, undefined, undefined, {
-          caseInsensitive,
-        });
-        const account = await client.account.findMany({
-          where: {
-            name: { in: ["Piet", "Sjors"] },
-          },
-        });
-        expect(account).toEqual([data.account[0], data.account[2]]);
-      });
-
-      test("Nested", async () => {
-        const client = createPrismaClient(data, undefined, undefined, {
-          caseInsensitive,
-        });
-        const account = await client.user.findMany({
-          where: {
-            account: {
-              name: "Dirk",
+        test("multiple", async () => {
+          const client = await createPrismaClient(data, {
+            caseInsensitive,
+          })
+          const accounts = await client.post.findMany({
+            where: {
+              created: { lte: date1 },
+              title: caseInsensitive ? "dirk" : "Dirk",
             },
-          },
-        });
-        expect(account.length).toEqual(1);
-      });
+          })
+          expect(accounts.length).toBe(0)
+          expect(accounts).toMatchSnapshot()
+          // expect(account).not.toEqual([data.post[0]]);
+        })
 
-      test("Nested deep", async () => {
-        const client = createPrismaClient(data, undefined, undefined, {
-          caseInsensitive,
-        });
-        const account = await client.user.findMany({
-          where: {
-            account: {
-              stripe: {
-                customerId: "cus_123",
+        test("notIn", async () => {
+          const client = await createPrismaClient(data, {
+            caseInsensitive,
+          })
+          const accounts = await client.account.findMany({
+            where: {
+              name: { notIn: ["Piet", "Sjors"] },
+            },
+          })
+          expect(accounts).toMatchSnapshot()
+          expect(accounts.length).toEqual(2)
+          // expect(account).toEqual([data.account[1], data.account[3]]);
+        })
+
+        test("Json: equals", async () => {
+          const client = await createPrismaClient(data, {
+            caseInsensitive,
+          })
+          const elements = await client.element.findMany({
+            where: {
+              json: {
+                equals: {
+                  data: "first"
+                }
+              }
+            },
+          })
+          expect(elements).toMatchSnapshot()
+          // expect(element).toEqual([data.element[0]]);
+        })
+      
+        test("in", async () => {
+          const client = await createPrismaClient(data, {
+            caseInsensitive,
+          })
+          const accounts = await client.account.findMany({
+            where: {
+              name: { in: ["Piet", "Sjors"] },
+            },
+          })
+          expect(accounts).toMatchSnapshot()
+          expect(accounts.length).toEqual(2)
+          // expect(account).toEqual([data.account[0], data.account[2]]);
+        })
+
+        test("Nested", async () => {
+          const client = await createPrismaClient(data, {
+            caseInsensitive,
+          })
+          const accounts = await client.user.findMany({
+            where: {
+              account: {
+                name: "Dirk",
               },
             },
-          },
-        });
-        expect(account.length).toEqual(1);
-      });
+          })
+          expect(accounts.length).toEqual(1)
+          expect(accounts).toMatchSnapshot()
+        })
 
-      test("date", async () => {
-        const client = createPrismaClient(data, undefined, undefined, {
-          caseInsensitive,
-        });
-        const accounts = await client.account.findMany({
-          where: {
-            date: new Date(date1.toDateString()),
-          },
-        });
-        expect(accounts).toEqual([data.account[0]]);
-      });
+        test("OR", async () => {
+          const client = await createPrismaClient(data, {
+            caseInsensitive,
+          })
+          const accounts = await client.account.findMany({
+            where: {
+              OR: [{ name: "Dirk" }, { name: "Piet" }],
+            },
+          })
+          expect(accounts.length).toEqual(2)
+          expect(accounts).toMatchSnapshot()
+          // expect(accounts).toEqual([data.account[0], data.account[1]]);
+        })
 
-      test("OR", async () => {
-        const client = createPrismaClient(data, undefined, undefined, {
-          caseInsensitive,
-        });
-        const accounts = await client.account.findMany({
-          where: {
-            OR: [{ name: "Dirk" }, { name: "Piet" }],
-          },
-        });
-        expect(accounts.length).toEqual(2);
-        expect(accounts).toEqual([data.account[0], data.account[1]]);
-      });
+        test("NOT", async () => {
+          const client = await createPrismaClient(data, {
+            caseInsensitive,
+          })
+          const accounts = await client.account.findMany({
+            where: {
+              NOT: [{ name: "Dirk" }, { name: "Piet" }],
+            },
+          })
+          expect(accounts.length).toEqual(2)
+          expect(accounts).toMatchSnapshot()
+          // expect(accounts).toEqual([data.account[2], data.account[3]]);
+        })
 
-      test("NOT", async () => {
-        const client = createPrismaClient(data, undefined, undefined, {
-          caseInsensitive,
-        });
-        const accounts = await client.account.findMany({
-          where: {
-            NOT: [{ name: "Dirk" }, { name: "Piet" }],
-          },
-        });
-        expect(accounts.length).toEqual(2);
-        expect(accounts).toEqual([data.account[2], data.account[3]]);
-      });
+        test("AND", async () => {
+          const client = await createPrismaClient(data, {
+            caseInsensitive,
+          })
+          const accounts = await client.account.findMany({
+            where: {
+              AND: [{ name: "Dirk" }, { id: 2 }],
+            },
+          })
+          expect(accounts.length).toEqual(1)
+          expect(accounts).toMatchSnapshot()
+          // expect(accounts).toEqual([data.account[1]]);
+        })
+      })
 
-      test("AND", async () => {
-        const client = createPrismaClient(data, undefined, undefined, {
-          caseInsensitive,
-        });
-        const accounts = await client.account.findMany({
-          where: {
-            AND: [{ name: "Dirk" }, { id: 2 }],
-          },
-        });
-        expect(accounts.length).toEqual(1);
-        expect(accounts).toEqual([data.account[1]]);
-      });
+      describe.each([false, true])(
+        "mode %p",
+        (mode: boolean) => {
+
+          if (process.env.PROVIDER === "postgresql" && !mode && caseInsensitive) {
+            // Can't test case insensitive for postgresql without mode right now
+            return
+          }
+
+          let client: PrismaClient
+          beforeEach(async () => {
+            client = await createPrismaClient(data, mode ? undefined : {
+              caseInsensitive: mode ? false : caseInsensitive,
+            })
+          })
+
+          test("startsWith", async () => {
+            const accounts = await client.account.findMany({
+              where: {
+                name: {
+                  startsWith: caseInsensitive ? "di" : "Di",
+                  mode: caseInsensitive && mode ? "insensitive" : "default",
+                },
+              },
+            })
+            expect(accounts.length).toBe(1)
+            expect(accounts).toMatchSnapshot()
+            // expect(account).toEqual([data.account[1]]);
+          })
+
+          test("endsWith", async () => {
+            const client = await createPrismaClient(data, mode ? undefined : {
+              caseInsensitive: mode ? false : caseInsensitive,
+            })
+            const accounts = await client.account.findMany({
+              where: {
+                name: {
+                  endsWith: "rk",
+                  mode: caseInsensitive && mode ? "insensitive" : "default",
+                },
+              },
+            })
+            expect(accounts).toMatchSnapshot()
+            // expect(account).toEqual([data.account[1]]);
+          })
+
+          
+          test("contains", async () => {
+            const accounts = await client.account.findMany({
+              where: {
+                name: {
+                  contains: "BB",
+                  mode: caseInsensitive && mode ? "insensitive" : "default",
+                },
+              },
+            })
+            expect(accounts).toMatchSnapshot()
+            // expect(account).toEqual([data.account[3]]);
+          })
+
+          test("equals", async () => {
+            const accounts = await client.account.findMany({
+              where: {
+                name: {
+                  equals: caseInsensitive ? "dirk" : "Dirk",
+                  mode: caseInsensitive && mode ? "insensitive" : "default",
+                },
+              },
+            })
+            expect(accounts.length).toEqual(1)
+            expect(accounts).toMatchSnapshot()
+            // expect(account).toEqual([data.account[1]]);
+          })
+        }
+      )
     }
-  );
+  )
+
+  describe("Case inrelevant", () => {
+
+    test("gt", async () => {
+      const client = await createPrismaClient(data)
+      const accounts = await client.account.findMany({
+        where: {
+          id: { gt: 1 },
+        },
+      })
+      expect(accounts.length).toEqual(3)
+      expect(accounts).toMatchSnapshot()
+      // expect(account).toEqual([
+      //   data.account[1],
+      //   data.account[2],
+      //   data.account[3],
+      // ]);
+    })
+
+    test("gte", async () => {
+      const client = await createPrismaClient(data)
+      const accounts = await client.account.findMany({
+        where: {
+          id: { gte: 1 },
+        },
+      })
+      expect(accounts).toMatchSnapshot()
+      // expect(account).toEqual(data.account);
+    })
+
+    test("lt", async () => {
+      const client = await createPrismaClient(data)
+      const accounts = await client.account.findMany({
+        where: {
+          id: { lt: 2 },
+        },
+      })
+      expect(accounts).toMatchSnapshot()
+      expect(accounts.length).toEqual(1)
+      // expect(account).toEqual([data.account[0]]);
+    })
+
+    test("lte", async () => {
+      const client = await createPrismaClient(data)
+      const accounts = await client.account.findMany({
+        where: {
+          id: { lte: 2 },
+        },
+      })
+      expect(accounts).toMatchSnapshot()
+      expect(accounts.length).toEqual(2)
+      // expect(account).toEqual([data.account[0], data.account[1]]);
+    })
+
+    test("not", async () => {
+      const client = await createPrismaClient(data)
+      const accounts = await client.account.findMany({
+        where: {
+          id: { not: 2 },
+        },
+      })
+      expect(accounts.length).toEqual(3)
+      expect(accounts).toMatchSnapshot()
+      // expect(account).toEqual([
+      //   data.account[0],
+      //   data.account[2],
+      //   data.account[3],
+      // ]);
+    })
+
+    test("Json: not", async () => {
+      const client = await createPrismaClient(data)
+      const elements = await client.element.findMany({
+        where: {
+          json: {
+            not: {
+              data: "first"
+            }
+          }
+        },
+      })
+      expect(elements).toMatchSnapshot()
+      expect(elements.length).toEqual(1)
+      // expect(elements).toEqual([data.element[1]]);
+    })
+
+    test("Nested deep", async () => {
+      const client = await createPrismaClient(data)
+      const accounts = await client.user.findMany({
+        where: {
+          account: {
+            stripe: {
+              customerId: "cus_123",
+            },
+          },
+        },
+      })
+      expect(accounts.length).toEqual(1)
+      expect(accounts).toMatchSnapshot()
+    })
+
+    test("date", async () => {
+      const client = await createPrismaClient(data)
+      const accounts = await client.post.findMany({
+        where: {
+          created: new Date(date1.toDateString()),
+        },
+      })
+      // expect(accounts).toEqual([data.post[0]]);
+      expect(accounts.length).toEqual(1)
+      expect(accounts).toMatchSnapshot()
+    })
+  })
 
   describe("join", () => {
     const data = {
@@ -349,15 +413,15 @@ describe("PrismaClient where", () => {
         { id: 3, name: "C" },
       ],
       user: [
-        { id: 1, accountId: 1, role: Role.ADMIN },
-        { id: 2, accountId: 1, role: Role.ADMIN },
-        { id: 3, accountId: 2, role: Role.USER },
-        { id: 4, accountId: 2, role: Role.ADMIN },
+        { id: 1, accountId: 1, role: Role.ADMIN, uniqueField: "user 1" },
+        { id: 2, accountId: 1, role: Role.ADMIN, uniqueField: "user 2" },
+        { id: 3, accountId: 2, role: Role.USER, uniqueField: "user 3" },
+        { id: 4, accountId: 2, role: Role.ADMIN, uniqueField: "user 4" },
       ],
-    };
+    }
 
     test("every", async () => {
-      const client = await createPrismaClient(data);
+      const client = await createPrismaClient(data)
       const accounts = await client.account.findMany({
         where: {
           users: {
@@ -366,12 +430,24 @@ describe("PrismaClient where", () => {
             },
           },
         },
-      });
-      expect(accounts.length).toEqual(1);
-      expect(accounts).toEqual([data.account[0]]);
-    });
+      })
+      expect(accounts).toMatchInlineSnapshot(`
+Array [
+  Object {
+    "id": 1,
+    "name": "A",
+    "sort": null,
+  },
+  Object {
+    "id": 3,
+    "name": "C",
+    "sort": null,
+  },
+]
+`)
+    })
     test("some", async () => {
-      const client = await createPrismaClient(data);
+      const client = await createPrismaClient(data)
       const accounts = await client.account.findMany({
         where: {
           users: {
@@ -380,13 +456,27 @@ describe("PrismaClient where", () => {
             },
           },
         },
-      });
-      expect(accounts.length).toEqual(2);
-      expect(accounts).toEqual([data.account[0], data.account[1]]);
-    });
+      })
+      expect(accounts).toMatchInlineSnapshot(`
+Array [
+  Object {
+    "id": 1,
+    "name": "A",
+    "sort": null,
+  },
+  Object {
+    "id": 2,
+    "name": "B",
+    "sort": null,
+  },
+]
+`)
+      // expect(accounts.length).toEqual(2);
+      // expect(accounts).toEqual([data.account[0], data.account[1]]);
+    })
 
     test("none", async () => {
-      const client = await createPrismaClient(data);
+      const client = await createPrismaClient(data)
       const accounts = await client.account.findMany({
         where: {
           users: {
@@ -395,15 +485,24 @@ describe("PrismaClient where", () => {
             },
           },
         },
-      });
-      expect(accounts.length).toEqual(1);
-      expect(accounts).toEqual([data.account[2]]);
-    });
+      })
+      expect(accounts).toMatchInlineSnapshot(`
+Array [
+  Object {
+    "id": 3,
+    "name": "C",
+    "sort": null,
+  },
+]
+`)
+      // expect(accounts.length).toEqual(1);
+      // expect(accounts).toEqual([data.account[2]]);
+    })
 
     // every?: PostWhereInput | null
     // some?: PostWhereInput | null
     // none?: PostWhereInput | null
-  });
+  })
 
   describe("null & undefined", () => {
     const data = {
@@ -411,32 +510,34 @@ describe("PrismaClient where", () => {
         {
           id: 1,
           name: "Henk",
+          uniqueField: "user 1",
         },
         {
           id: 2,
           name: undefined,
+          uniqueField: "user 2",
         },
       ],
-    };
+    }
 
     test("null", async () => {
-      const client = await createPrismaClient(data);
+      const client = await createPrismaClient(data)
       const users = await client.user.findMany({
         where: {
           name: null,
         },
-      });
-      expect(users.length).toEqual(1);
-    });
+      })
+      expect(users.length).toEqual(1)
+    })
 
     test("undefined", async () => {
-      const client = await createPrismaClient(data);
+      const client = await createPrismaClient(data)
       const users = await client.user.findMany({
         where: {
           name: undefined,
         },
-      });
-      expect(users.length).toEqual(2);
-    });
-  });
-});
+      })
+      expect(users.length).toEqual(2)
+    })
+  })
+})

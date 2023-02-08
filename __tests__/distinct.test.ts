@@ -1,6 +1,6 @@
 // @ts-nocheck
 
-import createPrismaClient from "../src/";
+import createPrismaClient from "./createPrismaClient";
 import { PrismaClient } from "@prisma/client";
 
 describe("PrismaClient distinct", () => {
@@ -9,18 +9,22 @@ describe("PrismaClient distinct", () => {
       {
         id: 1,
         name: "Piet",
+        uniqueField: "user1",
       },
       {
         id: 2,
         name: "Piet",
+        uniqueField: "user2",
       },
       {
         id: 3,
         name: "Henk",
+        uniqueField: "user3",
       },
       {
         id: 4,
         name: "Henk",
+        uniqueField: "user4",
       },
     ],
   };

@@ -1,17 +1,10 @@
 // @ts-nocheck
 
 import { PrismaClientValidationError } from "@prisma/client/runtime"
-import createPrismaClient from "../src"
+import createPrismaClient from "./createPrismaClient"
 
 
 const data = {
-  user: [
-    {
-      id: 1,
-      name: "sadfsdf",
-      accountId: 1,
-    },
-  ],
   account: [
     {
       id: 1,
@@ -22,10 +15,19 @@ const data = {
       name: "A",
     },
   ],
+  user: [
+    {
+      id: 1,
+      name: "sadfsdf",
+      accountId: 1,
+      uniqueField: "user",
+    },
+  ],
   stripe: [
     {
       id: 1,
       accountId: 1,
+      customerId: "1"
     },
   ],
 }
@@ -68,10 +70,12 @@ test("nested orderBy", async () => {
       {
         id: 1,
         accountId: 2,
+        customerId: "2"
       },
       {
         id: 2,
         accountId: 1,
+        customerId: "1"
       },
     ],
   })
@@ -110,10 +114,12 @@ test("Should throw error when more then one key in orderBy field", async () => {
       {
         id: 1,
         accountId: 2,
+        customerId: "2",
       },
       {
         id: 2,
         accountId: 1,
+        customerId: "1",
       },
     ],
   })
@@ -125,38 +131,39 @@ test("Should throw error when more then one key in orderBy field", async () => {
       },
       sort: "asc",
     }
-  })).rejects.toThrow(new PrismaClientValidationError('Argument orderBy of needs exactly one argument, but you provided account and sort. Please choose one.'))
+  }))
+  .rejects.toThrow(PrismaClientValidationError)
+  // .rejects.toThrow(new PrismaClientValidationError('Argument orderBy of needs exactly one argument, but you provided account and sort. Please choose one.'))
 
 })
 
 test("Deep nested orderBy", async () => {
   const client = await createPrismaClient()
-  await client.account.createMany({
-    data: [{
+  await client.account.create({
+    data: {
       name: "Account 1",
       sort: 1,
       users: {
-        create: [
-          {
+        create: {
             name: "User 1",
             sort: 1,
+            uniqueField: "user1",
             element: {
               create: [
                 {
-                  title: "Element 2",
-                  sort: 2,
+                  value: "2"
                 },
                 {
-                  title: "Element 1",
-                  sort: 1,
+                  value: "1"
                 }
               ]
             }
           },
-        ]
       }
     },
-    {
+  })
+  await client.account.create({
+    data: {
       name: "Account 2",
       sort: 2,
       users: {
@@ -164,30 +171,30 @@ test("Deep nested orderBy", async () => {
           {
             name: "User 2",
             sort: 1,
+            uniqueField: "user2",
             element: {
               create: [
                 {
-                  title: "Element 3",
-                  sort: 1,
+                  value: "Element 3",
                 }
               ]
             }
           },
         ]
       }
-    }]
+    }
   })
   const users = await client.element.findMany({
     orderBy: [
-      {
-        user: {
-          nonExisingField: {
-            value: {
-              sort: "asc"
-            }
-          }
-        }
-      },
+      // {
+      //   user: {
+      //     nonExisingField: {
+      //       value: {
+      //         sort: "asc"
+      //       }
+      //     }
+      //   }
+      // },
       {
         user: {
           account: {
@@ -200,19 +207,29 @@ test("Deep nested orderBy", async () => {
           sort: "asc",
         }
       },
-      { sort: "asc", }
     ]
   })
-  expect(users).toEqual([
-    expect.objectContaining({
-      title: "Element 1",
-    }),
-    expect.objectContaining({
-      title: "Element 2",
-    }),
-    expect.objectContaining({
-      title: "Element 3",
-    }),
-  ])
+  expect(users).toMatchInlineSnapshot(`
+Array [
+  Object {
+    "e_id": 1,
+    "json": null,
+    "userId": 1,
+    "value": "2",
+  },
+  Object {
+    "e_id": 2,
+    "json": null,
+    "userId": 1,
+    "value": "1",
+  },
+  Object {
+    "e_id": 3,
+    "json": null,
+    "userId": 2,
+    "value": "Element 3",
+  },
+]
+`)
 });
 

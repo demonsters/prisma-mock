@@ -1,18 +1,11 @@
 // @ts-nocheck
 
-import createPrismaClient from "../src/";
+import createPrismaClient from "./createPrismaClient";
 import { PrismaClient } from "@prisma/client";
 
 
 describe("PrismaClient include", () => {
   const data = {
-    user: [
-      {
-        id: 1,
-        name: "sadfsdf",
-        accountId: 1,
-      },
-    ],
     account: [
       {
         id: 1,
@@ -23,10 +16,19 @@ describe("PrismaClient include", () => {
         name: "adsfasdf2",
       },
     ],
+    user: [
+      {
+        id: 1,
+        name: "sadfsdf",
+        accountId: 1,
+        uniqueField: "user1",
+      },
+    ],
     stripe: [
       {
         id: 1,
         accountId: 1,
+        customerId: "sadfsdf",
       },
     ],
   };
@@ -43,7 +45,14 @@ describe("PrismaClient include", () => {
     });
     expect(user).toEqual({
       ...data.user[0],
-      account: data.account[0],
+      clicks: null,
+      account: {
+        ...data.account[0],
+        sort: null
+      },
+      deleted: false,
+      role: "ADMIN",
+      sort: null,
     });
   });
 
@@ -59,7 +68,12 @@ describe("PrismaClient include", () => {
     });
     expect(stripe).toEqual({
       ...data.stripe[0],
-      account: data.account[0],
+      active: false,
+      sort: null,
+      account: {
+        ...data.account[0],
+        sort: null
+      },
     });
   });
 
@@ -77,13 +91,30 @@ describe("PrismaClient include", () => {
         },
       },
     });
-    expect(user).toEqual({
-      ...data.user[0],
-      account: {
-        ...data.account[0],
-        stripe: data.stripe[0],
-      },
-    });
+    expect(user).toMatchInlineSnapshot(`
+Object {
+  "account": Object {
+    "id": 1,
+    "name": "sadfsdf",
+    "sort": null,
+    "stripe": Object {
+      "accountId": 1,
+      "active": false,
+      "customerId": "sadfsdf",
+      "id": 1,
+      "sort": null,
+    },
+  },
+  "accountId": 1,
+  "clicks": null,
+  "deleted": false,
+  "id": 1,
+  "name": "sadfsdf",
+  "role": "ADMIN",
+  "sort": null,
+  "uniqueField": "user1",
+}
+`)
   });
 
   test("findMany deep", async () => {
@@ -100,13 +131,30 @@ describe("PrismaClient include", () => {
         },
       },
     });
-    expect(users[0]).toEqual({
-      ...data.user[0],
-      account: {
-        ...data.account[0],
-        stripe: data.stripe[0],
-      },
-    });
+    expect(users[0]).toMatchInlineSnapshot(`
+Object {
+  "account": Object {
+    "id": 1,
+    "name": "sadfsdf",
+    "sort": null,
+    "stripe": Object {
+      "accountId": 1,
+      "active": false,
+      "customerId": "sadfsdf",
+      "id": 1,
+      "sort": null,
+    },
+  },
+  "accountId": 1,
+  "clicks": null,
+  "deleted": false,
+  "id": 1,
+  "name": "sadfsdf",
+  "role": "ADMIN",
+  "sort": null,
+  "uniqueField": "user1",
+}
+`)
   });
 
   test("findMany one to many", async () => {
@@ -119,11 +167,24 @@ describe("PrismaClient include", () => {
         users: true
       },
     });
-    expect(users[0]).toEqual({
-      ...data.account[0],
-      users: [
-        data.user[0],
-      ],
-    });
+    expect(users[0]).toMatchInlineSnapshot(`
+Object {
+  "id": 1,
+  "name": "sadfsdf",
+  "sort": null,
+  "users": Array [
+    Object {
+      "accountId": 1,
+      "clicks": null,
+      "deleted": false,
+      "id": 1,
+      "name": "sadfsdf",
+      "role": "ADMIN",
+      "sort": null,
+      "uniqueField": "user1",
+    },
+  ],
+}
+`)
   });
 });

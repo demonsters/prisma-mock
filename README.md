@@ -13,29 +13,29 @@ import createPrismaMock from "prisma-mock"
 
 let client
 
-beforeEach(async () => {
-  client = await createPrismaMock()
+beforeEach(() => {
+  client = createPrismaMock()
 })
 ```
 
 An example how to mock a global prisma instance, as the default export in a "db" directory (like blitzjs):
 
 ```js
-import createPrismaMock from "prisma-mock";
-import { mockDeep, mockReset } from "jest-mock-extended";
+import createPrismaMock from "prisma-mock"
+import { mockDeep, mockReset } from "jest-mock-extended"
 
 jest.mock("db", () => ({
   __esModule: true,
   ...jest.requireActual("db"),
   default: mockDeep(),
-}));
+}))
 
-import db, { Prisma } from "db";
+import db, { Prisma } from "db"
 
 beforeEach(() => {
-  mockReset(db);
-  return createPrismaMock({}, Prisma.dmmf.datamodel, db);
-});
+  mockReset(db)
+  createPrismaMock({}, Prisma.dmmf.datamodel)
+})
 ```
 
 # API
@@ -44,7 +44,7 @@ beforeEach(() => {
 createPrismaMock(
   data: PrismaMockData<P> = {},
   datamodel?: Prisma.DMMF.Datamodel,
-  client = mockDeep<P>()
+  client = mockDeep<P>(),
 ): Promise<P>
 ```
 
@@ -67,7 +67,7 @@ createPrismaMock({
       name: "Company",
     },
   ],
-});
+})
 ```
 
 #### Arg: `datamodel`
@@ -77,6 +77,12 @@ The datamodel of the prisma client, value of `Prisma.dmmf.datamodel`.
 #### Arg: `client`
 
 A `jest-mock-extended` instance. If not provided, a new instance is created.
+
+#### Arg: `caseInsensitive`
+
+If true, all string comparisons are case insensitive.
+
+
 
 # Supported features
 
@@ -138,8 +144,8 @@ Most common cases are covered, but not everything. Here is a rough list of the s
 - AND
 - OR
 - NOT
+- mode
 - TODO: search
-- TODO: mode
 
 ## Relation filters
 

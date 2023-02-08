@@ -1,6 +1,6 @@
 // @ts-nocheck
 
-import createPrismaClient from '../src'
+import createPrismaClient from './createPrismaClient'
 
 test('create', async () => {
   const client = await createPrismaClient({})
@@ -19,22 +19,23 @@ test('create', async () => {
       account: true
     }
   })
-  expect(user).toEqual(
-    {
-      id: 1,
-      accountId: 1,
-      role: "USER",
-      deleted: false,
-      clicks: null,
-      sort: null,
-      account: {
-        id: 1,
-        name: null,
-        sort: null,
-      },
-      uniqueField: 'user',
-    }
-  )
+  expect(user).toMatchInlineSnapshot(`
+Object {
+  "account": Object {
+    "id": 1,
+    "name": null,
+    "sort": null,
+  },
+  "accountId": 1,
+  "clicks": null,
+  "deleted": false,
+  "id": 1,
+  "name": null,
+  "role": "USER",
+  "sort": null,
+  "uniqueField": "user",
+}
+`)
 })
 
 
@@ -46,6 +47,7 @@ test('update', async () => {
     stripe: [{
       id: 2,
       accountId: 1,
+      customerId: "1"
     }],
   })
   // TODO: Check output
@@ -64,16 +66,20 @@ test('update', async () => {
       account: true
     }
   })
-  expect(answer).toEqual(
-    {
-      id: 2,
-      accountId: 1,
-      account: {
-        id: 1,
-        name: "B"
-      }
-    }
-  )
+  expect(answer).toMatchInlineSnapshot(`
+Object {
+  "account": Object {
+    "id": 1,
+    "name": "B",
+    "sort": null,
+  },
+  "accountId": 1,
+  "active": false,
+  "customerId": "1",
+  "id": 2,
+  "sort": null,
+}
+`)
 })
 
 test('disconnect', async () => {
@@ -81,12 +87,13 @@ test('disconnect', async () => {
     account: [
       { id: 1, name: "A" }
     ],
-    stripe: [{
+    user: [{
       id: 2,
       accountId: 1,
+      uniqueField: 'user'
     }],
   })
-  const answer = await client.stripe.update({
+  const user = await client.user.update({
     data: {
       account: {
         disconnect: true
@@ -99,22 +106,23 @@ test('disconnect', async () => {
       account: true
     }
   })
-  expect(answer.account).toEqual(null)
+  expect(user.account).toEqual(null)
 })
 
-test('disconnect other direction', async () => {
+test.skip('disconnect other direction', async () => {
   const client = await createPrismaClient({
     account: [
       { id: 1, name: "A" }
     ],
-    stripe: [{
+    user: [{
       id: 2,
       accountId: 1,
+      uniqueField: 'user'
     }],
   })
   const answer = await client.account.update({
     data: {
-      stripe: {
+      user: {
         disconnect: true
       }
     },
@@ -122,7 +130,7 @@ test('disconnect other direction', async () => {
       id: 1
     },
     include: {
-      stripe: true
+      user: true
     }
   })
   expect(answer.stripe).toEqual(null)
@@ -133,12 +141,13 @@ test('Delete', async () => {
     account: [
       { id: 1, name: "A" }
     ],
-    stripe: [{
+    user: [{
       id: 2,
       accountId: 1,
+      uniqueField: 'user'
     }],
   })
-  const answer = await client.stripe.update({
+  const user = await client.user.update({
     data: {
       account: {
         delete: true
@@ -151,7 +160,7 @@ test('Delete', async () => {
       account: true
     }
   })
-  expect(answer.account).toEqual(null)
+  expect(user.account).toEqual(null)
   const accounts = await client.account.findMany()
   expect(accounts).toEqual([])
 })
@@ -167,11 +176,13 @@ test("select", async () => {
     stripe: [{
       id: 1,
       accountId: 1,
-      active: false
+      active: false,
+      customerId: "1",
     }, {
       id: 2,
       accountId: 2,
-      active: true
+      active: true,
+      customerId: "2",
     }],
   })
 

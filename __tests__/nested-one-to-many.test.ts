@@ -1,6 +1,6 @@
 // @ts-nocheck
 
-import createPrismaClient from '../src'
+import createPrismaClient from './createPrismaClient'
 
 describe('Create', () => {
 
@@ -22,22 +22,25 @@ describe('Create', () => {
     })
     const users = await client.user.findMany()
     expect(users.length).toBe(1)
-    expect(account).toEqual(
-      {
-        id: 1,
-        name: null,
-        sort: null,
-        users: [{
-          id: 1,
-          accountId: 1,
-          role: "USER",
-          deleted: false,
-          sort: null,
-          clicks: null,
-          uniqueField: 'user',
-        }]
-      }
-    )
+    expect(account).toMatchInlineSnapshot(`
+Object {
+  "id": 1,
+  "name": null,
+  "sort": null,
+  "users": Array [
+    Object {
+      "accountId": 1,
+      "clicks": null,
+      "deleted": false,
+      "id": 1,
+      "name": null,
+      "role": "USER",
+      "sort": null,
+      "uniqueField": "user",
+    },
+  ],
+}
+`)
   })
 
   test('create one-to-many (array)', async () => {
@@ -59,37 +62,43 @@ describe('Create', () => {
         users: true
       }
     })
-    expect(account).toEqual(
-      {
-        id: 1,
-        name: null,
-        sort: null,
-        users: [{
-          id: 1,
-          role: "USER",
-          accountId: 1,
-          deleted: false,
-          clicks: null,
-          sort: null,
-          uniqueField: 'user',
-        }, {
-          id: 2,
-          role: "ADMIN",
-          accountId: 1,
-          deleted: false,
-          clicks: null,
-          sort: null,
-          uniqueField: 'admin',
-        }]
-      }
-    )
+    expect(account).toMatchInlineSnapshot(`
+Object {
+  "id": 1,
+  "name": null,
+  "sort": null,
+  "users": Array [
+    Object {
+      "accountId": 1,
+      "clicks": null,
+      "deleted": false,
+      "id": 1,
+      "name": null,
+      "role": "USER",
+      "sort": null,
+      "uniqueField": "user",
+    },
+    Object {
+      "accountId": 1,
+      "clicks": null,
+      "deleted": false,
+      "id": 2,
+      "name": null,
+      "role": "ADMIN",
+      "sort": null,
+      "uniqueField": "admin",
+    },
+  ],
+}
+`)
   })
+
   test('createMany', async () => {
     const client = await createPrismaClient({
       answers: [],
       userAnswers: [],
       user: [
-        { id: 1, role: "USER" }
+        { id: 1, role: "USER", uniqueField: 'user' }
       ]
     })
     // TODO: Check output
@@ -106,18 +115,19 @@ describe('Create', () => {
         users: true
       }
     })
-    expect(answer).toEqual(
-      {
-        title: "Title",
-        id: 1,
-        users: [{
-          answerId: 1,
-          userId: 1,
-          value: null,
-          // userId_answerId: { answerId: 2, userId: 1 },
-        }]
-      }
-    )
+    expect(answer).toMatchInlineSnapshot(`
+Object {
+  "id": 1,
+  "title": "Title",
+  "users": Array [
+    Object {
+      "answerId": 1,
+      "userId": 1,
+      "value": null,
+    },
+  ],
+}
+`)
   })
 
 })
@@ -131,7 +141,7 @@ describe("Update", () => {
       ],
       userAnswers: [],
       user: [
-        { id: 1, role: "USER" }
+        { id: 1, role: "USER", uniqueField: 'user' }
       ]
     })
     // TODO: Check output
@@ -174,7 +184,7 @@ describe("Update", () => {
         accountId: 1,
       },
       user: [
-        { id: 2, role: "ADMIN", accountId: 1 }
+        { id: 2, role: "ADMIN", accountId: 1, uniqueField: 'user' }
       ]
     })
     // TODO: Check output
@@ -198,16 +208,25 @@ describe("Update", () => {
         users: true
       }
     })
-    expect(answer).toEqual(
-      {
-        id: 1,
-        users: [{
-          id: 2,
-          accountId: 1,
-          role: "USER"
-        }]
-      }
-    )
+    expect(answer).toMatchInlineSnapshot(`
+Object {
+  "id": 1,
+  "name": null,
+  "sort": null,
+  "users": Array [
+    Object {
+      "accountId": 1,
+      "clicks": null,
+      "deleted": false,
+      "id": 2,
+      "name": null,
+      "role": "USER",
+      "sort": null,
+      "uniqueField": "user",
+    },
+  ],
+}
+`)
   })
 
 
@@ -216,12 +235,12 @@ describe("Update", () => {
       account: [
         { id: 1, }
       ],
-      stripe: {
+      stripe: [{
         customerId: "1",
         accountId: 1,
-      },
+      }],
       user: [
-        { id: 2, role: "ADMIN", accountId: 1 }
+        { id: 2, role: "ADMIN", accountId: 1, uniqueField: 'user' }
       ]
     })
     // TODO: Check output
@@ -245,16 +264,25 @@ describe("Update", () => {
         users: true
       }
     })
-    expect(answer).toEqual(
-      {
-        id: 1,
-        users: [{
-          id: 2,
-          accountId: 1,
-          role: "USER"
-        }]
-      }
-    )
+    expect(answer).toMatchInlineSnapshot(`
+Object {
+  "id": 1,
+  "name": null,
+  "sort": null,
+  "users": Array [
+    Object {
+      "accountId": 1,
+      "clicks": null,
+      "deleted": false,
+      "id": 2,
+      "name": null,
+      "role": "USER",
+      "sort": null,
+      "uniqueField": "user",
+    },
+  ],
+}
+`)
   })
 
   test("deleteMany array", async () => {
@@ -265,18 +293,20 @@ describe("Update", () => {
       user: [{
         id: 2,
         accountId: 1,
+        uniqueField: 'user1'
       }, {
         id: 3,
         accountId: 1,
+        uniqueField: 'user2'
       }],
     })
 
     await client.account.update({
       data: {
         users: {
-          update: [{ where: {id: 1}, name: "Piet" }],
+          // update: { where: { id: 2 }, data: { name: "Piet" } },
           deleteMany: [
-            { id: 2 } ,
+            { id: 2 },
           ]
         }
       },
@@ -295,7 +325,20 @@ describe("Update", () => {
         users: true
       }
     })
-    expect(account.users.length).toEqual(1)
+    expect(account.users).toMatchInlineSnapshot(`
+Array [
+  Object {
+    "accountId": 1,
+    "clicks": null,
+    "deleted": false,
+    "id": 3,
+    "name": null,
+    "role": "ADMIN",
+    "sort": null,
+    "uniqueField": "user2",
+  },
+]
+`)
   })
 
   test("deleteMany object", async () => {
@@ -306,17 +349,19 @@ describe("Update", () => {
       user: [{
         id: 2,
         accountId: 1,
+        uniqueField: 'user1'
       }, {
         id: 3,
         accountId: 1,
+        uniqueField: 'user2'
       }],
     })
 
     await client.account.update({
       data: {
         users: {
-          deleteMany: 
-            { id: 2 } ,
+          deleteMany:
+            { id: 2 },
         }
       },
       where: {
@@ -334,7 +379,20 @@ describe("Update", () => {
         users: true
       }
     })
-    expect(account.users.length).toEqual(1)
+    expect(account.users).toMatchInlineSnapshot(`
+Array [
+  Object {
+    "accountId": 1,
+    "clicks": null,
+    "deleted": false,
+    "id": 3,
+    "name": null,
+    "role": "ADMIN",
+    "sort": null,
+    "uniqueField": "user2",
+  },
+]
+`)
   })
 
   test("delete array", async () => {
@@ -345,18 +403,20 @@ describe("Update", () => {
       user: [{
         id: 2,
         accountId: 1,
+        uniqueField: 'user1'
       }, {
         id: 3,
         accountId: 1,
+        uniqueField: 'user2'
       }],
     })
 
     await client.account.update({
       data: {
         users: {
-          update: [{ where: {id: 1}, name: "Piet" }],
+          // update: [{ where: {id: 1}, name: "Piet" }],
           delete: [
-            { id: 2 } ,
+            { id: 2 },
           ]
         }
       },
@@ -376,6 +436,20 @@ describe("Update", () => {
       }
     })
     expect(account.users.length).toEqual(1)
+    expect(account.users).toMatchInlineSnapshot(`
+Array [
+  Object {
+    "accountId": 1,
+    "clicks": null,
+    "deleted": false,
+    "id": 3,
+    "name": null,
+    "role": "ADMIN",
+    "sort": null,
+    "uniqueField": "user2",
+  },
+]
+`)
   })
 
   test("delete object", async () => {
@@ -386,17 +460,19 @@ describe("Update", () => {
       user: [{
         id: 2,
         accountId: 1,
+        uniqueField: 'user1'
       }, {
         id: 3,
         accountId: 1,
+        uniqueField: 'user2'
       }],
     })
 
     await client.account.update({
       data: {
         users: {
-          delete: 
-            { id: 2 } ,
+          delete:
+            { id: 2 },
         }
       },
       where: {
@@ -415,6 +491,20 @@ describe("Update", () => {
       }
     })
     expect(account.users.length).toEqual(1)
+    expect(account.users).toMatchInlineSnapshot(`
+Array [
+  Object {
+    "accountId": 1,
+    "clicks": null,
+    "deleted": false,
+    "id": 3,
+    "name": null,
+    "role": "ADMIN",
+    "sort": null,
+    "uniqueField": "user2",
+  },
+]
+`)
   })
 
 })
@@ -426,14 +516,23 @@ test("Select", async () => {
       { id: 2, name: "B", },
     ],
     user: [
-      { id: 1, role: "USER", accountId: 1, delete: true },
+      { id: 1, role: "USER", accountId: 1, deleted: true, uniqueField: 'user1' },
     ]
   })
 
   const accounts = await client.account.findMany({
     where: {
-      users: { delete: true }
+      users: { some: { deleted: true } }
     }
   })
   expect(accounts).toHaveLength(1)
+  expect(accounts).toMatchInlineSnapshot(`
+Array [
+  Object {
+    "id": 1,
+    "name": "A",
+    "sort": null,
+  },
+]
+`)
 })
