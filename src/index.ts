@@ -150,12 +150,13 @@ const createPrismaMock = <P>(
     return joinfield
   }
 
-  // @ts-ignore
   client["$transaction"].mockImplementation(async (actions) => {
+    const res = []
     for (const action of actions) {
-      await action
+      res.push(await action);
     }
-  })
+    return res
+  });
 
   // client["$connect"] = async () => { }
   // client["$disconnect"] = async () => { }

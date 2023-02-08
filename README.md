@@ -18,7 +18,7 @@ beforeEach(() => {
 })
 ```
 
-An example how to mock a global prisma instance inside and schema a "db" directory (like blitzjs):
+An example how to mock a global prisma instance, as the default export in a "db" directory (like blitzjs):
 
 ```js
 import createPrismaMock from "prisma-mock"
@@ -48,13 +48,13 @@ createPrismaMock(
 ): Promise<P>
 ```
 
-## data
+#### Arg: `data`
 
-Object with an array per table of default data (using `create` is preferred). Example:
+You can optionally start up a pre-filled db, by passing in an object containing keys for tables, and values as arrays of objects (though using `create` is preferred). Example:
 
 ```js
 createPrismaMock({
-  users: [
+  user: [
     {
       id: 1,
       name: "John Doe",
@@ -70,18 +70,23 @@ createPrismaMock({
 })
 ```
 
-## datamodel
+#### Arg: `datamodel`
 
 The datamodel of the prisma client, value of `Prisma.dmmf.datamodel`.
 
-## caseInsensitive
+#### Arg: `client`
+
+A `jest-mock-extended` instance. If not provided, a new instance is created.
+
+#### Arg: `caseInsensitive`
 
 If true, all string comparisons are case insensitive.
 
 
+
 # Supported features
 
-Alot of the functionality is implemented, but parts are missing. Here is a list of the (missing) features:
+Most common cases are covered, but not everything. Here is a rough list of the supported features:
 
 ## Model queries
 
@@ -192,3 +197,9 @@ TODO (path, string_contains, string_starts_with, string_ends_with, array_contain
 - onDelete (SetNull, Cascade)
 - TODO: onDelete: Restrict, NoAction, SetDefault
 - TODO: onUpdate
+
+## Prisma Client methods
+
+- $transaction
+- TODO: $transaction (interactive)
+- TODO: $transaction (isolation) 
