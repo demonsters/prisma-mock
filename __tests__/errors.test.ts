@@ -80,3 +80,23 @@ test.todo("Argument create is missing.")
 test.todo("Argument uniqueField for data.uniqueField is missing.")
 test.todo("Unique constraint failed on the fields: (`")
 test.todo("Unknown arg `disconnect` in data.account.disconnect (when not optional)")
+
+
+describe("Not implemented", () => {
+
+  // Should not run for postgresql
+  if (process.env.PROVIDER === "postgresql") {
+    return
+  }
+
+  describe.each(["aggregate", "groupBy"])("Not implemented %p", (fnc) => {
+    test("Should throw when function not implemented", async () => {
+      const client = await createPrismaClient()
+      expect(client.account[fnc]).rejects.toThrow(`${fnc} is not yet implemented in prisma-mock`)
+    })
+  })
+  test("Should throw when function not implemented", async () => {
+    const client = await createPrismaClient()
+    expect(client.$use(() => {})).rejects.toThrow(`$use is not yet implemented in prisma-mock`)
+  })
+})

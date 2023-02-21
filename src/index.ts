@@ -155,6 +155,13 @@ const createPrismaMock = <P>(
     return res
   })
 
+  client["$connect"].mockImplementation(async () => { })
+  client["$disconnect"].mockImplementation(async () => { })
+  client["$use"].mockImplementation(async () => {
+    throw new Error("$use is not yet implemented in prisma-mock")
+  })
+
+
   // client["$connect"] = async () => { }
   // client["$disconnect"] = async () => { }
   // client["$use"] = async () => { }
@@ -883,7 +890,13 @@ const createPrismaMock = <P>(
       return findOne({ ...args, where: updatedItem })
     }
 
+    const notImplemented = (name: string) => () => {
+      throw new Error(`${name} is not yet implemented in prisma-mock`)
+    }
+
     return {
+      aggregate: notImplemented("aggregate"),
+      groupBy: notImplemented("groupBy"),
       findOne,
       findUnique: findOne,
       findUniqueOrThrow: findOrThrow,
