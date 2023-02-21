@@ -37,7 +37,6 @@ function IsFieldDefault(
   return (f as Prisma.DMMF.FieldDefault).name !== undefined
 }
 
-
 const throwUnkownError = (message: string, cause?: string) => {
   const code = "P2025"
   const clientVersion = "1.2.3"
@@ -61,11 +60,10 @@ const throwUnkownError = (message: string, cause?: string) => {
     )
   }
   error.meta = {
-    cause
+    cause,
   }
   throw error
 }
-
 
 export type MockPrismaOptions = {
   caseInsensitive?: boolean
@@ -81,7 +79,6 @@ const createPrismaMock = <P>(
     caseInsensitive: false,
   }
 ): P => {
-
   // let data = options.data || {}
   // const datamodel = options.datamodel || Prisma.dmmf.datamodel
   const caseInsensitive = options.caseInsensitive || false
@@ -153,10 +150,10 @@ const createPrismaMock = <P>(
   client["$transaction"].mockImplementation(async (actions) => {
     const res = []
     for (const action of actions) {
-      res.push(await action);
+      res.push(await action)
     }
     return res
-  });
+  })
 
   // client["$connect"] = async () => { }
   // client["$disconnect"] = async () => { }
@@ -221,12 +218,12 @@ const createPrismaMock = <P>(
     }
 
     const nestedUpdate = (args, isCreating: boolean, item) => {
-      let d = args.data;
+      let d = args.data
       Object.entries(d).forEach(([key, value]) => {
         if (typeof value === "undefined") {
-          delete d[key];
+          delete d[key]
         }
-      });
+      })
 
       // Get field schema for default values
       const model = datamodel.models.find((model) => {
@@ -242,8 +239,7 @@ const createPrismaMock = <P>(
                 [field.name]: { connect },
                 ...rest
               } = d
-              const connections =
-                connect instanceof Array ? connect : [connect]
+              const connections = connect instanceof Array ? connect : [connect]
               connections.forEach((connect, idx) => {
                 const keyToMatch = Object.keys(connect)[0]
 
@@ -259,8 +255,9 @@ const createPrismaMock = <P>(
                       }
                     )
                     if (!matchingRow) {
-                      throwUnkownError("An operation failed because it depends on one or more records that were required but not found. {cause}")
-
+                      throwUnkownError(
+                        "An operation failed because it depends on one or more records that were required but not found. {cause}"
+                      )
                     }
                     connectionValue = matchingRow[keyToGet]
                   }
@@ -445,7 +442,8 @@ const createPrismaMock = <P>(
             const newValue = item[field.name] / c.divide
             d = {
               ...d,
-              [field.name]: field.type === "Int" ? Math.floor(newValue) : newValue,
+              [field.name]:
+                field.type === "Int" ? Math.floor(newValue) : newValue,
             }
           }
           if (c.set) {
@@ -580,7 +578,10 @@ const createPrismaMock = <P>(
           }
           let match = true
           const matchFilter = { ...filter }
-          if (caseInsensitive || ("mode" in matchFilter && matchFilter.mode === "insensitive")) {
+          if (
+            caseInsensitive ||
+            ("mode" in matchFilter && matchFilter.mode === "insensitive")
+          ) {
             val = val.toLowerCase ? val.toLowerCase() : val
             Object.keys(matchFilter).forEach((key) => {
               const value = matchFilter[key]
@@ -667,6 +668,19 @@ const createPrismaMock = <P>(
         return null
       }
       return items[0]
+    }
+
+    const findOrThrow = (args) => {
+      const found = findOne(args)
+      if (!found) {
+        throw new PrismaClientKnownRequestError(
+          `No ${prop.slice(0, 1).toUpperCase()}${prop.slice(1)} found`,
+          "P2025",
+          // @ts-ignore
+          "1.2.3"
+        )
+      }
+      return found
     }
 
     const findMany = (args) => {
@@ -786,7 +800,7 @@ const createPrismaMock = <P>(
                     item[joinfield.relationToFields[0]],
                 },
               })
-            } catch (e) { }
+            } catch (e) {}
           }
         })
       })
@@ -872,20 +886,10 @@ const createPrismaMock = <P>(
     return {
       findOne,
       findUnique: findOne,
+      findUniqueOrThrow: findOrThrow,
       findMany,
       findFirst: findOne,
-      findFirstOrThrow: (args) => {
-        const found = findOne(args)
-        if (!found) {
-          throw new PrismaClientKnownRequestError(
-            `No ${prop.slice(0, 1).toUpperCase()}${prop.slice(1)} found`,
-            "P2025",
-            // @ts-ignore
-            "1.2.3"
-          )
-        }
-        return found
-      },
+      findFirstOrThrow: findOrThrow,
       create,
       createMany: (args) => {
         if (!Array.isArray(args.data)) {
@@ -906,7 +910,10 @@ const createPrismaMock = <P>(
       delete: (args) => {
         const item = findOne(args)
         if (!item) {
-          throwUnkownError("An operation failed because it depends on one or more records that were required but not found. Record to delete does not exist.", "Record to delete does not exist.")
+          throwUnkownError(
+            "An operation failed because it depends on one or more records that were required but not found. Record to delete does not exist.",
+            "Record to delete does not exist."
+          )
         }
         const deleted = deleteMany(args)
         if (deleted.length) {

@@ -2,16 +2,18 @@
 
 import { PrismaClient } from "@prisma/client"
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime"
-import createPrismaClient from "./createPrismaClient";
+import createPrismaClient from "./createPrismaClient"
 
 describe("PrismaClient", () => {
   const data = {
     account: [
       {
+        id: 1,
         name: "sadfsdf",
         sort: null,
       },
       {
+        id: 2,
         name: "adsfasdf2",
         sort: null,
       },
@@ -38,7 +40,7 @@ describe("PrismaClient", () => {
     })
     expect(user).toEqual({
       id: expect.any(Number),
-      ...data.user[0]
+      ...data.user[0],
     })
     await client.$disconnect()
   })
@@ -58,7 +60,7 @@ describe("PrismaClient", () => {
       id: expect.any(Number),
       account: {
         id: expect.any(Number),
-        ...data.account[0]
+        ...data.account[0],
       },
     })
     await client.$disconnect()
@@ -73,7 +75,7 @@ describe("PrismaClient", () => {
     })
     expect(user).toEqual({
       id: expect.any(Number),
-      ...data.account[1]
+      ...data.account[1],
     })
     await client.$disconnect()
   })
@@ -81,7 +83,9 @@ describe("PrismaClient", () => {
   test("findMany", async () => {
     const client = await createPrismaClient(data)
     const accounts = await client.account.findMany()
-    expect(accounts).toEqual(data.account.map((a) => ({ id: expect.any(Number), ...a })))
+    expect(accounts).toEqual(
+      data.account.map((a) => ({ id: expect.any(Number), ...a }))
+    )
   })
 
   test("findFirst", async () => {
@@ -89,7 +93,51 @@ describe("PrismaClient", () => {
     const accounts = await client.account.findFirst()
     expect(accounts).toEqual({
       id: expect.any(Number),
-      ...data.account[0]
+      ...data.account[0],
+    })
+  })
+
+  describe("findFirstOrThrow", () => {
+    test("should succeed", async () => {
+      const client = await createPrismaClient(data)
+      const accounts = await client.account.findFirstOrThrow({
+        where: { id: 1 },
+      })
+      expect(accounts).toEqual(data.account[0])
+    })
+
+    test("should fail", async () => {
+      const client = await createPrismaClient(data)
+      try {
+        const result = await client.account.findFirstOrThrow({
+          where: { id: 0 },
+        })
+        throw new Error("Test should not reach here")
+      } catch (e) {
+        expect(e.message).toContain("No Account found")
+      }
+    })
+  })
+
+  describe("findUniqueOrThrow", () => {
+    test("should succeed", async () => {
+      const client = await createPrismaClient(data)
+      const accounts = await client.account.findUniqueOrThrow({
+        where: { id: 1 },
+      })
+      expect(accounts).toEqual(data.account[0])
+    })
+
+    test("should fail", async () => {
+      const client = await createPrismaClient(data)
+      try {
+        const result = await client.account.findUniqueOrThrow({
+          where: { id: 0 },
+        })
+        throw new Error("Test should not reach here")
+      } catch (e) {
+        expect(e.message).toContain("No Account found")
+      }
     })
   })
 
@@ -162,10 +210,12 @@ describe("PrismaClient", () => {
       },
     })
     const users = await client.account.findMany()
-    expect(users).toEqual([{
-      id: expect.any(Number),
-      ...data.account[0]
-    }])
+    expect(users).toEqual([
+      {
+        id: expect.any(Number),
+        ...data.account[0],
+      },
+    ])
   })
 
   test("update", async () => {
@@ -182,7 +232,7 @@ describe("PrismaClient", () => {
     expect(users).toEqual([
       {
         id: expect.any(Number),
-        ...data.account[0]
+        ...data.account[0],
       },
       {
         id: expect.any(Number),
@@ -201,15 +251,13 @@ describe("PrismaClient", () => {
       update: {
         name: "New name",
       },
-      create: {
-
-      }
+      create: {},
     })
     const users = await client.account.findMany()
     expect(users).toEqual([
       {
         id: expect.any(Number),
-        ...data.account[0]
+        ...data.account[0],
       },
       {
         id: expect.any(Number),
@@ -230,8 +278,7 @@ describe("PrismaClient", () => {
         name: "New name",
         sort: 1,
       },
-      update: {
-      }
+      update: {},
     })
     const users = await client.account.findMany()
     expect(users).toEqual([
@@ -307,7 +354,8 @@ describe("PrismaClient", () => {
           },
         },
       })
-    ).rejects.toThrow(PrismaClientKnownRequestError
+    ).rejects.toThrow(
+      PrismaClientKnownRequestError
       // new PrismaClientKnownRequestError(
       //   "An operation failed because it depends on one or more records that were required but not found. {cause}",
       //   "P2025",
