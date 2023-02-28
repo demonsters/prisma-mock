@@ -131,6 +131,8 @@ Array [
 ]
 `;
 
+exports[`PrismaClient where caseInsensitive false No mode AND (failing) 1`] = `Array []`;
+
 exports[`PrismaClient where caseInsensitive false No mode AND 1`] = `
 Array [
   Object {
@@ -310,6 +312,8 @@ Array [
   },
 ]
 `;
+
+exports[`PrismaClient where caseInsensitive true No mode AND (failing) 1`] = `Array []`;
 
 exports[`PrismaClient where caseInsensitive true No mode AND 1`] = `
 Array [

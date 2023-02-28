@@ -212,6 +212,20 @@ describe("PrismaClient where", () => {
           expect(accounts).toMatchSnapshot()
           // expect(accounts).toEqual([data.account[1]]);
         })
+
+        test("AND (failing)", async () => {
+          const client = await createPrismaClient(data, {
+            caseInsensitive,
+          })
+          const accounts = await client.account.findMany({
+            where: {
+              AND: [{ id: 1 }, { id: 2 }],
+            },
+          })
+          expect(accounts.length).toEqual(0)
+          expect(accounts).toMatchSnapshot()
+          // expect(accounts).toEqual([data.account[1]]);
+        })
       })
 
       describe.each([false, true])(

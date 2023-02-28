@@ -50,7 +50,7 @@ test('update', async () => {
       customerId: "1"
     }],
   })
-  // TODO: Check output
+  
   const answer = await client.stripe.update({
     data: {
       account: {

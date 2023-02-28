@@ -28,6 +28,8 @@ export type PrismaMockData<P> = Partial<{
   [key in IsTable<Uncapitalize<IsString<keyof P>>>]: PrismaList<P, key>
 }>
 
+type Where = any
+
 function IsFieldDefault(
   f:
     | Prisma.DMMF.FieldDefault
@@ -124,11 +126,11 @@ const createPrismaMock = <P>(
     return data
   }
 
-  const getFieldRelationshipWhere = (item, field: Prisma.DMMF.Field) => {
+  const getFieldRelationshipWhere = (item: any, field: Prisma.DMMF.Field) => {
     if (field.relationToFields.length === 0) {
-      field = getJoinField(field)
+      const otherfield = getJoinField(field)
       return {
-        [field.relationFromFields[0]]: item[field.relationToFields[0]],
+        [otherfield.relationFromFields[0]]: item[otherfield.relationToFields[0]],
       }
     }
     return {
@@ -224,7 +226,7 @@ const createPrismaMock = <P>(
       return 0
     }
 
-    const nestedUpdate = (args, isCreating: boolean, item) => {
+    const nestedUpdate = (args, isCreating: boolean, item: any) => {
       let d = args.data
       Object.entries(d).forEach(([key, value]) => {
         if (typeof value === "undefined") {
@@ -499,7 +501,7 @@ const createPrismaMock = <P>(
       return d
     }
 
-    const matchItem = (child, item, where) => {
+    const matchItem = (child: any, item: any, where: any) => {
       let val = item[child]
       const filter = where[child]
       if (child === "OR") {
@@ -544,10 +546,12 @@ const createPrismaMock = <P>(
               return getCamelCase(model.name) === childName
             })
             const delegate = Delegate(getCamelCase(childName), submodel)
-            const res = delegate.findMany({
+            const res = delegate._findMany({
               where: {
-                ...childWhere,
-                ...getFieldRelationshipWhere(item, info),
+                AND: [
+                  childWhere,
+                  getFieldRelationshipWhere(item, info)
+                ]
               },
             })
             if (filter.every) {
@@ -644,7 +648,7 @@ const createPrismaMock = <P>(
       return true
     }
 
-    const matchItems = (item, where) => {
+    const matchItems = (item: string, where: Where) => {
       for (let child in where) {
         if (!matchItem(child, item, where)) {
           return false
@@ -653,22 +657,22 @@ const createPrismaMock = <P>(
       return true
     }
 
-    const matchAnd = (item, where) => {
-      return where.filter((child) => matchItems(item, child)).length > 0
+    const matchAnd = (item: any, where: Where) => {
+      return where.filter((child: Where) => matchItems(item, child)).length === where.length
     }
 
-    const matchOr = (item, where: Array<{ [key: string]: any }>) => {
-      return where.some((child) => matchItems(item, child))
+    const matchOr = (item: any, where: Where) => {
+      return where.some((child: Where) => matchItems(item, child))
     }
 
-    const matchFnc = (where) => (item) => {
+    const matchFnc = (where: Where) => (item: any) => {
       if (where) {
         return matchItems(item, where)
       }
       return true
     }
 
-    const findOne = (args) => {
+    const findOne = (args: any) => {
       if (!data[prop]) return null
       const items = findMany(args)
       if (items.length === 0) {
@@ -691,7 +695,10 @@ const createPrismaMock = <P>(
     }
 
     const findMany = (args) => {
-      let res = data[prop].filter(matchFnc(args?.where)).map(includes(args))
+      let res = data[prop]
+        .filter(matchFnc(args?.where))
+        .map(includes(args))
+
       if (args?.distinct) {
         let values = {}
         res = res.filter((item) => {
@@ -815,7 +822,7 @@ const createPrismaMock = <P>(
       return deleted
     }
 
-    const includes = (args) => (item) => {
+    const includes = (args: any) => (item: any) => {
       if ((!args?.include && !args?.select) || !item) return item
       let newItem = item
       const obj = args?.select || args?.include
@@ -857,12 +864,12 @@ const createPrismaMock = <P>(
           // Add relation
           newItem = {
             ...newItem,
-            [key]: delegate.findMany(subArgs),
+            [key]: delegate._findMany(subArgs),
           }
         } else {
           newItem = {
             ...newItem,
-            [key]: delegate.findUnique(subArgs),
+            [key]: delegate._findMany(subArgs)?.[0] || null,
           }
         }
       })
@@ -966,6 +973,7 @@ const createPrismaMock = <P>(
       },
 
       _sortFunc: sortFunc,
+      _findMany: findMany
     }
   }
 
