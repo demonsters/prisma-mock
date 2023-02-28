@@ -187,20 +187,73 @@ describe("PrismaClient", () => {
     })
     const users = await client.user.findMany()
 
-    expect(users).toEqual([
-      ...data.user.map((u) => ({ id: expect.any(Number), ...u })),
-      {
-        id: expect.any(Number),
-        name: "New user",
-        role: "ADMIN",
-        deleted: false,
-        accountId: 1,
-        clicks: null,
-        sort: 1,
-        uniqueField: "new",
-      },
-    ])
+    expect(users).toMatchInlineSnapshot(`
+Array [
+  Object {
+    "accountId": 1,
+    "clicks": null,
+    "deleted": false,
+    "id": 1,
+    "name": "Admin",
+    "role": "ADMIN",
+    "sort": null,
+    "uniqueField": "first",
+  },
+  Object {
+    "accountId": 1,
+    "clicks": null,
+    "deleted": false,
+    "id": 2,
+    "name": "New user",
+    "role": "ADMIN",
+    "sort": 1,
+    "uniqueField": "new",
+  },
+]
+`)
   })
+
+  test("create connect 2", async () => {
+
+    const client = await createPrismaClient()
+
+    const user = await client.user.create({
+      data: {
+        uniqueField: "1",
+      }
+    })
+
+    const account = await client.account.create({
+      data: {
+        users: {
+          connect: {
+            id: user.id
+          },
+        },
+      },
+      include: {
+        users: true,
+      }
+    })
+    const users = await client.user.findMany()
+
+    expect(users).toMatchInlineSnapshot(`
+Array [
+  Object {
+    "accountId": 1,
+    "clicks": null,
+    "deleted": false,
+    "id": 1,
+    "name": null,
+    "role": "ADMIN",
+    "sort": null,
+    "uniqueField": "1",
+  },
+]
+`)
+
+  })
+
 
   test("delete", async () => {
     const client = await createPrismaClient(data)

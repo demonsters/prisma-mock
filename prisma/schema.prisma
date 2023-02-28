@@ -25,7 +25,7 @@ model User {
   id          Int           @id @default(autoincrement())
   account     Account?      @relation("AccountUsers", fields: [accountId], references: [id], onDelete: SetNull)
   accountId   Int?
-  name   String?
+  name        String?
   role        Role          @default(ADMIN)
   answers     UserAnswers[]
   clicks      Int?
@@ -35,6 +35,7 @@ model User {
   uniqueField String        @unique
   sort        Int?
   posts       Post[]
+  documents   Document[]
 }
 
 model Stripe {
@@ -77,8 +78,9 @@ model Element {
 }
 
 model Document {
-  id   String @id @default(cuid())
-  name String
+  id           String @id @default(cuid())
+  name         String
+  participants User[]
 }
 
 model Post {

@@ -155,6 +155,22 @@ describe("PrismaClient where", () => {
           expect(accounts.length).toEqual(2)
           // expect(account).toEqual([data.account[0], data.account[2]]);
         })
+      
+        test("in (nested)", async () => {
+          const client = await createPrismaClient(data, {
+            caseInsensitive,
+          })
+          const accounts = await client.user.findMany({
+            where: {
+              account: {
+                name: { in: ["Piet", "Sjors"] },
+              }
+            },
+          })
+          expect(accounts).toMatchSnapshot()
+          expect(accounts.length).toEqual(1)
+          // expect(account).toEqual([data.account[0], data.account[2]]);
+        })
 
         test("Nested", async () => {
           const client = await createPrismaClient(data, {

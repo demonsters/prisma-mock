@@ -201,6 +201,21 @@ Array [
 ]
 `;
 
+exports[`PrismaClient where caseInsensitive false No mode in (nested) 1`] = `
+Array [
+  Object {
+    "accountId": 1,
+    "clicks": null,
+    "deleted": false,
+    "id": 1,
+    "name": "Henk",
+    "role": "ADMIN",
+    "sort": null,
+    "uniqueField": "user 1",
+  },
+]
+`;
+
 exports[`PrismaClient where caseInsensitive false No mode in 1`] = `
 Array [
   Object {
@@ -379,6 +394,21 @@ Array [
     "id": 2,
     "name": "Dirk",
     "sort": null,
+  },
+]
+`;
+
+exports[`PrismaClient where caseInsensitive true No mode in (nested) 1`] = `
+Array [
+  Object {
+    "accountId": 1,
+    "clicks": null,
+    "deleted": false,
+    "id": 1,
+    "name": "Henk",
+    "role": "ADMIN",
+    "sort": null,
+    "uniqueField": "user 1",
   },
 ]
 `;

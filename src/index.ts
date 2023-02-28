@@ -29,6 +29,9 @@ export type PrismaMockData<P> = Partial<{
 }>
 
 type Where = any
+type Item = any
+type Args = any
+type CreateArgs = any
 
 function IsFieldDefault(
   f:
@@ -81,6 +84,9 @@ const createPrismaMock = <P>(
     caseInsensitive: false,
   }
 ): P => {
+
+  const manyToManyData: { [relationName: string ]: Array<{ [type: string]: Item }>} = {}
+
   // let data = options.data || {}
   // const datamodel = options.datamodel || Prisma.dmmf.datamodel
   const caseInsensitive = options.caseInsensitive || false
@@ -97,6 +103,7 @@ const createPrismaMock = <P>(
     model: Prisma.DMMF.Model,
     data: PrismaMockData<P>
   ) => {
+
     const c = getCamelCase(model.name)
     const idFields = model.idFields || model.primaryKey?.fields
 
@@ -126,9 +133,28 @@ const createPrismaMock = <P>(
     return data
   }
 
-  const getFieldRelationshipWhere = (item: any, field: Prisma.DMMF.Field) => {
-    if (field.relationToFields.length === 0) {
-      const otherfield = getJoinField(field)
+  const getFieldRelationshipWhere = (item: any, field: Prisma.DMMF.Field, model: Prisma.DMMF.Model) => {
+    if (field.relationFromFields.length === 0) {
+      const joinmodel = datamodel.models.find((model) => {
+        return model.name === field.type
+      })
+      const otherfield = joinmodel?.fields.find((f) => {
+        return f.relationName === field.relationName
+      })
+
+      // Many-to-many
+      if (otherfield?.relationFromFields.length === 0) {
+        const idField = model?.fields.find((f) => f.isId)?.name
+        const otherIdField = joinmodel?.fields.find((f) => f.isId)
+        const items = manyToManyData[field.relationName]?.filter(subitem => subitem[otherfield.type][idField] === item[idField])
+        if (!items?.length) {
+          return null
+        }
+        // Many-to-many
+        return {
+          [otherIdField.name]: { in: items.map(subitem => (subitem[field.type][otherIdField.name])) }
+        }
+      }
       return {
         [otherfield.relationFromFields[0]]: item[otherfield.relationToFields[0]],
       }
@@ -285,24 +311,32 @@ const createPrismaMock = <P>(
                       field.relationName === otherField.relationName
                   )
                   const targetKey = inverse.relationToFields[0]
-                  const fromKey = inverse.relationFromFields[0]
 
                   const delegate = Delegate(
                     getCamelCase(otherModel.name),
                     otherModel
                   )
-                  delegate.update({
-                    where: {
-                      [fromKey]: connect[keyToMatch],
-                    },
-                    data: {
-                      [getCamelCase(inverse.name)]: {
-                        connect: {
-                          [targetKey]: d[targetKey],
+
+                  if (!targetKey) {
+                    const a = manyToManyData[field.relationName] = manyToManyData[field.relationName] || []
+                    a.push({
+                      [field.type]: delegate.findOne({
+                        where: connect
+                      }),
+                      [inverse.type]: d
+                    })
+                  } else {
+                    delegate.update({
+                      where: connect,
+                      data: {
+                        [getCamelCase(inverse.name)]: {
+                          connect: {
+                            [targetKey]: d[targetKey],
+                          },
                         },
-                      },
-                    },
-                  })
+                      }
+                    })
+                  }
                 }
               })
             }
@@ -384,7 +418,7 @@ const createPrismaMock = <P>(
                 const item = findOne(args)
                 delegate.update({
                   data: c.update,
-                  where: getFieldRelationshipWhere(item, field),
+                  where: getFieldRelationshipWhere(item, field, model),
                 })
               }
             }
@@ -546,13 +580,13 @@ const createPrismaMock = <P>(
               return getCamelCase(model.name) === childName
             })
             const delegate = Delegate(getCamelCase(childName), submodel)
-            const res = delegate._findMany({
+            const res = delegate.findMany({
               where: {
                 AND: [
                   childWhere,
-                  getFieldRelationshipWhere(item, info)
+                  getFieldRelationshipWhere(item, info, submodel)
                 ]
-              },
+              }
             })
             if (filter.every) {
               if (res.length === 0) return true
@@ -560,11 +594,11 @@ const createPrismaMock = <P>(
               //   matchFnc(getFieldRelationshipWhere(item, info)),
               // )
               const all = delegate.findMany({
-                where: getFieldRelationshipWhere(item, info),
+                where: getFieldRelationshipWhere(item, info, model),
               })
               return res.length === all.length
             } else if (filter.some) {
-              return res.length > 0
+              return res.length > 0 //?
             } else if (filter.none) {
               return res.length === 0
             }
@@ -755,7 +789,7 @@ const createPrismaMock = <P>(
       return data
     }
 
-    const create = (args) => {
+    const create = (args: CreateArgs) => {
       const d = nestedUpdate(args, true, null)
 
       data = {
@@ -856,7 +890,7 @@ const createPrismaMock = <P>(
           ...subArgs,
           where: {
             ...subArgs.where,
-            ...getFieldRelationshipWhere(item, schema),
+            ...getFieldRelationshipWhere(item, schema, model),
           },
         }
 
