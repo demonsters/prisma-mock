@@ -85,7 +85,7 @@ const createPrismaMock = <P>(
   }
 ): P => {
 
-  const manyToManyData: { [relationName: string ]: Array<{ [type: string]: Item }>} = {}
+  const manyToManyData: { [relationName: string]: Array<{ [type: string]: Item }> } = {}
 
   // let data = options.data || {}
   // const datamodel = options.datamodel || Prisma.dmmf.datamodel
@@ -141,16 +141,17 @@ const createPrismaMock = <P>(
       const otherfield = joinmodel?.fields.find((f) => {
         return f.relationName === field.relationName
       })
-
       // Many-to-many
       if (otherfield?.relationFromFields.length === 0) {
         const idField = model?.fields.find((f) => f.isId)?.name
         const otherIdField = joinmodel?.fields.find((f) => f.isId)
-        const items = manyToManyData[field.relationName]?.filter(subitem => subitem[otherfield.type][idField] === item[idField])
+        const items = manyToManyData[field.relationName]
+          ?.filter(
+            subitem => subitem[otherfield.type]?.[idField] === item[idField]
+          )
         if (!items?.length) {
           return null
         }
-        // Many-to-many
         return {
           [otherIdField.name]: { in: items.map(subitem => (subitem[field.type][otherIdField.name])) }
         }
@@ -278,9 +279,9 @@ const createPrismaMock = <P>(
               connections.forEach((connect, idx) => {
                 const keyToMatch = Object.keys(connect)[0]
 
-                if (field.relationToFields.length > 0) {
-                  const keyToGet = field.relationToFields[0]
-                  const targetKey = field.relationFromFields[0]
+                const keyToGet = field.relationToFields[0]
+                const targetKey = field.relationFromFields[0]
+                if (keyToGet && targetKey) {
                   let connectionValue = connect[keyToGet]
                   if (keyToMatch !== keyToGet) {
                     const valueToMatch = connect[keyToMatch]
@@ -296,45 +297,46 @@ const createPrismaMock = <P>(
                     }
                     connectionValue = matchingRow[keyToGet]
                   }
-
-                  d = {
-                    ...rest,
-                    [targetKey]: connectionValue,
+                  if (targetKey) {
+                    d = {
+                      ...rest,
+                      [targetKey]: connectionValue,
+                    }
                   }
                 } else {
                   d = rest
                   const otherModel = datamodel.models.find((model) => {
                     return model.name === field.type
                   })
-                  const inverse = otherModel.fields.find(
+                  const otherField = otherModel.fields.find(
                     (otherField) =>
                       field.relationName === otherField.relationName
                   )
-                  const targetKey = inverse.relationToFields[0]
 
                   const delegate = Delegate(
                     getCamelCase(otherModel.name),
                     otherModel
                   )
 
-                  if (!targetKey) {
-                    const a = manyToManyData[field.relationName] = manyToManyData[field.relationName] || []
-                    a.push({
-                      [field.type]: delegate.findOne({
-                        where: connect
-                      }),
-                      [inverse.type]: d
-                    })
-                  } else {
+                  if (!targetKey && !keyToGet) {
+                    const targetKey = otherField.relationToFields[0]
                     delegate.update({
                       where: connect,
                       data: {
-                        [getCamelCase(inverse.name)]: {
+                        [getCamelCase(otherField.name)]: {
                           connect: {
                             [targetKey]: d[targetKey],
                           },
                         },
                       }
+                    })
+                  } else {
+                    const a = manyToManyData[field.relationName] = manyToManyData[field.relationName] || []
+                    a.push({
+                      [field.type]: delegate.findOne({
+                        where: connect
+                      }),
+                      [otherField.type]: d
                     })
                   }
                 }
@@ -377,24 +379,39 @@ const createPrismaMock = <P>(
                     ),
                   },
                 })
+
+                let createdItems = []
                 if (c.createMany) {
-                  delegate.createMany({
+                  createdItems = delegate.createMany({
                     ...c.createMany,
                     data: c.createMany.data.map(map),
                   })
                 } else {
                   if (Array.isArray(c.create)) {
-                    delegate.createMany({
+                    createdItems = delegate.createMany({
                       ...c.create,
                       data: c.create.map(map),
                     })
                   } else {
-                    delegate.create({
+                    createdItems = [delegate.create({
                       ...create.create,
                       data: map(create.create),
-                    })
+                    })]
                   }
                 }
+
+                const targetKey = joinfield.relationFromFields[0]
+
+                if (!targetKey) {
+                  const a = manyToManyData[field.relationName] = manyToManyData[field.relationName] || []
+                  createdItems.forEach((item) => {
+                    a.push({
+                      [field.type]: item,
+                      [joinfield.type]: d
+                    })
+                  })
+                }
+
               }
             }
 
@@ -416,10 +433,13 @@ const createPrismaMock = <P>(
                 })
               } else {
                 const item = findOne(args)
-                delegate.update({
-                  data: c.update,
-                  where: getFieldRelationshipWhere(item, field, model),
-                })
+                const where = getFieldRelationshipWhere(item, field, model)
+                if (where) {
+                  delegate.update({
+                    data: c.update,
+                    where,
+                  })
+                }
               }
             }
             if (c.deleteMany) {
@@ -580,11 +600,15 @@ const createPrismaMock = <P>(
               return getCamelCase(model.name) === childName
             })
             const delegate = Delegate(getCamelCase(childName), submodel)
+            const joinWhere = getFieldRelationshipWhere(item, info, submodel)
+            if (!joinWhere) {
+              return false
+            }
             const res = delegate.findMany({
               where: {
                 AND: [
                   childWhere,
-                  getFieldRelationshipWhere(item, info, submodel)
+                  joinWhere
                 ]
               }
             })
@@ -593,12 +617,14 @@ const createPrismaMock = <P>(
               // const all = data[childName].filter(
               //   matchFnc(getFieldRelationshipWhere(item, info)),
               // )
+              const where = getFieldRelationshipWhere(item, info, model)
+              if (!where) return false
               const all = delegate.findMany({
-                where: getFieldRelationshipWhere(item, info, model),
+                where,
               })
               return res.length === all.length
             } else if (filter.some) {
-              return res.length > 0 //?
+              return res.length > 0
             } else if (filter.none) {
               return res.length === 0
             }
@@ -848,7 +874,7 @@ const createPrismaMock = <P>(
                     item[joinfield.relationToFields[0]],
                 },
               })
-            } catch (e) {}
+            } catch (e) { }
           }
         })
       })
@@ -886,24 +912,32 @@ const createPrismaMock = <P>(
 
         // Construct arg for relation query
         let subArgs = obj[key] === true ? {} : obj[key]
-        subArgs = {
-          ...subArgs,
-          where: {
-            ...subArgs.where,
-            ...getFieldRelationshipWhere(item, schema, model),
-          },
-        }
+        const joinWhere = getFieldRelationshipWhere(item, schema, model)
+        if (joinWhere) {
+          subArgs = {
+            ...subArgs,
+            where: {
+              ...subArgs.where,
+              ...joinWhere,
+            },
+          }
 
-        if (schema.isList) {
-          // Add relation
-          newItem = {
-            ...newItem,
-            [key]: delegate._findMany(subArgs),
+          if (schema.isList) {
+            // Add relation
+            newItem = {
+              ...newItem,
+              [key]: delegate._findMany(subArgs),
+            }
+          } else {
+            newItem = {
+              ...newItem,
+              [key]: delegate._findMany(subArgs)?.[0] || null,
+            }
           }
         } else {
           newItem = {
             ...newItem,
-            [key]: delegate._findMany(subArgs)?.[0] || null,
+            [key]: [],
           }
         }
       })
