@@ -84,7 +84,6 @@ const createPrismaMock = <P>(
     caseInsensitive: false,
   }
 ): P => {
-
   const manyToManyData: { [relationName: string]: Array<{ [type: string]: Item }> } = {}
 
   // let data = options.data || {}
@@ -318,14 +317,14 @@ const createPrismaMock = <P>(
                     otherModel
                   )
 
-                  if (!targetKey && !keyToGet) {
-                    const targetKey = otherField.relationToFields[0]
+                  const otherTargetKey = otherField.relationToFields[0]
+                  if ((!targetKey && !keyToGet) && otherTargetKey) {
                     delegate.update({
                       where: connect,
                       data: {
                         [getCamelCase(otherField.name)]: {
                           connect: {
-                            [targetKey]: d[targetKey],
+                            [otherTargetKey]: d[otherTargetKey],
                           },
                         },
                       }
@@ -336,7 +335,7 @@ const createPrismaMock = <P>(
                       [field.type]: delegate.findOne({
                         where: connect
                       }),
-                      [otherField.type]: d
+                      [otherField.type]: item || d
                     })
                   }
                 }
@@ -404,10 +403,10 @@ const createPrismaMock = <P>(
 
                 if (!targetKey) {
                   const a = manyToManyData[field.relationName] = manyToManyData[field.relationName] || []
-                  createdItems.forEach((item) => {
+                  createdItems.forEach((createdItem) => {
                     a.push({
-                      [field.type]: item,
-                      [joinfield.type]: d
+                      [field.type]: createdItem,
+                      [joinfield.type]: item || d
                     })
                   })
                 }

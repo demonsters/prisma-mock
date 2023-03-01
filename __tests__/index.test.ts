@@ -344,7 +344,7 @@ Array [
     ])
   })
 
-  test("connect implicit", async () => {
+  test("create connect implicit", async () => {
     const client = await createPrismaClient({})
     const account = await client.account.create({
       data: {
@@ -371,6 +371,57 @@ Array [
         guestOf: [account],
       },
     ])
+  })
+
+  test("update connect implicit", async () => {
+    const client = await createPrismaClient({})
+    const account = await client.account.create({
+      data: {
+        id: 1,
+        name: "New account",
+      },
+    })
+    const user = await client.user.create({
+      data: {
+        name: "New user",
+        uniqueField: "new",
+      },
+    })
+    await client.user.update({
+      where: {
+        id: user.id,
+      },
+      data: {
+        guestOf: { connect: { id: 1 } },
+      },
+    })
+    const users = await client.user.findMany({
+      include: {
+        guestOf: true,
+      },
+    })
+
+    expect(users).toMatchInlineSnapshot(`
+Array [
+  Object {
+    "accountId": null,
+    "clicks": null,
+    "deleted": false,
+    "guestOf": Array [
+      Object {
+        "id": 1,
+        "name": "New account",
+        "sort": null,
+      },
+    ],
+    "id": 1,
+    "name": "New user",
+    "role": "ADMIN",
+    "sort": null,
+    "uniqueField": "new",
+  },
+]
+`)
   })
 
   test("connect on secondary key", async () => {
