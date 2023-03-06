@@ -32,11 +32,11 @@ exports[`PrismaClient where Case inrelevant date 1`] = `
 Array [
   Object {
     "authorId": null,
-    "created": 2020-01-31T23:00:00.000Z,
+    "created": 2020-01-31T15:00:00.000Z,
     "id": 1,
     "published": false,
     "title": "Piet",
-    "updated": 2020-01-31T23:00:00.000Z,
+    "updated": 2020-01-31T15:00:00.000Z,
   },
 ]
 `;

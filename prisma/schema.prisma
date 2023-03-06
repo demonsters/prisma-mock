@@ -36,6 +36,7 @@ model User {
   sort        Int?
   posts       Post[]
   documents   Document[]
+  pets        Pet[]
 }
 
 model Stripe {
@@ -91,4 +92,21 @@ model Post {
   authorId  Int?
   updated   DateTime @updatedAt
   created   DateTime @default(now())
+}
+
+model Pet {
+  id      Int    @id @default(autoincrement())
+  name    String
+  owner   User   @relation(fields: [ownerId], references: [id])
+  ownerId Int
+  has     Toy[]
+
+  @@unique([name, ownerId])
+}
+
+model Toy {
+  id      Int    @id @default(autoincrement())
+  name    String
+  owner   Pet?   @relation(fields: [ownerId], references: [id])
+  ownerId Int
 }
