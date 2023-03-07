@@ -284,15 +284,43 @@ const createPrismaMock = <P>(
                   let connectionValue = connect[keyToGet]
                   if (keyToMatch !== keyToGet) {
                     const valueToMatch = connect[keyToMatch]
-                    const matchingRow = data[getCamelCase(field.type)].find(
+                    let matchingRow = data[getCamelCase(field.type)].find(
                       (row) => {
                         return row[keyToMatch] === valueToMatch
                       }
                     )
                     if (!matchingRow) {
-                      throwUnkownError(
-                        "An operation failed because it depends on one or more records that were required but not found. {cause}"
+                      const refModel = datamodel.models.find(
+                        (model) =>
+                          getCamelCase(field.type) === getCamelCase(model.name)
                       )
+                      const uniqueIndexes = refModel.uniqueIndexes.map(
+                        (index) => {
+                          return {
+                            ...index,
+                            key: index.name ?? index.fields.join("_"),
+                          }
+                        }
+                      )
+                      const indexKey = uniqueIndexes.find(
+                        (index) => index.key === keyToMatch
+                      )
+                      matchingRow = data[getCamelCase(field.type)].find(
+                        (row) => {
+                          const target = Object.fromEntries(
+                            Object.entries(row).filter(
+                              (row) =>
+                                indexKey?.fields.includes(row[0]) ?? false
+                            )
+                          )
+                          return shallowCompare(target, valueToMatch)
+                        }
+                      )
+                      if (!matchingRow) {
+                        throwUnkownError(
+                          "An operation failed because it depends on one or more records that were required but not found. {cause}"
+                        )
+                      }
                     }
                     connectionValue = matchingRow[keyToGet]
                   }

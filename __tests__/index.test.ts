@@ -251,9 +251,42 @@ Array [
   },
 ]
 `)
-
   })
 
+  test("create connect (via unique)", async () => {
+    const client = await createPrismaClient({})
+    const user = await client.user.create({
+      data: {
+        role: "USER",
+        name: "Bob",
+        uniqueField: "user",
+        pets: {
+          create: {
+            name: "John",
+          },
+        },
+      },
+    })
+    const toy = await client.toy.create({
+      data: {
+        name: "Ball",
+        owner: {
+          connect: {
+            name_ownerId: {
+              name: "John",
+              ownerId: 1,
+            },
+          },
+        },
+      },
+    })
+
+    expect(toy).toEqual({
+      id: 1,
+      name: "Ball",
+      ownerId: 1,
+    })
+  })
 
   test("delete", async () => {
     const client = await createPrismaClient(data)
