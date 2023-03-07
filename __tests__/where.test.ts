@@ -4,8 +4,8 @@ import createPrismaClient from "./createPrismaClient"
 import { Role } from "@prisma/client"
 
 describe("PrismaClient where", () => {
-  const date1 = new Date(2020, 1, 1)
-  const date2 = new Date(2020, 1, 2)
+  const date1 = new Date(2020, 1, 1, 15, 0, 0, 0)
+  const date2 = new Date(2020, 1, 2, 15, 0, 0, 0)
 
   const data = {
     account: [
@@ -424,9 +424,10 @@ describe("PrismaClient where", () => {
 
     test("date", async () => {
       const client = await createPrismaClient(data)
+      // Clone date & time
       const accounts = await client.post.findMany({
         where: {
-          created: new Date(date1.toDateString()),
+          created: new Date(date1.getTime()),
         },
       })
       // expect(accounts).toEqual([data.post[0]]);
