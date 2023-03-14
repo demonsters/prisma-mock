@@ -205,7 +205,7 @@ TODO (path, string_contains, string_starts_with, string_ends_with, array_contain
 ## Prisma Client methods
 
 - $transaction
-- TODO: $transaction (interactive)
+- $transaction (interactive)
 - TODO: $transaction (isolation)
 
 # Contribution
