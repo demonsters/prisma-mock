@@ -7,6 +7,7 @@ import { mockDeep } from "jest-mock-extended"
 import HandleDefault, { ResetDefaults } from "./defaults"
 import { shallowCompare } from "./utils/shallowCompare"
 import { deepEqual } from "./utils/deepEqual"
+import { deepCopy } from "./utils/deepCopy"
 
 type UnwrapPromise<P extends any> = P extends Promise<infer R> ? R : P
 
@@ -175,12 +176,22 @@ const createPrismaMock = <P>(
     return joinfield
   }
 
-  client["$transaction"].mockImplementation(async (actions) => {
+  client["$transaction"].mockImplementation(async (actions: Promise<any>[] | ((prisma: P) => Promise<any>)) => {
     const res = []
-    for (const action of actions) {
-      res.push(await action)
+    if (Array.isArray(actions)) {
+      for (const action of actions) {
+        res.push(await action)
+      }
+      return res
+    } else {
+      const snapshot = deepCopy(data)
+      try {
+        await actions(client)
+      }
+      catch {
+        data = snapshot
+      }
     }
-    return res
   })
 
   client["$connect"].mockImplementation(async () => { })
