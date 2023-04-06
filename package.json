@@ -12,13 +12,15 @@
   "devDependencies": {
     "@prisma/client": "4.7.1",
     "@types/jest": "^27.0.2",
+    "@types/uuid": "^9.0.1",
     "cross-spawn": "^7.0.3",
     "env-cmd": "^10.1.0",
     "jest": "^27.3.1",
     "jest-mock-extended": "^2.0.4",
     "prisma": "4.7.1",
     "ts-jest": "^27.0.7",
-    "typescript": "^4.4.4"
+    "typescript": "^4.4.4",
+    "uuid": "^9.0.0"
   },
   "scripts": {
     "preversion": "tsc",
@@ -28,7 +30,8 @@
     "test:postgres": "env-cmd -e postgres jest --maxWorkers=1"
   },
   "peerDependencies": {
-    "@prisma/client": "^3.5.0 || ^4.7.0"
+    "@prisma/client": "^3.5.0 || ^4.7.0",
+    "uuid": ">=7"
   },
   "dependencies": {}
 }

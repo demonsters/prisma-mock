@@ -192,7 +192,7 @@ TODO (path, string_contains, string_starts_with, string_ends_with, array_contain
 - autoincrement()
 - TODO: auto()
 - cuid()
-- TODO: uuid()
+- uuid() (requires [uuid](https://www.npmjs.com/package/uuid) module)
 - now()
 - TODO: dbgenerated()
 
