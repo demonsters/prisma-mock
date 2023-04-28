@@ -1,8 +1,4 @@
 import { Prisma } from "@prisma/client"
-import {
-  PrismaClientKnownRequestError,
-  PrismaClientValidationError,
-} from "@prisma/client/runtime"
 import { mockDeep } from "jest-mock-extended"
 import HandleDefault, { ResetDefaults } from "./defaults"
 import { shallowCompare } from "./utils/shallowCompare"
@@ -50,15 +46,15 @@ const throwUnkownError = (message: string, cause?: string) => {
   // from: constructor(message: string, code: string, clientVersion: string, meta?: any)
   // to: constructor(message: string, { code, clientVersion, meta, batchRequestIdx }: KnownErrorParams)
   let error
-  if (PrismaClientKnownRequestError.length === 2) {
+  if (Prisma.PrismaClientKnownRequestError.length === 2) {
     // @ts-ignore
-    error = new PrismaClientKnownRequestError(message, {
+    error = new Prisma.PrismaClientKnownRequestError(message, {
       code,
       clientVersion,
     })
   } else {
     // @ts-ignore
-    error = new PrismaClientKnownRequestError(
+    error = new Prisma.PrismaClientKnownRequestError(
       message,
       code,
       // @ts-ignore
@@ -218,7 +214,7 @@ const createPrismaMock = <P>(
       }
       const keys = Object.keys(orderBy)
       if (keys.length > 1) {
-        throw new PrismaClientValidationError(
+        throw new Prisma.PrismaClientValidationError(
           `Argument orderBy of needs exactly one argument, but you provided ${keys.join(
             " and "
           )}. Please choose one.`
@@ -782,7 +778,7 @@ const createPrismaMock = <P>(
     const findOrThrow = (args) => {
       const found = findOne(args)
       if (!found) {
-        throw new PrismaClientKnownRequestError(
+        throw new Prisma.PrismaClientKnownRequestError(
           `No ${prop.slice(0, 1).toUpperCase()}${prop.slice(1)} found`,
           "P2025",
           // @ts-ignore
