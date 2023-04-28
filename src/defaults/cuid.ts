@@ -1,10 +1,6 @@
+import pad from "../utils/pad"
 
 let ciud_cache = 0
-
-function pad(s: string, size: number) {
-  while (s.length < (size || 2)) {s = "0" + s;}
-  return s;
-}
 
 // Format from: https://cuid.marcoonroad.dev/
 const Cuid = () => {

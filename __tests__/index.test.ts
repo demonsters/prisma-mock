@@ -149,14 +149,25 @@ describe("PrismaClient", () => {
 
   test("create", async () => {
     const client = await createPrismaClient(data)
-    // TODO: Check output
-    await client.user.create({
+    const res = await client.user.create({
       data: {
         name: "New user",
         sort: 1,
         uniqueField: "new",
       },
     })
+    expect(res).toMatchInlineSnapshot(`
+Object {
+  "accountId": null,
+  "clicks": null,
+  "deleted": false,
+  "id": 2,
+  "name": "New user",
+  "role": "ADMIN",
+  "sort": 1,
+  "uniqueField": "new",
+}
+`)
     const users = await client.user.findMany()
 
     expect(users).toEqual([
@@ -176,8 +187,7 @@ describe("PrismaClient", () => {
 
   test("create connect", async () => {
     const client = await createPrismaClient(data)
-    // TODO: Check output
-    await client.user.create({
+    const res = await client.user.create({
       data: {
         name: "New user",
         uniqueField: "new",
@@ -186,7 +196,18 @@ describe("PrismaClient", () => {
       },
     })
     const users = await client.user.findMany()
-
+    expect(res).toMatchInlineSnapshot(`
+Object {
+  "accountId": 1,
+  "clicks": null,
+  "deleted": false,
+  "id": 2,
+  "name": "New user",
+  "role": "ADMIN",
+  "sort": 1,
+  "uniqueField": "new",
+}
+`)
     expect(users).toMatchInlineSnapshot(`
 Array [
   Object {

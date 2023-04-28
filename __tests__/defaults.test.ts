@@ -2,6 +2,7 @@
 
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime";
 import createPrismaClient from "./createPrismaClient";
+import { v4 } from 'uuid'
 
 describe("defaults", () => {
   test("autoincrement", async () => {
@@ -69,4 +70,24 @@ describe("defaults", () => {
     expect(document2.id).toHaveLength(25);
     expect(document2.id).not.toEqual(firstId);
   });
+
+
+  test("uuid", async () => {
+    const client = await createPrismaClient({
+      transaction: [
+        {
+          id: v4(),
+          initiator: 'initial data'
+        }
+      ]
+    });
+    const transaction = await client.transaction.create({
+      data: {
+        initiator: 'new data'
+      },
+    });
+    expect(transaction.initiator).toEqual('new data')
+    expect(transaction.id).toHaveLength(36)
+  })
+
 });

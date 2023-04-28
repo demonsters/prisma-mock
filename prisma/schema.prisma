@@ -110,3 +110,8 @@ model Toy {
   owner   Pet?   @relation(fields: [ownerId], references: [id])
   ownerId Int
 }
+
+model Transaction {
+  id        String @id @default(uuid())
+  initiator String
+}
