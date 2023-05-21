@@ -1100,6 +1100,8 @@ const createPrismaMock = <P>(
     })
   })
 
+  client['$getInternalState'] = () => data
+
   // @ts-ignore
   return client
 }
