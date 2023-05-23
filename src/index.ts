@@ -4,6 +4,7 @@ import HandleDefault, { ResetDefaults } from "./defaults"
 import { shallowCompare } from "./utils/shallowCompare"
 import { deepEqual } from "./utils/deepEqual"
 import { deepCopy } from "./utils/deepCopy"
+import getNestedValue from "./utils/getNestedValue"
 
 type UnwrapPromise<P extends any> = P extends Promise<infer R> ? R : P
 
@@ -699,11 +700,39 @@ const createPrismaMock = <P>(
               }
             })
           }
+          if ("path" in matchFilter) {
+            val = getNestedValue(matchFilter.path, val)
+          }
           if ("equals" in matchFilter && match) {
             match = deepEqual(matchFilter.equals, val)
           }
           if ("startsWith" in matchFilter && match) {
             match = val.indexOf(matchFilter.startsWith) === 0
+          }
+          if ("string_starts_with" in matchFilter && match) {
+            match = val?.indexOf(matchFilter.string_starts_with) === 0
+          }
+          if ("array_contains" in matchFilter && match) {
+            if (Array.isArray(val)) {
+              for (const item of matchFilter.array_contains) {
+                let hasMatch = false
+                for (const i of val) {
+                  if (deepEqual(item, i)) hasMatch = true
+                }
+                if (!hasMatch) {
+                  match = false
+                  break
+                }
+              }
+            } else {
+              match = false
+            }
+          }
+          if ("string_ends_with" in matchFilter && match) {
+            match = val ? val.indexOf(matchFilter.string_ends_with) === val.length - matchFilter.string_ends_with.length : false
+          }
+          if ("string_contains" in matchFilter && match) {
+            match = val ? val?.indexOf(matchFilter.string_contains) !== -1 : false
           }
           if ("endsWith" in matchFilter && match) {
             match =
