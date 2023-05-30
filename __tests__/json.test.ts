@@ -1,5 +1,6 @@
 // @ts-nocheck
 
+import { Prisma } from "@prisma/client"
 import createPrismaClient from "./createPrismaClient"
 
 const setup = async (client) => {
@@ -101,6 +102,22 @@ const setup = async (client) => {
     },
   })
 
+  await client.element.create({
+    data: {
+      json: Prisma.JsonNull,
+      value: "9",
+      userId: user.id
+    }
+  })
+
+  await client.element.create({
+    data: {
+      json: Prisma.DbNull,
+      value: "10",
+      userId: user.id
+    }
+  })
+
   return obj
 }
 
@@ -154,7 +171,7 @@ Array [
 
   test("not", async () => {
     const client = await createPrismaClient()
-    await setup(client)
+    const el = await setup(client)
     const json = [{ name: 'Bob the dog' }, { name: 'Claudine the cat' }]
 
     const getUsers = await client.element.findMany({
@@ -164,9 +181,17 @@ Array [
         },
       },
     })
-
-    const all = await client.element.count()
-    expect(getUsers.length).toBe(all - 1)
+    const all = await client.element.findMany({
+      where: {
+        e_id: {
+          not: el.e_id
+        },
+        json: {
+          not: Prisma.DbNull
+        }
+      }
+    })
+    expect(getUsers).toEqual(all)
   })
 
 })
@@ -455,7 +480,7 @@ Array [
 
 
 describe("Filtering on object key value inside array (MySQL only)", () => {
-  
+
   // test("array_contains", async () => {
   //   const client = await createPrismaClient()
   //   await setup(client)
@@ -475,4 +500,76 @@ describe("Filtering on object key value inside array (MySQL only)", () => {
 
 describe("Using null Values", () => {
 
+  test("JsonNull", async () => {
+    const client = await createPrismaClient()
+    await setup(client)
+    const element = await client.element.findMany({
+      where: {
+        json: {
+          equals: Prisma.JsonNull
+        }
+      }
+    })
+    expect(element).toMatchInlineSnapshot(`
+Array [
+  Object {
+    "e_id": 9,
+    "json": null,
+    "userId": 1,
+    "value": "9",
+  },
+]
+`)
+  })
+
+  test("DbNull", async () => {
+    const client = await createPrismaClient()
+    await setup(client)
+    console.log("before")
+    const element = await client.element.findMany({
+      where: {
+        json: {
+          equals: Prisma.DbNull
+        }
+      }
+    })
+    expect(element).toMatchInlineSnapshot(`
+Array [
+  Object {
+    "e_id": 10,
+    "json": null,
+    "userId": 1,
+    "value": "10",
+  },
+]
+`)
+  })
+
+  test("AnyNull", async () => {
+    const client = await createPrismaClient()
+    await setup(client)
+    const element = await client.element.findMany({
+      where: {
+        json: {
+          equals: Prisma.AnyNull
+        }
+      }
+    })
+    expect(element).toMatchInlineSnapshot(`
+Array [
+  Object {
+    "e_id": 9,
+    "json": null,
+    "userId": 1,
+    "value": "9",
+  },
+  Object {
+    "e_id": 10,
+    "json": null,
+    "userId": 1,
+    "value": "10",
+  },
+]
+`)
+  })
 })
