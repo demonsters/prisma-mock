@@ -40,7 +40,7 @@ function IsFieldDefault(
   return (f as Prisma.DMMF.FieldDefault).name !== undefined
 }
 
-const throwUnkownError = (message: string, cause?: string) => {
+const throwKnownError = (message: string, cause?: string) => {
   const code = "P2025"
   const clientVersion = "1.2.3"
   // PrismaClientKnownRequestError prototype changed in version 4.7.0
@@ -325,7 +325,7 @@ const createPrismaMock = <P>(
                         }
                       )
                       if (!matchingRow) {
-                        throwUnkownError(
+                        throwKnownError(
                           "An operation failed because it depends on one or more records that were required but not found. {cause}"
                         )
                       }
@@ -785,15 +785,12 @@ const createPrismaMock = <P>(
             match = !matchFilter.notIn.includes(val)
           }
           if (!match) {
-            console.log("has no match", item)
             return false
           }
-          console.log("has match", item)
         } else if (val !== filter) {
           return false
         }
       }
-      console.log("matchFilter", filter, item, child, filter?.equals === item[child])
       return true
     }
 
@@ -1099,7 +1096,7 @@ const createPrismaMock = <P>(
       delete: (args) => {
         const item = findOne(args)
         if (!item) {
-          throwUnkownError(
+          throwKnownError(
             "An operation failed because it depends on one or more records that were required but not found. Record to delete does not exist.",
             "Record to delete does not exist."
           )

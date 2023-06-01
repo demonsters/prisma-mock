@@ -525,7 +525,6 @@ Array [
   test("DbNull", async () => {
     const client = await createPrismaClient()
     await setup(client)
-    console.log("before")
     const element = await client.element.findMany({
       where: {
         json: {
