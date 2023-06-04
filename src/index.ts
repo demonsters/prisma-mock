@@ -4,6 +4,7 @@ import HandleDefault, { ResetDefaults } from "./defaults"
 import { shallowCompare } from "./utils/shallowCompare"
 import { deepEqual } from "./utils/deepEqual"
 import { deepCopy } from "./utils/deepCopy"
+import getNestedValue from "./utils/getNestedValue"
 
 type UnwrapPromise<P extends any> = P extends Promise<infer R> ? R : P
 
@@ -39,7 +40,7 @@ function IsFieldDefault(
   return (f as Prisma.DMMF.FieldDefault).name !== undefined
 }
 
-const throwUnkownError = (message: string, cause?: string) => {
+const throwKnownError = (message: string, cause?: string) => {
   const code = "P2025"
   const clientVersion = "1.2.3"
   // PrismaClientKnownRequestError prototype changed in version 4.7.0
@@ -324,7 +325,7 @@ const createPrismaMock = <P>(
                         }
                       )
                       if (!matchingRow) {
-                        throwUnkownError(
+                        throwKnownError(
                           "An operation failed because it depends on one or more records that were required but not found. {cause}"
                         )
                       }
@@ -699,11 +700,52 @@ const createPrismaMock = <P>(
               }
             })
           }
+          if ("path" in matchFilter) {
+            val = getNestedValue(matchFilter.path, val)
+          }
           if ("equals" in matchFilter && match) {
-            match = deepEqual(matchFilter.equals, val)
+            // match = deepEqual(matchFilter.equals, val)
+            if (matchFilter.equals === Prisma.DbNull) {
+              if (val === Prisma.DbNull) {
+              }
+              match = val === Prisma.DbNull
+            } else if (matchFilter.equals === Prisma.AnyNull) {
+              match = val === Prisma.DbNull || val === Prisma.JsonNull
+            } else {
+              if (val === Prisma.DbNull) {
+                match = false
+              } else {
+                match = deepEqual(matchFilter.equals, val)
+              }
+            }
           }
           if ("startsWith" in matchFilter && match) {
             match = val.indexOf(matchFilter.startsWith) === 0
+          }
+          if ("string_starts_with" in matchFilter && match) {
+            match = val?.indexOf(matchFilter.string_starts_with) === 0
+          }
+          if ("array_contains" in matchFilter && match) {
+            if (Array.isArray(val)) {
+              for (const item of matchFilter.array_contains) {
+                let hasMatch = false
+                for (const i of val) {
+                  if (deepEqual(item, i)) hasMatch = true
+                }
+                if (!hasMatch) {
+                  match = false
+                  break
+                }
+              }
+            } else {
+              match = false
+            }
+          }
+          if ("string_ends_with" in matchFilter && match) {
+            match = val ? val.indexOf(matchFilter.string_ends_with) === val.length - matchFilter.string_ends_with.length : false
+          }
+          if ("string_contains" in matchFilter && match) {
+            match = val ? val?.indexOf(matchFilter.string_contains) !== -1 : false
           }
           if ("endsWith" in matchFilter && match) {
             match =
@@ -729,12 +771,22 @@ const createPrismaMock = <P>(
             match = matchFilter.in.includes(val)
           }
           if ("not" in matchFilter && match) {
-            match = !deepEqual(matchFilter.not, val)
+            if (matchFilter.not === Prisma.DbNull) {
+              match = val !== Prisma.DbNull
+            } else {
+              if (val === Prisma.DbNull) {
+                match = false
+              } else {
+                match = !deepEqual(matchFilter.not, val)
+              }
+            }
           }
           if ("notIn" in matchFilter && match) {
             match = !matchFilter.notIn.includes(val)
           }
-          if (!match) return false
+          if (!match) {
+            return false
+          }
         } else if (val !== filter) {
           return false
         }
@@ -824,6 +876,18 @@ const createPrismaMock = <P>(
         const end = args?.take !== undefined ? start + args.take : undefined
         res = res.slice(start, end)
       }
+      // Replace nulls
+      res = res.map((item) => {
+        const newItem = {}
+        Object.keys(item).forEach((key) => {
+          if (item[key] === Prisma.JsonNull || item[key] === Prisma.DbNull) {
+            newItem[key] = null
+          } else {
+            newItem[key] = item[key]
+          }
+        })
+        return newItem
+      })
       return res
     }
 
@@ -1032,7 +1096,7 @@ const createPrismaMock = <P>(
       delete: (args) => {
         const item = findOne(args)
         if (!item) {
-          throwUnkownError(
+          throwKnownError(
             "An operation failed because it depends on one or more records that were required but not found. Record to delete does not exist.",
             "Record to delete does not exist."
           )
