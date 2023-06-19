@@ -144,4 +144,37 @@ describe("PrismaMock update", () => {
     expect(user.name).toEqual("Henk");
     expect(user.clicks).toEqual(2);
   });
+
+  test("Should return", async () => {
+    const client = await createPrismaClient(data);
+    const document = await client.document.create({
+      data: {
+        name: "123"
+      }
+    })
+    const user = await client.user.update({
+      where: {
+        id: 1,
+      },
+      data: {
+        name: undefined,
+        // documents: {
+        //   set: [{ id: document.id }],
+        // },
+        documents: {set: []},
+      },
+    });
+    expect(user).toMatchInlineSnapshot(`
+Object {
+  "accountId": null,
+  "clicks": 2,
+  "deleted": false,
+  "id": 1,
+  "name": "Henk",
+  "role": "ADMIN",
+  "sort": null,
+  "uniqueField": "user 1",
+}
+`)
+  });
 });

@@ -278,6 +278,11 @@ const createPrismaMock = <P>(
           const c = d[field.name]
           if (field.kind === "object") {
             if (c.set) {
+              const {
+                [field.name]: { set },
+                ...rest
+              } = d
+              
               const otherModel = datamodel.models.find((model) => {
                 return model.name === field.type
               })
@@ -304,6 +309,8 @@ const createPrismaMock = <P>(
                 })
               })
               manyToManyData[field.relationName] = a
+
+              d = rest
             }
             if (c.connect) {
               const {
@@ -545,37 +552,38 @@ const createPrismaMock = <P>(
             const { [field.name]: _update, ...rest } = d
             d = rest
           }
-
-          if (c.increment) {
-            d = {
-              ...d,
-              [field.name]: item[field.name] + c.increment,
+          if (field.kind === "scalar") {
+            if (c.increment) {
+              d = {
+                ...d,
+                [field.name]: item[field.name] + c.increment,
+              }
             }
-          }
-          if (c.decrement) {
-            d = {
-              ...d,
-              [field.name]: item[field.name] - c.decrement,
+            if (c.decrement) {
+              d = {
+                ...d,
+                [field.name]: item[field.name] - c.decrement,
+              }
             }
-          }
-          if (c.multiply) {
-            d = {
-              ...d,
-              [field.name]: item[field.name] * c.multiply,
+            if (c.multiply) {
+              d = {
+                ...d,
+                [field.name]: item[field.name] * c.multiply,
+              }
             }
-          }
-          if (c.divide) {
-            const newValue = item[field.name] / c.divide
-            d = {
-              ...d,
-              [field.name]:
-                field.type === "Int" ? Math.floor(newValue) : newValue,
+            if (c.divide) {
+              const newValue = item[field.name] / c.divide
+              d = {
+                ...d,
+                [field.name]:
+                  field.type === "Int" ? Math.floor(newValue) : newValue,
+              }
             }
-          }
-          if (c.set) {
-            d = {
-              ...d,
-              [field.name]: c.set,
+            if (c.set) {
+              d = {
+                ...d,
+                [field.name]: c.set,
+              }
             }
           }
         }
@@ -1099,6 +1107,7 @@ const createPrismaMock = <P>(
       const newItems = data[prop].map((e) => {
         if (matchFnc(args.where)(e)) {
           let data = nestedUpdate(args, false, e)
+          data //?
           updatedItem = {
             ...e,
             ...data,
