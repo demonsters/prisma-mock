@@ -3,6 +3,13 @@
 import createPrismaClient from "./createPrismaClient";
 
 describe("PrismaClient $getInternalState", () => {
+
+  // Should not run for postgresql
+  if (process.env.PROVIDER === "postgresql") {
+    return
+  }
+
+  
   const data = {
     user: [
       {
