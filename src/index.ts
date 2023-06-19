@@ -445,13 +445,13 @@ const createPrismaMock = <P>(
 
                 let createdItems = []
                 if (c.createMany) {
-                  createdItems = createMany({
+                  createdItems = delegate._createMany({
                     ...c.createMany,
                     data: c.createMany.data.map(map),
                   })
                 } else {
                   if (Array.isArray(c.create)) {
-                    createdItems = createMany({
+                    createdItems = delegate._createMany({
                       ...c.create,
                       data: c.create.map(map),
                     })
@@ -1182,7 +1182,8 @@ const createPrismaMock = <P>(
       },
 
       _sortFunc: sortFunc,
-      _findMany: findMany
+      _findMany: findMany,
+      _createMany: createMany,
     }
   }
 
