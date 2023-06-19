@@ -201,21 +201,6 @@ Array [
 ]
 `;
 
-exports[`PrismaClient where caseInsensitive false No mode OR 2`] = `
-Array [
-  Object {
-    "id": 1,
-    "name": "Piet",
-    "sort": null,
-  },
-  Object {
-    "id": 2,
-    "name": "Dirk",
-    "sort": null,
-  },
-]
-`;
-
 exports[`PrismaClient where caseInsensitive false No mode in (nested) 1`] = `
 Array [
   Object {
