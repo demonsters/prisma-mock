@@ -417,13 +417,13 @@ const createPrismaMock = <P>(
 
                 let createdItems = []
                 if (c.createMany) {
-                  createdItems = delegate.createMany({
+                  createdItems = createMany({
                     ...c.createMany,
                     data: c.createMany.data.map(map),
                   })
                 } else {
                   if (Array.isArray(c.create)) {
-                    createdItems = delegate.createMany({
+                    createdItems = createMany({
                       ...c.create,
                       data: c.create.map(map),
                     })
@@ -895,9 +895,11 @@ const createPrismaMock = <P>(
       // if (!Array.isArray(data[prop])) {
       //   throw new Error(`${prop} not found in data`)
       // }
+      let nbUpdated = 0
       const newItems = data[prop].map((e) => {
         if (matchFnc(args.where)(e)) {
           let data = nestedUpdate(args, false, e)
+          nbUpdated++
           return {
             ...e,
             ...data,
@@ -910,7 +912,7 @@ const createPrismaMock = <P>(
         [prop]: newItems,
       }
       data = removeMultiFieldIds(model, data)
-      return data
+      return { data, nbUpdated }
     }
 
     const create = (args: CreateArgs) => {
@@ -929,6 +931,28 @@ const createPrismaMock = <P>(
         }
       }
       return findOne({ where, ...args })
+    }
+
+    const createMany = (args) => {
+      const createdItems = []
+      if (!Array.isArray(args.data)) {
+        createdItems.push(
+          create({
+            ...args,
+            data: args.data,
+          })
+        )
+      } else {
+        args.data.forEach((data) => {
+          createdItems.push(
+            create({
+              ...args,
+              data,
+            })
+          )
+        })
+      }
+      return createdItems 
     }
 
     const deleteMany = (args) => {
@@ -1078,20 +1102,8 @@ const createPrismaMock = <P>(
       findFirstOrThrow: findOrThrow,
       create,
       createMany: (args) => {
-        if (!Array.isArray(args.data)) {
-          create({
-            ...args,
-            data: args.data,
-          })
-        } else {
-          args.data.forEach((data) => {
-            create({
-              ...args,
-              data,
-            })
-          })
-        }
-        return findMany(args)
+        const createdItems = createMany(args)
+        return { count: createdItems.length }
       },
       delete: (args) => {
         const item = findOne(args)
@@ -1108,10 +1120,13 @@ const createPrismaMock = <P>(
         return null
       },
       update,
-      deleteMany,
+      deleteMany: (args) => {
+        const deleted = deleteMany(args)
+        return { count: deleted.length }
+      },
       updateMany: (args) => {
-        updateMany(args)
-        return findMany(args)
+        const { nbUpdated } = updateMany(args)
+        return { count: nbUpdated }
       },
 
       upsert(args) {
