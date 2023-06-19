@@ -124,6 +124,151 @@ Array [
 
 })
 
+test("set no record error", async () => {
+  const prismaMock = await createPrismaClient()
+
+  const { id } = await prismaMock.document.create({
+    data: {
+      name: "123",
+    }
+  })
+  await expect(
+
+    prismaMock.document.update({
+      data: {
+        name: "123",
+        participants: {
+          set: [{
+            uniqueField: "1",
+          }, {
+            uniqueField: "2",
+          }]
+        }
+      },
+      select: {
+        name: true,
+        participants: true,
+      },
+      where: {
+        id
+      }
+    })
+
+  ).rejects.toThrow(
+    Prisma.PrismaClientKnownRequestError
+  )
+})
+
+test("set", async () => {
+
+  const prismaMock = await createPrismaClient()
+
+  const user1 = await prismaMock.user.create({
+    data: {
+      name: "123",
+      uniqueField: "1"
+    }
+  })
+
+  const user2 = await prismaMock.user.create({
+    data: {
+      name: "1234",
+      uniqueField: "2",
+    }
+  })
+
+  const { id } = await prismaMock.document.create({
+    data: {
+      name: "123",
+    }
+  })
+  const document1 = await prismaMock.document.update({
+    data: {
+      name: "123",
+      participants: {
+        set: [{
+          uniqueField: "1",
+        }, {
+          uniqueField: "2",
+        }]
+      }
+    },
+    select: {
+      name: true,
+      participants: true,
+    },
+    where: {
+      id
+    }
+  })
+
+  expect(document1).toMatchInlineSnapshot(`
+Object {
+  "name": "123",
+  "participants": Array [
+    Object {
+      "accountId": null,
+      "clicks": null,
+      "deleted": false,
+      "id": 1,
+      "name": "123",
+      "role": "ADMIN",
+      "sort": null,
+      "uniqueField": "1",
+    },
+    Object {
+      "accountId": null,
+      "clicks": null,
+      "deleted": false,
+      "id": 2,
+      "name": "1234",
+      "role": "ADMIN",
+      "sort": null,
+      "uniqueField": "2",
+    },
+  ],
+}
+`)
+
+  /// Override
+  const document2 = await prismaMock.document.update({
+    data: {
+      name: "123",
+      participants: {
+        set: [{
+          uniqueField: "1",
+        }]
+      }
+    },
+    select: {
+      name: true,
+      participants: true,
+    },
+    where: {
+      id
+    }
+  })
+
+  expect(document2).toMatchInlineSnapshot(`
+Object {
+  "name": "123",
+  "participants": Array [
+    Object {
+      "accountId": null,
+      "clicks": null,
+      "deleted": false,
+      "id": 1,
+      "name": "123",
+      "role": "ADMIN",
+      "sort": null,
+      "uniqueField": "1",
+    },
+  ],
+}
+`)
+})
+
+
 xtest("connectOrCreate create", async () => {
 
   const prismaMock = await createPrismaClient()

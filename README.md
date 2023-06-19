@@ -128,7 +128,7 @@ Most common cases are covered, but not everything. Here is a rough list of the s
 - deleteMany
 - connect
 - disconnect
-- TODO: set
+- set
 - TODO: connectOrCreate
 - TODO: upsert
 
@@ -176,7 +176,13 @@ TODO (has, hasEvery, hasSome, isEmpty, equals)
 
 ## JSON filters
 
-TODO (path, string_contains, string_starts_with, string_ends_with, array_contains, array_starts_with, array_ends_with)
+- path
+- string_contains
+- string_starts_with 
+- string_ends_with
+- array_contains
+- array_starts_with
+- array_ends_with
 
 ## Attributes
 
@@ -192,7 +198,7 @@ TODO (path, string_contains, string_starts_with, string_ends_with, array_contain
 - autoincrement()
 - TODO: auto()
 - cuid()
-- TODO: uuid()
+- uuid()
 - now()
 - TODO: dbgenerated()
 

@@ -277,6 +277,34 @@ const createPrismaMock = <P>(
         if (d[field.name]) {
           const c = d[field.name]
           if (field.kind === "object") {
+            if (c.set) {
+              const otherModel = datamodel.models.find((model) => {
+                return model.name === field.type
+              })
+              const otherField = otherModel.fields.find(
+                (otherField) =>
+                  field.relationName === otherField.relationName
+              )
+              const delegate = Delegate(getCamelCase(field.type), otherModel)
+              const items = c.set.map(where => delegate.findUnique({
+                where
+              })).filter(Boolean)
+
+              if (items.length !== c.set.length) {
+                throwKnownError(`An operation failed because it depends on one or more records that were required but not found. Expected ${c.set.length} records to be connected, found only ${items.length}.`)
+              }
+
+              const idField = model?.fields.find((f) => f.isId)?.name
+              let a = manyToManyData[field.relationName] = manyToManyData[field.relationName] || []
+              a = a.filter(i => i[otherField.type][idField] !== item[idField])
+              items.forEach((createdItem) => {
+                a.push({
+                  [field.type]: createdItem,
+                  [otherField.type]: item || d
+                })
+              })
+              manyToManyData[field.relationName] = a
+            }
             if (c.connect) {
               const {
                 [field.name]: { connect },
