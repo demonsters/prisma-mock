@@ -42,7 +42,7 @@ function IsFieldDefault(
 
 const throwKnownError = (message: string, cause?: string) => {
   const code = "P2025"
-  const clientVersion = "1.2.3"
+  const clientVersion = Prisma.prismaVersion.client
   // PrismaClientKnownRequestError prototype changed in version 4.7.0
   // from: constructor(message: string, code: string, clientVersion: string, meta?: any)
   // to: constructor(message: string, { code, clientVersion, meta, batchRequestIdx }: KnownErrorParams)
