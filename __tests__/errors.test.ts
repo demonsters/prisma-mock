@@ -49,6 +49,8 @@ Object {
     expect(e.message).toContain(
       "No Account found"
     )
+    expect(e.code).not.toBe(undefined)
+    expect(e.code).toBe("P2025")
   }
 })
 

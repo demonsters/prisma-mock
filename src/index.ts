@@ -866,12 +866,7 @@ const createPrismaMock = <P>(
     const findOrThrow = (args) => {
       const found = findOne(args)
       if (!found) {
-        throw new Prisma.PrismaClientKnownRequestError(
-          `No ${prop.slice(0, 1).toUpperCase()}${prop.slice(1)} found`,
-          "P2025",
-          // @ts-ignore
-          "1.2.3"
-        )
+        throwKnownError(`No ${prop.slice(0, 1).toUpperCase()}${prop.slice(1)} found`)
       }
       return found
     }

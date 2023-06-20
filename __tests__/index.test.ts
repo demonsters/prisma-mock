@@ -115,6 +115,8 @@ describe("PrismaClient", () => {
         throw new Error("Test should not reach here")
       } catch (e) {
         expect(e.message).toContain("No Account found")
+        expect(e.code).not.toBe(undefined)
+        expect(e.code).toBe("P2025")
       }
     })
   })
@@ -137,6 +139,8 @@ describe("PrismaClient", () => {
         throw new Error("Test should not reach here")
       } catch (e) {
         expect(e.message).toContain("No Account found")
+        expect(e.code).not.toBe(undefined)
+        expect(e.code).toBe("P2025")
       }
     })
   })
