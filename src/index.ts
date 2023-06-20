@@ -42,7 +42,7 @@ function IsFieldDefault(
 
 const throwKnownError = (message: string, cause?: string) => {
   const code = "P2025"
-  const clientVersion = "1.2.3"
+  const clientVersion = Prisma.prismaVersion.client
   // PrismaClientKnownRequestError prototype changed in version 4.7.0
   // from: constructor(message: string, code: string, clientVersion: string, meta?: any)
   // to: constructor(message: string, { code, clientVersion, meta, batchRequestIdx }: KnownErrorParams)
@@ -866,12 +866,7 @@ const createPrismaMock = <P>(
     const findOrThrow = (args) => {
       const found = findOne(args)
       if (!found) {
-        throw new Prisma.PrismaClientKnownRequestError(
-          `No ${prop.slice(0, 1).toUpperCase()}${prop.slice(1)} found`,
-          "P2025",
-          // @ts-ignore
-          "1.2.3"
-        )
+        throwKnownError(`No ${prop.slice(0, 1).toUpperCase()}${prop.slice(1)} found`)
       }
       return found
     }
