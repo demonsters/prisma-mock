@@ -266,6 +266,30 @@ Object {
   ],
 }
 `)
+
+  /// Override
+  const document3 = await prismaMock.document.update({
+    data: {
+      name: "123",
+      participants: {
+        set: []
+      }
+    },
+    select: {
+      name: true,
+      participants: true,
+    },
+    where: {
+      id
+    }
+  })
+
+  expect(document3).toMatchInlineSnapshot(`
+Object {
+  "name": "123",
+  "participants": Array [],
+}
+`)
 })
 
 

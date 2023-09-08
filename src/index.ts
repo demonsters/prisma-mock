@@ -282,7 +282,7 @@ const createPrismaMock = <P>(
                 [field.name]: { set },
                 ...rest
               } = d
-              
+
               const otherModel = datamodel.models.find((model) => {
                 return model.name === field.type
               })
@@ -983,7 +983,7 @@ const createPrismaMock = <P>(
           )
         })
       }
-      return createdItems 
+      return createdItems
     }
 
     const deleteMany = (args) => {
@@ -1047,6 +1047,41 @@ const createPrismaMock = <P>(
         const model = datamodel.models.find((model) => {
           return getCamelCase(model.name) === prop
         })
+
+        if (key === "_count") {
+          const select = obj[key]?.select
+
+          const subkeys = Object.keys(select)
+          let _count = {}
+          subkeys.forEach((subkey) => {
+
+            const schema = model.fields.find((field) => {
+              return field.name === subkey
+            })
+
+            if (!schema?.relationName) {
+              return
+            }
+            const submodel = datamodel.models.find((model) => {
+              return model.name === schema.type
+            })
+
+            // Get delegate for relation
+            const delegate = Delegate(getCamelCase(schema.type), submodel)
+            const joinWhere = getFieldRelationshipWhere(item, schema, model)
+            
+            _count = {
+              ..._count,
+              [subkey]: delegate.count({ where: joinWhere }),
+            }
+          })
+
+          newItem = {
+            ...newItem,
+            _count
+          }
+          return
+        }
 
         const schema = model.fields.find((field) => {
           return field.name === key

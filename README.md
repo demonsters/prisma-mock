@@ -116,7 +116,7 @@ Most common cases are covered, but not everything. Here is a rough list of the s
 - where
 - select
 - orderBy
-- TODO: select: \_count
+- select: \_count
 
 ## Nested queries
 
@@ -129,8 +129,8 @@ Most common cases are covered, but not everything. Here is a rough list of the s
 - connect
 - disconnect
 - set
+- upsert
 - TODO: connectOrCreate
-- TODO: upsert
 
 ## Filter conditions and operators
 
