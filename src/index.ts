@@ -902,6 +902,12 @@ const createPrismaMock = <P>(
           return newItem
         })
       }
+      if (args?.cursor !== undefined) {
+        const cursorVal = res.findIndex((r) =>
+          Object.keys(args?.cursor).every((key) => r[key] === args?.cursor[key])
+        )
+        res = res.slice(cursorVal)
+      }
       if (args?.skip !== undefined || args?.take !== undefined) {
         const start = args?.skip !== undefined ? args?.skip : 0
         const end = args?.take !== undefined ? start + args.take : undefined
