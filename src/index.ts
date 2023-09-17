@@ -183,7 +183,7 @@ const createPrismaMock = <P>(
     } else {
       const snapshot = deepCopy(data)
       try {
-        await actions(client)
+        return await actions(client)
       }
       catch {
         data = snapshot
