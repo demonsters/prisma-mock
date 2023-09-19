@@ -47,19 +47,21 @@ describe("prisma.$transaction", () => {
     expect(allUsers).toHaveLength(2)
   })
 
-  test("interective succeeded", async () => {
+  test("interactive succeeded", async () => {
     const client = createPrismaClient(data);
 
-    await client.$transaction(async tx => {
+    const result = await client.$transaction(async tx => {
       tx.user.create({ data: {
         id: 3,
         name: 'Anonymous',
         accountId: 3
       }})
+      return 'success';
     })
 
     const allUsers = await client.user.findMany()
 
     expect(allUsers).toHaveLength(3)
+    expect(result).toEqual('success');
   })
 });
