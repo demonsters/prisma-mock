@@ -639,9 +639,6 @@ const createPrismaMock = <P>(
         if (Array.isArray(filter)) {
           return !matchOr(item, filter)
         }
-        item //?
-        filter //?
-        matchItems(item, filter) //?
         return !matchItems(item, filter)
       }
       if (filter == null || filter === undefined) {
