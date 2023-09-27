@@ -156,8 +156,28 @@ Array [
 ]
 `;
 
-exports[`PrismaClient where caseInsensitive false No mode NOT 1`] = `
+exports[`PrismaClient where caseInsensitive false No mode NOT array 1`] = `
 Array [
+  Object {
+    "id": 3,
+    "name": "Sjors",
+    "sort": null,
+  },
+  Object {
+    "id": 4,
+    "name": "ABBY",
+    "sort": null,
+  },
+]
+`;
+
+exports[`PrismaClient where caseInsensitive false No mode NOT object 1`] = `
+Array [
+  Object {
+    "id": 1,
+    "name": "Piet",
+    "sort": null,
+  },
   Object {
     "id": 3,
     "name": "Sjors",
@@ -353,8 +373,28 @@ Array [
 ]
 `;
 
-exports[`PrismaClient where caseInsensitive true No mode NOT 1`] = `
+exports[`PrismaClient where caseInsensitive true No mode NOT array 1`] = `
 Array [
+  Object {
+    "id": 3,
+    "name": "Sjors",
+    "sort": null,
+  },
+  Object {
+    "id": 4,
+    "name": "ABBY",
+    "sort": null,
+  },
+]
+`;
+
+exports[`PrismaClient where caseInsensitive true No mode NOT object 1`] = `
+Array [
+  Object {
+    "id": 1,
+    "name": "Piet",
+    "sort": null,
+  },
   Object {
     "id": 3,
     "name": "Sjors",

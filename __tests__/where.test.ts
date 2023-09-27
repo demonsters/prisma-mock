@@ -201,7 +201,7 @@ describe("PrismaClient where", () => {
           // expect(accounts).toEqual([data.account[0], data.account[1]]);
         })
 
-        test("NOT", async () => {
+        test("NOT array", async () => {
           const client = await createPrismaClient(data, {
             caseInsensitive,
           })
@@ -210,7 +210,21 @@ describe("PrismaClient where", () => {
               NOT: [{ name: "Dirk" }, { name: "Piet" }],
             },
           })
-          expect(accounts.length).toEqual(2)
+          // expect(accounts.length).toEqual(3)
+          expect(accounts).toMatchSnapshot()
+          // expect(accounts).toEqual([data.account[2], data.account[3]]);
+        })
+
+        test("NOT object", async () => {
+          const client = await createPrismaClient(data, {
+            caseInsensitive,
+          })
+          const accounts = await client.account.findMany({
+            where: {
+              NOT: { name: "Dirk" },
+            },
+          })
+          expect(accounts.length).toEqual(3)
           expect(accounts).toMatchSnapshot()
           // expect(accounts).toEqual([data.account[2], data.account[3]]);
         })
