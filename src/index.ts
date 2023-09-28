@@ -185,8 +185,9 @@ const createPrismaMock = <P>(
       try {
         return await actions(client)
       }
-      catch {
+      catch (error) {
         data = snapshot
+        throw error
       }
     }
   })
@@ -636,13 +637,7 @@ const createPrismaMock = <P>(
         return matchAnd(item, filter)
       }
       if (child === "NOT") {
-        if (Array.isArray(filter)) {
-          return !matchOr(item, filter)
-        }
-        item //?
-        filter //?
-        matchItems(item, filter) //?
-        return !matchItems(item, filter)
+        return !matchOr(item, filter)
       }
       if (filter == null || filter === undefined) {
         if (filter === null) {

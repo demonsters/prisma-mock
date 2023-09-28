@@ -32,18 +32,25 @@ describe("prisma.$transaction", () => {
 
   test("interactive failed", async () => {
     const client = createPrismaClient(data);
+    let failed = false;
 
-    await client.$transaction(async tx => {
-      tx.user.create({ data: {
-        id: 3,
-        name: 'Anonymous',
-        accountId: 3
-      }})
-      throw new Error("failed")
-    })
+    try {
+      await client.$transaction(async tx => {
+        tx.user.create({ data: {
+          id: 3,
+          name: 'Anonymous',
+          accountId: 3
+        }})
+        throw new Error('failed')
+      })
+    } catch (error) {
+      failed = true;
+      expect(error.message).toEqual('failed');
+    }
 
     const allUsers = await client.user.findMany()
 
+    expect(failed).toBeTruthy();
     expect(allUsers).toHaveLength(2)
   })
 
