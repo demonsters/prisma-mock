@@ -21,6 +21,9 @@ describe("PrismaClient where", () => {
       {
         name: "ABBY",
       },
+      {
+        name: null
+      }
     ],
     user: [
       {
@@ -345,7 +348,7 @@ describe("PrismaClient where", () => {
           id: { gt: 1 },
         },
       })
-      expect(accounts.length).toEqual(3)
+      expect(accounts.length).toEqual(4)
       expect(accounts).toMatchSnapshot()
       // expect(account).toEqual([
       //   data.account[1],
@@ -396,7 +399,7 @@ describe("PrismaClient where", () => {
           id: { not: 2 },
         },
       })
-      expect(accounts.length).toEqual(3)
+      expect(accounts.length).toEqual(4)
       expect(accounts).toMatchSnapshot()
       // expect(account).toEqual([
       //   data.account[0],

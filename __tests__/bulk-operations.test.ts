@@ -3,8 +3,8 @@ import createPrismaClient from './createPrismaClient'
 describe("bulk-operations", () => {
   const data = {
     user: [
-      { id: 1, name: 'Henk', clicks: 2, uniqueField: '1' },
-      { id: 2, name: 'Piet', clicks: 5, uniqueField: '2' },
+      { name: 'Henk', clicks: 2, uniqueField: '1' },
+      { name: 'Piet', clicks: 5, uniqueField: '2' },
     ]
   }
 

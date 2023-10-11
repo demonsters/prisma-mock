@@ -643,11 +643,9 @@ const createPrismaMock = <P>(
         return matchAnd(item, filter)
       }
       if (child === "NOT") {
-        if (Array.isArray(filter)) {
-          return !matchOr(item, filter)
-        }
-        return !matchItems(item, filter)
+        return matchNot(item, filter)
       }
+
       if (filter == null || filter === undefined) {
         if (filter === null) {
           return val === null || val === undefined
@@ -726,6 +724,9 @@ const createPrismaMock = <P>(
             }
           }
           if (val === undefined) {
+            return false
+          }
+          if (val === null) {
             return false
           }
           let match = true
@@ -847,6 +848,34 @@ const createPrismaMock = <P>(
         }
       }
       return true
+    }
+
+    const matchNot = (item: string, where: Where) => {
+      if (Array.isArray(where)) {
+        let hasNull = false
+        let res = !where.some((w: Where) => {
+          for (let child in w) {
+            if (item[child] === null) {
+              hasNull = true
+              return false
+            }
+            if (matchItem(child, item, w)) {
+              return true
+            }
+          }
+          return false
+        })
+        return hasNull ? caseInsensitive : res 
+      }
+      for (let child in where) {
+        if (item[child] === null) {
+          return false
+        }
+        if (!matchItem(child, item, where)) {
+          return true
+        }
+      }
+      return false
     }
 
     const matchAnd = (item: any, where: Where) => {

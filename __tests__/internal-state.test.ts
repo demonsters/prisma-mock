@@ -1,15 +1,17 @@
 // @ts-nocheck
 
-import createPrismaClient from "./createPrismaClient";
+import createPrismaClient from "./createPrismaClient"
 
 describe("PrismaClient $getInternalState", () => {
 
   // Should not run for postgresql
   if (process.env.PROVIDER === "postgresql") {
+    test("skip", () => {
+    })
     return
   }
 
-  
+
   const data = {
     user: [
       {
@@ -33,10 +35,10 @@ describe("PrismaClient $getInternalState", () => {
     ],
     userAnswers: [],
     element: [],
-  };
+  }
 
   test("base", async () => {
-    const client = await createPrismaClient(data);
+    const client = await createPrismaClient(data)
 
     expect(client.$getInternalState()).toMatchInlineSnapshot(`
 Object {
@@ -77,16 +79,16 @@ Object {
   "userAnswers": Array [],
 }
 `)
-  });
+  })
 
   test("create", async () => {
-    const client = await createPrismaClient(data);
+    const client = await createPrismaClient(data)
     await client.userAnswers.create({
       data: {
         user: { connect: { id: 1 } },
         answer: { connect: { id: 1 } },
       },
-    });
+    })
 
     expect(client.$getInternalState()).toMatchInlineSnapshot(`
 Object {
@@ -133,10 +135,10 @@ Object {
   ],
 }
 `)
-  });
+  })
 
   test("delete", async () => {
-    const client = await createPrismaClient(data);
+    const client = await createPrismaClient(data)
 
     await client.answers.deleteMany({})
 
@@ -166,16 +168,16 @@ Object {
   "userAnswers": Array [],
 }
 `)
-  });
+  })
 
   test("updateMany", async () => {
-    const client = await createPrismaClient(data);
+    const client = await createPrismaClient(data)
 
     await client.userAnswers.updateMany({
       data: {
         answerId: 3,
       },
-    });
+    })
 
     expect(client.$getInternalState()).toMatchInlineSnapshot(`
 Object {
@@ -216,6 +218,6 @@ Object {
   "userAnswers": Array [],
 }
 `)
-  });
+  })
 
-});
+})
