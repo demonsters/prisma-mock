@@ -51,6 +51,7 @@ Object {
     )
     expect(e.code).not.toBe(undefined)
     expect(e.code).toBe("P2025")
+    expect(e.meta).toMatchInlineSnapshot(`undefined`)
   }
 })
 
@@ -67,21 +68,64 @@ test("delete", async () => {
     throw new Error("Test should not reach here")
   } catch (e) {
     expect(e.code).toBe("P2025")
-    expect(e.meta.cause).toBe("Record to delete does not exist.")
     expect(e instanceof PrismaClientKnownRequestError).toBe(true)
     expect(e.message).toContain(
       "An operation failed because it depends on one or more records that were required but not found. Record to delete does not exist."
     )
+    expect(e.meta).toMatchInlineSnapshot(`
+Object {
+  "cause": "Record to delete does not exist.",
+}
+`)
   }
 })
 
 
 
 test.todo("Should throw when foreign key is invalid")
+
+
 test.todo("Argument create is missing.")
 test.todo("Argument uniqueField for data.uniqueField is missing.")
 test.todo("Unique constraint failed on the fields: (`")
 test.todo("Unknown arg `disconnect` in data.account.disconnect (when not optional)")
+
+
+
+test("Argument uniqueField is not unique.", async () => {
+
+  const client = await createPrismaClient()
+  const user1 = await client.user.create({
+    data: {
+      id: 1,
+      uniqueField: "1"
+    },
+  })
+  try {
+    const user = await client.user.create({
+      data: {
+        id: 2,
+        uniqueField: "1"
+      },
+    })
+    throw new Error("Test should not reach here")
+  } catch (e) {
+    expect(e.code).toBe("P2002")
+    // expect(e.meta.cause).toBe("Unique constraint failed on the fields: (\`uniqueField\`)]")
+    expect(e instanceof PrismaClientKnownRequestError).toBe(true)
+    expect(e.message).toContain(
+      "Unique constraint failed on the fields: (`uniqueField`)"
+    )
+    expect(e.meta).toMatchInlineSnapshot(`
+Object {
+  "target": Array [
+    "uniqueField",
+  ],
+}
+`)
+  }
+
+})
 
 
 describe("Not implemented", () => {

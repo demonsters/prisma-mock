@@ -51,7 +51,7 @@ describe("bulk-operations", () => {
     const { count } = await client.user.createMany({
       data: [
         { name: 'Plaf', clicks: 4, uniqueField: '4' },
-        { name: 'Klof', clicks: 2, uniqueField: '4' }
+        { name: 'Klof', clicks: 2, uniqueField: '5' }
       ]
     })
 

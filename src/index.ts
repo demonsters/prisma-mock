@@ -40,8 +40,7 @@ function IsFieldDefault(
   return (f as Prisma.DMMF.FieldDefault).name !== undefined
 }
 
-const throwKnownError = (message: string, cause?: string) => {
-  const code = "P2025"
+const throwKnownError = (message: string, { code = "P2025", meta }: { code?: string, meta?: any } = {}) => {
   const clientVersion = Prisma.prismaVersion.client
   // PrismaClientKnownRequestError prototype changed in version 4.7.0
   // from: constructor(message: string, code: string, clientVersion: string, meta?: any)
@@ -62,9 +61,7 @@ const throwKnownError = (message: string, cause?: string) => {
       clientVersion
     )
   }
-  error.meta = {
-    cause,
-  }
+  error.meta = meta
   throw error
 }
 
@@ -267,7 +264,6 @@ const createPrismaMock = <P>(
           delete d[key]
         }
       })
-
       // Get field schema for default values
       const model = datamodel.models.find((model) => {
         return getCamelCase(model.name) === prop
@@ -276,6 +272,17 @@ const createPrismaMock = <P>(
       model.fields.forEach((field) => {
         if (d[field.name]) {
           const c = d[field.name]
+
+          if (isCreating && (field.isUnique || field.isId)) {
+            const existing = findOne({ where: { [field.name]: c } })
+            if (existing) {
+              throwKnownError(
+                `Unique constraint failed on the fields: (\`${field.name}\`)`,
+                { code: 'P2002', meta: { target: [field.name] } },
+              )
+            }
+          }
+
           if (field.kind === "object") {
             if (c.set) {
               const {
@@ -1186,7 +1193,7 @@ const createPrismaMock = <P>(
         if (!item) {
           throwKnownError(
             "An operation failed because it depends on one or more records that were required but not found. Record to delete does not exist.",
-            "Record to delete does not exist."
+            { meta: { cause: "Record to delete does not exist." } }
           )
         }
         const deleted = deleteMany(args)
