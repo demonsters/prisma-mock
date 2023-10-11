@@ -182,8 +182,9 @@ const createPrismaMock = <P>(
       try {
         return await actions(client)
       }
-      catch {
+      catch (error) {
         data = snapshot
+        throw error
       }
     }
   })
