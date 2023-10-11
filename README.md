@@ -188,7 +188,7 @@ TODO (has, hasEvery, hasSome, isEmpty, equals)
 
 - @@id
 - @default
-- @unique (TODO: no error if duplicate)
+- @unique
 - @@unique (TODO: no error if duplicate)
 - @relation
 - @updatedAt: Partially supported, value is set at creation (TODO: update value on update)
