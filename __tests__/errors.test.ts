@@ -80,6 +80,32 @@ Object {
   }
 })
 
+test("update", async () => {
+  const client = await createPrismaClient()
+  try {
+    const user = await client.account.update({
+      where: {
+        id: 1,
+      },
+      data: {
+        name: "test",
+      }
+    })
+    throw new Error("Test should not reach here")
+  } catch (e) {
+    expect(e.code).toBe("P2025")
+    expect(e instanceof PrismaClientKnownRequestError).toBe(true)
+    expect(e.message).toContain(
+      "An operation failed because it depends on one or more records that were required but not found. Record to update not found."
+    )
+    expect(e.meta).toMatchInlineSnapshot(`
+Object {
+  "cause": "Record to update not found.",
+}
+`)
+  }
+})
+
 
 
 test.todo("Should throw when foreign key is invalid")

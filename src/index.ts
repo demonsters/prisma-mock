@@ -866,7 +866,7 @@ const createPrismaMock = <P>(
           }
           return false
         })
-        return hasNull ? caseInsensitive : res 
+        return hasNull ? caseInsensitive : res
       }
       for (let child in where) {
         if (item[child] === null) {
@@ -1115,7 +1115,7 @@ const createPrismaMock = <P>(
             // Get delegate for relation
             const delegate = Delegate(getCamelCase(schema.type), submodel)
             const joinWhere = getFieldRelationshipWhere(item, schema, model)
-            
+
             _count = {
               ..._count,
               [subkey]: delegate.count({ where: joinWhere }),
@@ -1180,10 +1180,11 @@ const createPrismaMock = <P>(
 
     const update = (args) => {
       let updatedItem
+      let hasMatch = false
       const newItems = data[prop].map((e) => {
         if (matchFnc(args.where)(e)) {
+          hasMatch = true
           let data = nestedUpdate(args, false, e)
-          data //?
           updatedItem = {
             ...e,
             ...data,
@@ -1192,6 +1193,12 @@ const createPrismaMock = <P>(
         }
         return e
       })
+      if (!hasMatch) {
+        throwKnownError(
+          "An operation failed because it depends on one or more records that were required but not found. Record to update not found.",
+          { meta: { cause: "Record to update not found." } }
+        )
+      }
       data = {
         ...data,
         [prop]: newItems,
