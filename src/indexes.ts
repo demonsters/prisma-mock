@@ -3,24 +3,24 @@ import { Prisma } from "@prisma/client"
 
 export default function createIndexes() {
 
-  let items: Record<string, Record<string, Map<any, any[]>>> = {}
-  let indexedFieldNames: Record<string, string[]> = {}
-  let fields: Record<string, Record<string, Prisma.DMMF.Field>> = {}
-  let idFieldNames: Record<string, string[]> = {}
+  let items: Map<string, Map<string, Map<string, any[]>>> = new Map()
+  let indexedFieldNames: Map<string, string[]> = new Map()
+  let fields: Map<string, Map<string, Prisma.DMMF.Field>> = new Map()
+  let idFieldNames: Map<string, string[]> = new Map()
 
   const addIndexFieldIfNeeded = (tableName: string, field: Prisma.DMMF.Field) => {
-    if (!indexedFieldNames[tableName]) {
-      indexedFieldNames[tableName] = []
+    if (!indexedFieldNames.has(tableName)) {
+      indexedFieldNames.set(tableName, [])
     }
-    if (!fields[tableName]) {
-      fields[tableName] = {}
+    if (!fields.has(tableName)) {
+      fields.set(tableName, new Map())
     }
-    if (!idFieldNames[tableName]) {
-      idFieldNames[tableName] = []
+    if (!idFieldNames.has(tableName)) {
+      idFieldNames.set(tableName, [])
     }
-    let thisFields = fields[tableName]
-    let thisFieldNames = indexedFieldNames[tableName]
-    let thisIdFieldNames = idFieldNames[tableName]
+    let thisFields = fields.get(tableName)
+    let thisFieldNames = indexedFieldNames.get(tableName)
+    let thisIdFieldNames = idFieldNames.get(tableName)
     if (thisFieldNames.includes(field.name)) return
     if (field.isId || field.isUnique) {
       thisFieldNames.push(field.name)
@@ -32,7 +32,7 @@ export default function createIndexes() {
       const fieldName = field.relationFromFields[0]
       thisFieldNames.push(fieldName)
     }
-    thisFields[field.name] = field
+    thisFields.set(field.name, field)
   }
 
   const getIndexedItems = (tableName: string, where: any) => {
@@ -48,37 +48,43 @@ export default function createIndexes() {
           }
         }
       }
-      if (indexedFieldNames[tableName]) {
-        if (indexedFieldNames[tableName].includes(field)) {
-          return items[tableName]?.[field]?.get(where[field])
+      if (indexedFieldNames.has(tableName)) {
+        if (indexedFieldNames.get(tableName).includes(field)) {
+          return items.get(tableName)?.get(field)?.get(where[field])
         }
       }
     }
   }
 
   const updateItem = (tableName: string, item: any) => {
-    if (!items[tableName]) {
-      items[tableName] = {}
+    if (!items.has(tableName)) {
+      items.set(tableName, new Map())
     }
-    if (!indexedFieldNames[tableName]) {
+    if (!indexedFieldNames.has(tableName)) {
       throw new Error(`No indexed fields for table ${tableName}`)
     }
-    for (const fieldName of indexedFieldNames[tableName]) {
-      if (!items[tableName][fieldName]) {
-        items[tableName][fieldName] = new Map()
+    const tableItems = items.get(tableName)
+    for (const fieldName of indexedFieldNames.get(tableName)) {
+      if (!tableItems.has(fieldName)) {
+        tableItems.set(fieldName, new Map())
       }
-      if (!items[tableName][fieldName].has(item[fieldName])) {
-        items[tableName][fieldName].set(item[fieldName], [item])
+      if (!item[fieldName]) {
+        tableItems.delete(fieldName)
+        continue
+      }
+      const thisItems = tableItems.get(fieldName)
+      if (!thisItems.has(item[fieldName])) {
+        thisItems.set(item[fieldName], [item])
       } else {
-        const field = fields[tableName][fieldName]
+        const field = fields.get(tableName).get(fieldName)
         if (field && (field.isId || field.isUnique)) {
-          items[tableName][fieldName].set(item[fieldName], [item])
+          thisItems.set(item[fieldName], [item])
         } else {
-          const array = items[tableName][fieldName].get(item[fieldName])
+          const array = thisItems.get(item[fieldName])
           if (array.length === 0) {
             array.push(item)
           } else {
-            const thisIdFieldNames = idFieldNames[tableName] || []
+            const thisIdFieldNames = idFieldNames.get(tableName) || []
             let hasFound = false
             for (let i = 0; i < array.length; i++) {
               const oldItem = array[i]
@@ -100,9 +106,9 @@ export default function createIndexes() {
   }
 
   const deleteItemByField = (tableName: string, field: Prisma.DMMF.Field, item: any) => {
-    if (indexedFieldNames[tableName]) {
-      if (indexedFieldNames[tableName].includes(field.name)) {
-        items[tableName]?.[field.name]?.delete(item[field.name])
+    if (indexedFieldNames.has(tableName)) {
+      if (indexedFieldNames.get(tableName).includes(field.name)) {
+        items.get(tableName)?.get(field.name)?.delete(item[field.name])
       }
     }
   }
