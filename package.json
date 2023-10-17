@@ -21,7 +21,7 @@
     "uuid": "^9.0.0"
   },
   "scripts": {
-    "preversion": "tsc",
+    "preversion": "jest && tsc",
     "build": "tsc",
     "test": "jest",
     "watch": "tsc --watch",
