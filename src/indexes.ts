@@ -86,7 +86,7 @@ export default function createIndexes() {
                 if (item[thisIdFieldName] === oldItem[thisIdFieldName]) {
                   hasFound = true
                   array[i] = item
-                  return
+                  continue
                 }
               }
             }
