@@ -56,7 +56,7 @@ export default function createIndexes() {
     }
   }
 
-  const updateItem = (tableName: string, item: any) => {
+  const updateItem = (tableName: string, item: any, oldItem: any | null) => {
     if (!items[tableName]) {
       items[tableName] = {}
     }
@@ -68,7 +68,21 @@ export default function createIndexes() {
         items[tableName][fieldName] = new Map()
       }
       if (!item[fieldName]) {
-          delete items[tableName][fieldName]
+          if (oldItem && oldItem[fieldName]) {
+            const array = items[tableName][fieldName].get(oldItem[fieldName])
+            if (array) {
+              for (let i = 0; i < array.length; i++) {
+                const oldItem = array[i]
+                for (const thisIdFieldName of idFieldNames[tableName]) {
+                  if (item[thisIdFieldName] === oldItem[thisIdFieldName]) {
+                    array.splice(i, 1)
+                    i--
+                    continue
+                  }
+                }
+              }
+            }
+          }
           continue
       }
       if (!items[tableName][fieldName].has(item[fieldName])) {

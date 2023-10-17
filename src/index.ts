@@ -1009,7 +1009,7 @@ const createPrismaMock = <P>(
             ...e,
             ...data,
           }
-          indexes.updateItem(prop, newItem)
+          indexes.updateItem(prop, newItem, e)
           return newItem
         }
         return e
@@ -1038,7 +1038,7 @@ const createPrismaMock = <P>(
         }
       }
       const item = findOne({ where, ...args })
-      indexes.updateItem(prop, item)
+      indexes.updateItem(prop, item, null)
       return item
     }
 
@@ -1228,7 +1228,7 @@ const createPrismaMock = <P>(
             ...e,
             ...data,
           }
-          indexes.updateItem(prop, updatedItem)
+          indexes.updateItem(prop, updatedItem, e)
           return updatedItem
         }
         return e
@@ -1335,7 +1335,7 @@ const createPrismaMock = <P>(
     })
 
     data[c].forEach((item) => {
-      indexes.updateItem(c, item)
+      indexes.updateItem(c, item, null)
     })
 
     const objs = Delegate(c, model)
