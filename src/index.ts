@@ -1334,6 +1334,10 @@ const createPrismaMock = <P>(
       indexes.addIndexFieldIfNeeded(c, field)
     })
 
+    data[c].forEach((item) => {
+      indexes.updateItem(c, item)
+    })
+
     const objs = Delegate(c, model)
     Object.keys(objs).forEach((fncName) => {
       if (fncName.indexOf("_") === 0) return
