@@ -1064,6 +1064,7 @@ const createPrismaMock = <P>(
               data: {
                 [joinfield.relationFromFields[0]]: null,
               },
+              skipForeignKeysChecks: true,
             })
           } else if (joinfield.relationOnDelete === "Cascade") {
             try {
@@ -1194,6 +1195,7 @@ const createPrismaMock = <P>(
         return e
       })
       if (!hasMatch) {
+        if (args.skipForeignKeysChecks) return;
         throwKnownError(
           "An operation failed because it depends on one or more records that were required but not found. Record to update not found.",
           { meta: { cause: "Record to update not found." } }
