@@ -2,7 +2,63 @@
 
 This is a mock of the Prisma API intended for unit testing. All the data is stored in memory.
 
-The library `jest-mock-extended` is used, which means that if functionality you need is not implemented yet, you can mock it yourself.
+By leveraging the `deepMock` functionality provided by external libraries, we've achieved mocking capabilities. This means that if the functionality you need is not implemented yet, you can mock it yourself.
+
+# Installation
+
+From version x.x.x onwards, you can choose your mocking library.
+
+The requirement is compatibility with the `deepMock` of `jest-mock-extended`. Currently, compatibility has been confirmed with `vitest-mock-extended`.
+
+### Adding to package.json
+
+Add your desired mock library to the devDependencies in `package.json`.
+
+```json
+"devDependencies": {
+  "jest-mock-extended": "^2.0.4",
+```
+
+### Incorporating deepMock into prismaMock
+
+You need to actively pass the `deepMock` function to `prisma-mock` from the testing process.
+
+Typically in a jest-enabled environment, it can be bootstrapped in
+`jest.config.js` as follows:
+
+```javascript
+module.exports = {
+  setupFilesAfterEnv: ['<rootDir>/__tests__/jest.setup.ts']
+```
+
+And prepare the setup file as:
+
+```typescript
+import { mockDeep } from "jest-mock-extended"
+import { initPrismaMockLibrary } from 'prisma-mock';
+
+beforeAll(() => initPrismaMockLibrary({ mockDeep }))
+```
+
+In a vitest-enabled environment, it can be done as follows:
+
+```typescript
+import { defineConfig } from 'vitest/config'
+
+export default defineConfig({
+  test: {
+    setupFiles: ['./__tests__/vitest.setup.ts']
+````
+
+And prepare the setup file as:
+
+```typescript
+import { mockDeep } from "vitest-mock-extended"
+import { initPrismaMockLibrary } from 'prisma-mock';
+
+beforeAll(() => initPrismaMockLibrary({ mockDeep }))
+```
+
 
 # Usage
 
