@@ -4,8 +4,8 @@ import createPrismaClient from "./createPrismaClient"
 import { Role } from "@prisma/client"
 
 describe("PrismaClient where", () => {
-  const date1 = new Date(2020, 1, 1, 15, 0, 0, 0)
-  const date2 = new Date(2020, 1, 2, 15, 0, 0, 0)
+  const date1 = new Date('2020-02-01T14:00:00.000Z')
+  const date2 = new Date('2020-02-02T14:00:00.000Z')
 
   const data = {
     account: [
