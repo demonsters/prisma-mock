@@ -231,6 +231,51 @@ Object {
 
 
   test('update', async () => {
+    const client = await createPrismaClient()
+    
+    await client.account.create({
+      data: { id: 1, }
+    })
+
+    await client.stripe.create({
+      data: {
+        customerId: "1",
+        accountId: 1,
+      }
+    })
+
+    await client.user.create({
+      data: { id: 2, role: "ADMIN", accountId: 1, uniqueField: 'user' }
+    })
+
+    await client.user.update({
+      data: {
+        role: "USER"
+      },
+      where: {
+        id: 2
+      }
+    })
+    const user = await client.user.findUnique({
+      where: {
+        accountId: 1
+      }
+    })
+    expect(user).toMatchInlineSnapshot(`
+Object {
+  "accountId": 1,
+  "clicks": null,
+  "deleted": false,
+  "id": 2,
+  "name": null,
+  "role": "USER",
+  "sort": null,
+  "uniqueField": "user",
+}
+`)
+  })
+
+  test('nested update', async () => {
     const client = await createPrismaClient({
       account: [
         { id: 1, }
@@ -243,7 +288,6 @@ Object {
         { id: 2, role: "ADMIN", accountId: 1, uniqueField: 'user' }
       ]
     })
-    // TODO: Check output
     const answer = await client.account.update({
       data: {
         users: {
