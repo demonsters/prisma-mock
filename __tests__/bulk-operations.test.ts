@@ -25,7 +25,7 @@ describe("bulk-operations", () => {
     expect(users[0].name).toEqual('Henk');
     expect(users[1].name).toEqual('Bard');
     expect(count).toEqual(1)
-    
+
     await client.$disconnect()
   })
 
@@ -42,7 +42,7 @@ describe("bulk-operations", () => {
     const users = await client.user.findMany();
     expect(users.length).toBe(1);
     expect(count).toEqual(1)
-    
+
     await client.$disconnect()
   })
 
@@ -51,14 +51,19 @@ describe("bulk-operations", () => {
     const { count } = await client.user.createMany({
       data: [
         { name: 'Plaf', clicks: 4, uniqueField: '4' },
-        { name: 'Klof', clicks: 2, uniqueField: '5' }
-      ]
+        { name: 'Klof', clicks: 2, uniqueField: '5' },
+        { name: "Klof", clicks: 3, uniqueField: "4" }
+      ],
+      skipDuplicates: true,
     })
 
     const users = await client.user.findMany();
     expect(users.length).toBe(4);
     expect(count).toEqual(2)
-    
+
+    const klof = users.find(u => u.name === 'Klof')
+    expect(klof.uniqueField).toEqual('5')
+
     await client.$disconnect()
   })
 })

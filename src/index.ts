@@ -1011,25 +1011,20 @@ const createPrismaMock = <P>(
     }
 
     const createMany = (args) => {
-      const createdItems = []
-      if (!Array.isArray(args.data)) {
-        createdItems.push(
-          create({
-            ...args,
-            data: args.data,
-          })
+      const skipDuplicates = args.skipDuplicates ?? false
+      return (Array.isArray(args.data) ? args.data : [args.data])
+        .map((data) => {
+            try {
+              return create({ ...args, data })
+            } catch (error) {
+              if (skipDuplicates && error["code"] === "P2002") {
+                return null
+              }
+              throw error
+            }
+          },
         )
-      } else {
-        args.data.forEach((data) => {
-          createdItems.push(
-            create({
-              ...args,
-              data,
-            })
-          )
-        })
-      }
-      return createdItems
+        .filter((item) => item !== null)
     }
 
     const deleteMany = (args) => {
