@@ -1043,25 +1043,20 @@ const createPrismaMock = <P>(
     }
 
     const createMany = (args) => {
-      const createdItems = []
-      if (!Array.isArray(args.data)) {
-        createdItems.push(
-          create({
-            ...args,
-            data: args.data,
-          })
+      const skipDuplicates = args.skipDuplicates ?? false
+      return (Array.isArray(args.data) ? args.data : [args.data])
+        .map((data) => {
+            try {
+              return create({ ...args, data })
+            } catch (error) {
+              if (skipDuplicates && error["code"] === "P2002") {
+                return null
+              }
+              throw error
+            }
+          },
         )
-      } else {
-        args.data.forEach((data) => {
-          createdItems.push(
-            create({
-              ...args,
-              data,
-            })
-          )
-        })
-      }
-      return createdItems
+        .filter((item) => item !== null)
     }
 
     const deleteMany = (args) => {
@@ -1092,17 +1087,16 @@ const createPrismaMock = <P>(
           if (!joinfield) return
           const delegate = Delegate(getCamelCase(field.type), model)
           if (joinfield.relationOnDelete === "SetNull") {
-            try {
-              delegate.update({
-                where: {
-                  [joinfield.relationFromFields[0]]:
-                    item[joinfield.relationToFields[0]],
-                },
-                data: {
-                  [joinfield.relationFromFields[0]]: null,
-                },
-              })
-            } catch (e) { }
+            delegate.update({
+              where: {
+                [joinfield.relationFromFields[0]]:
+                  item[joinfield.relationToFields[0]],
+              },
+              data: {
+                [joinfield.relationFromFields[0]]: null,
+              },
+              skipForeignKeysChecks: true,
+            })
           } else if (joinfield.relationOnDelete === "Cascade") {
             try {
               delegate.delete({
@@ -1234,6 +1228,7 @@ const createPrismaMock = <P>(
         return e
       })
       if (!hasMatch) {
+        if (args.skipForeignKeysChecks) return;
         throwKnownError(
           "An operation failed because it depends on one or more records that were required but not found. Record to update not found.",
           { meta: { cause: "Record to update not found." } }
