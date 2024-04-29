@@ -78,7 +78,9 @@ const createPrismaMock = <P>(
   options: MockPrismaOptions = {
     caseInsensitive: false,
   }
-): P => {
+): P & {
+  $getInternalState: () => Required<PrismaMockData<P>>
+} => {
   const manyToManyData: { [relationName: string]: Array<{ [type: string]: Item }> } = {}
 
   // let data = options.data || {}
