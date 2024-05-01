@@ -3,7 +3,10 @@
   "version": "0.10.2",
   "description": "Mock prisma for unit testing database",
   "main": "lib/index.js",
-  "repository": "https://github.com/demonsters/prisma-mock",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/demonsters/prisma-mock.git"
+  },
   "license": "MIT",
   "types": "lib/",
   "files": [
