@@ -5,6 +5,7 @@ import { shallowCompare } from "./utils/shallowCompare"
 import { deepEqual } from "./utils/deepEqual"
 import { deepCopy } from "./utils/deepCopy"
 import getNestedValue from "./utils/getNestedValue"
+import createIndexes from "./indexes"
 
 type UnwrapPromise<P extends any> = P extends Promise<infer R> ? R : P
 
@@ -83,6 +84,8 @@ const createPrismaMock = <P>(
 } => {
   const manyToManyData: { [relationName: string]: Array<{ [type: string]: Item }> } = {}
 
+  const indexes = createIndexes()
+
   // let data = options.data || {}
   // const datamodel = options.datamodel || Prisma.dmmf.datamodel
   const caseInsensitive = options.caseInsensitive || false
@@ -99,6 +102,9 @@ const createPrismaMock = <P>(
     model: Prisma.DMMF.Model,
     data: PrismaMockData<P>
   ) => {
+
+
+    /// [tableName][field][value] = Array
 
     const c = getCamelCase(model.name)
     const idFields = model.idFields || model.primaryKey?.fields
@@ -203,6 +209,8 @@ const createPrismaMock = <P>(
   // client["$use"] = async () => { }
 
   const Delegate = (prop: string, model: Prisma.DMMF.Model) => {
+
+
     const sortFunc = (orderBy) => (a, b) => {
       if (Array.isArray(orderBy)) {
         for (const order of orderBy) {
@@ -423,11 +431,16 @@ const createPrismaMock = <P>(
               })
             }
             if (c.create || c.createMany) {
+
+              const otherModel = datamodel.models.find((model) => {
+                return model.name === field.type
+              })
+
               const { [field.name]: create, ...rest } = d
               d = rest
               // @ts-ignore
               const name = getCamelCase(field.type)
-              const delegate = Delegate(name, model)
+              const delegate = Delegate(name, otherModel)
 
               const joinfield = getJoinField(field)
 
@@ -686,6 +699,7 @@ const createPrismaMock = <P>(
             if (!joinWhere) {
               return false
             }
+            // return true
             const res = delegate.findMany({
               where: {
                 AND: [
@@ -914,9 +928,23 @@ const createPrismaMock = <P>(
     }
 
     const findMany = (args) => {
-      let res = data[prop]
-        .filter(matchFnc(args?.where))
-        .map(includes(args))
+
+      const match = matchFnc(args?.where)
+      const inc = includes(args)
+
+      // let res = data[prop]
+      //   .filter(matchFnc(args?.where))
+      //   .map(includes(args))
+
+      let items = indexes.getIndexedItems(prop, args?.where) || data[prop]
+
+      let res = []
+      for (const item of items) {
+        if (match(item)) {
+          const i = inc(item)
+          res.push(i)
+        }
+      }
 
       if (args?.distinct) {
         let values = {}
@@ -979,10 +1007,12 @@ const createPrismaMock = <P>(
         if (matchFnc(args.where)(e)) {
           let data = nestedUpdate(args, false, e)
           nbUpdated++
-          return {
+          const newItem = {
             ...e,
             ...data,
           }
+          indexes.updateItem(prop, newItem, e)
+          return newItem
         }
         return e
       })
@@ -1009,7 +1039,9 @@ const createPrismaMock = <P>(
           where[field.name] = d[field.name]
         }
       }
-      return findOne({ where, ...args })
+      const item = findOne({ where, ...args })
+      indexes.updateItem(prop, item, null)
+      return item
     }
 
     const createMany = (args) => {
@@ -1048,7 +1080,11 @@ const createPrismaMock = <P>(
 
       // Referential Actions
       deleted.forEach((item) => {
+
         model.fields.forEach((field) => {
+
+          indexes.deleteItemByField(prop, field, item)
+
           const joinfield = getJoinField(field)
           if (!joinfield) return
           const delegate = Delegate(getCamelCase(field.type), model)
@@ -1179,14 +1215,16 @@ const createPrismaMock = <P>(
     const update = (args) => {
       let updatedItem
       let hasMatch = false
+      const match = matchFnc(args.where)
       const newItems = data[prop].map((e) => {
-        if (matchFnc(args.where)(e)) {
+        if (match(e)) {
           hasMatch = true
           let data = nestedUpdate(args, false, e)
           updatedItem = {
             ...e,
             ...data,
           }
+          indexes.updateItem(prop, updatedItem, e)
           return updatedItem
         }
         return e
@@ -1288,6 +1326,14 @@ const createPrismaMock = <P>(
       }
     }
     data = removeMultiFieldIds(model, data)
+
+    model.fields.forEach((field) => {
+      indexes.addIndexFieldIfNeeded(c, field)
+    })
+
+    data[c].forEach((item) => {
+      indexes.updateItem(c, item, null)
+    })
 
     const objs = Delegate(c, model)
     Object.keys(objs).forEach((fncName) => {
