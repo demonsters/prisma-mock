@@ -35,28 +35,29 @@ type CreateArgs = any
 function IsFieldDefault(
   f:
     | Prisma.DMMF.FieldDefault
-    | Prisma.DMMF.FieldDefaultScalar[]
+    | readonly Prisma.DMMF.FieldDefaultScalar[]
     | Prisma.DMMF.FieldDefaultScalar
 ): f is Prisma.DMMF.FieldDefault {
   return (f as Prisma.DMMF.FieldDefault).name !== undefined
 }
 
-const throwKnownError = (message: string, { code = "P2025", meta }: { code?: string, meta?: any } = {}) => {
+const throwPrismaError = (message: string, { code = "P2025", meta }: { code?: string, meta?: any } = {}, errorClass: any = Prisma.PrismaClientKnownRequestError) => {
   const clientVersion = Prisma.prismaVersion.client
   // PrismaClientKnownRequestError prototype changed in version 4.7.0
   // from: constructor(message: string, code: string, clientVersion: string, meta?: any)
   // to: constructor(message: string, { code, clientVersion, meta, batchRequestIdx }: KnownErrorParams)
   let error
-  if (Prisma.PrismaClientKnownRequestError.length === 2) {
+  if (errorClass.length === 2) {
     // @ts-ignore
-    error = new Prisma.PrismaClientKnownRequestError(message, {
+    error = new errorClass(message, {
       code,
       clientVersion,
     })
   } else {
     // @ts-ignore
-    error = new Prisma.PrismaClientKnownRequestError(
+    error = new errorClass(
       message,
+      // @ts-ignore
       code,
       // @ts-ignore
       clientVersion
@@ -64,6 +65,14 @@ const throwKnownError = (message: string, { code = "P2025", meta }: { code?: str
   }
   error.meta = meta
   throw error
+}
+
+const throwKnownError = (message: string, { code = "P2025", meta }: { code?: string, meta?: any } = {}) => {
+  throwPrismaError(message, { code, meta }, Prisma.PrismaClientKnownRequestError)
+}
+
+const throwValidationError = (message: string, { code = "P2025", meta }: { code?: string, meta?: any } = {}) => {
+  throwPrismaError(message, { code, meta }, Prisma.PrismaClientValidationError)
 }
 
 export type MockPrismaOptions = {
@@ -79,7 +88,9 @@ const createPrismaMock = <P>(
   options: MockPrismaOptions = {
     caseInsensitive: false,
   }
-): P => {
+): P & {
+  $getInternalState: () => Required<PrismaMockData<P>>
+} => {
   const manyToManyData: { [relationName: string]: Array<{ [type: string]: Item }> } = {}
 
   const indexes = createIndexes()
@@ -105,9 +116,10 @@ const createPrismaMock = <P>(
     /// [tableName][field][value] = Array
 
     const c = getCamelCase(model.name)
+    // @ts-ignore
     const idFields = model.idFields || model.primaryKey?.fields
 
-    const removeId = (ids: string[]) => {
+    const removeId = (ids: readonly string[]) => {
       const id = ids.join("_")
       data = {
         ...data,
@@ -221,7 +233,7 @@ const createPrismaMock = <P>(
       }
       const keys = Object.keys(orderBy)
       if (keys.length > 1) {
-        throw new Prisma.PrismaClientValidationError(
+        throwValidationError(
           `Argument orderBy of needs exactly one argument, but you provided ${keys.join(
             " and "
           )}. Please choose one.`
@@ -452,24 +464,29 @@ const createPrismaMock = <P>(
                     item[field.relationToFields[0]],
                 }
               } else {
-                const map = (val) => ({
-                  ...val,
-                  [joinfield.name]: {
-                    connect: joinfield.relationToFields.reduce(
-                      (prev, cur, index) => {
-                        let val = d[cur]
-                        if (!isCreating && !val) {
-                          val = findOne(args)[cur]
-                        }
-                        return {
-                          ...prev,
-                          [cur]: val,
-                        }
-                      },
-                      {}
-                    ),
-                  },
-                })
+                const map = (val) => {
+                  if (joinfield.relationToFields.length === 0) {
+                    return val
+                  }
+                  return ({
+                    ...val,
+                    [joinfield.name]: {
+                      connect: joinfield.relationToFields.reduce(
+                        (prev, cur, index) => {
+                          let val = d[cur]
+                          if (!isCreating && !val) {
+                            val = findOne(args)[cur]
+                          }
+                          return {
+                            ...prev,
+                            [cur]: val,
+                          }
+                        },
+                        {}
+                      ),
+                    },
+                  })
+                }
 
                 let createdItems = []
                 if (c.createMany) {
@@ -724,6 +741,7 @@ const createPrismaMock = <P>(
             }
             return res.length > 0
           }
+          // @ts-ignore Backwards compatibility
           const idFields = model.idFields || model.primaryKey?.fields
           if (idFields?.length > 1) {
             if (child === idFields.join("_")) {
@@ -1046,15 +1064,15 @@ const createPrismaMock = <P>(
       const skipDuplicates = args.skipDuplicates ?? false
       return (Array.isArray(args.data) ? args.data : [args.data])
         .map((data) => {
-            try {
-              return create({ ...args, data })
-            } catch (error) {
-              if (skipDuplicates && error["code"] === "P2002") {
-                return null
-              }
-              throw error
+          try {
+            return create({ ...args, data })
+          } catch (error) {
+            if (skipDuplicates && error["code"] === "P2002") {
+              return null
             }
-          },
+            throw error
+          }
+        },
         )
         .filter((item) => item !== null)
     }
@@ -1228,7 +1246,7 @@ const createPrismaMock = <P>(
         return e
       })
       if (!hasMatch) {
-        if (args.skipForeignKeysChecks) return;
+        if (args.skipForeignKeysChecks) return
         throwKnownError(
           "An operation failed because it depends on one or more records that were required but not found. Record to update not found.",
           { meta: { cause: "Record to update not found." } }

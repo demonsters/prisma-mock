@@ -293,6 +293,66 @@ Object {
 })
 
 
+
+test("some in", async () => {
+  // {
+  //   user: [
+  //     { id: 1, name: "A", uniqueField: "1" },
+  //     { id: 2, name: "B", uniqueField: "2" },
+  //   ],
+  //   document: [
+  //     { id: 1, name: "A" },
+  //     { id: 2, name: "B" },
+  //   ],
+  // }
+  const client = await createPrismaClient()
+  await client.user.create({
+    data:
+      { name: "A", uniqueField: "1", documents: { create: { name: "A" } } },
+  })
+  await client.user.create({
+    data: { name: "B", uniqueField: "2", documents: { create: { name: "B" } } },
+  })
+
+  const accounts = await client.user.findMany({
+    where: {
+      documents: {
+        some: {
+          name: {
+            in: ["A", "B"],
+          },
+        },
+      },
+    },
+  })
+  expect(accounts).toMatchInlineSnapshot(`
+Array [
+  Object {
+    "accountId": null,
+    "clicks": null,
+    "deleted": false,
+    "id": 1,
+    "name": "A",
+    "role": "ADMIN",
+    "sort": null,
+    "uniqueField": "1",
+  },
+  Object {
+    "accountId": null,
+    "clicks": null,
+    "deleted": false,
+    "id": 2,
+    "name": "B",
+    "role": "ADMIN",
+    "sort": null,
+    "uniqueField": "2",
+  },
+]
+`)
+})
+
+
+
 xtest("connectOrCreate create", async () => {
 
   const prismaMock = await createPrismaClient()

@@ -1,6 +1,6 @@
 // @ts-nocheck
 
-import { PrismaClientKnownRequestError } from "@prisma/client/runtime"
+import { PrismaClientKnownRequestError } from "@prisma/client"
 import createPrismaClient from "./createPrismaClient"
 
 const data = {

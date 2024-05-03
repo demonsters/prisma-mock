@@ -3,19 +3,22 @@
   "version": "0.11.0-alpha.7",
   "description": "Mock prisma for unit testing database",
   "main": "lib/index.js",
-  "repository": "https://github.com/demonsters/prisma-mock",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/demonsters/prisma-mock.git"
+  },
   "license": "MIT",
   "types": "lib/",
   "files": [
     "lib/"
   ],
   "devDependencies": {
-    "@prisma/client": "4.7.1",
+    "@prisma/client": "5.13.0",
     "@types/jest": "^27.0.2",
     "cross-spawn": "^7.0.3",
     "env-cmd": "^10.1.0",
     "jest": "^27.3.1",
-    "prisma": "4.7.1",
+    "prisma": "5.13.0",
     "ts-jest": "^27.0.7",
     "typescript": "^4.4.4",
     "uuid": "^9.0.0"
@@ -31,6 +34,6 @@
     "@prisma/client": "^3.5.0 || ^4.7.0 || ^5.0.0"
   },
   "dependencies": {
-    "jest-mock-extended": "^2.0.4"
+    "jest-mock-extended": "^3.0.6"
   }
 }
