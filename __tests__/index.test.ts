@@ -1,7 +1,7 @@
 // @ts-nocheck
 
 import { PrismaClient } from "@prisma/client"
-import { PrismaClientKnownRequestError } from "@prisma/client/runtime"
+import { PrismaClientKnownRequestError } from "@prisma/client"
 import createPrismaClient from "./createPrismaClient"
 
 describe("PrismaClient", () => {

@@ -1,6 +1,6 @@
 // @ts-nocheck
 
-import { PrismaClientValidationError } from "@prisma/client/runtime"
+import { PrismaClientValidationError } from "@prisma/client"
 import createPrismaClient from "./createPrismaClient"
 
 
@@ -122,6 +122,7 @@ test("Should throw error when more then one key in orderBy field", async () => {
         customerId: "1",
       },
     ],
+  
   })
 
   await expect(client.stripe.findMany({
