@@ -451,24 +451,29 @@ const createPrismaMock = <P>(
                     item[field.relationToFields[0]],
                 }
               } else {
-                const map = (val) => ({
-                  ...val,
-                  [joinfield.name]: {
-                    connect: joinfield.relationToFields.reduce(
-                      (prev, cur, index) => {
-                        let val = d[cur]
-                        if (!isCreating && !val) {
-                          val = findOne(args)[cur]
-                        }
-                        return {
-                          ...prev,
-                          [cur]: val,
-                        }
-                      },
-                      {}
-                    ),
-                  },
-                })
+                const map = (val) => {
+                  if (joinfield.relationToFields.length === 0) {
+                    return val
+                  }
+                  return ({
+                    ...val,
+                    [joinfield.name]: {
+                      connect: joinfield.relationToFields.reduce(
+                        (prev, cur, index) => {
+                          let val = d[cur]
+                          if (!isCreating && !val) {
+                            val = findOne(args)[cur]
+                          }
+                          return {
+                            ...prev,
+                            [cur]: val,
+                          }
+                        },
+                        {}
+                      ),
+                    },
+                  })
+                }
 
                 let createdItems = []
                 if (c.createMany) {
