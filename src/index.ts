@@ -279,10 +279,10 @@ const createPrismaMock = <P>(
     }
 
     const nestedUpdate = (args, isCreating: boolean, item: any) => {
-      let d = args.data
-      Object.entries(d).forEach(([key, value]) => {
+      let inputData = args.data
+      Object.entries(inputData).forEach(([key, value]) => {
         if (typeof value === "undefined") {
-          delete d[key]
+          delete inputData[key]
         }
       })
       // Get field schema for default values
@@ -291,11 +291,11 @@ const createPrismaMock = <P>(
       })
 
       model.fields.forEach((field) => {
-        if (d[field.name]) {
-          const c = d[field.name]
+        if (inputData[field.name]) {
+          let inputFieldData = inputData[field.name]
 
           if (isCreating && (field.isUnique || field.isId)) {
-            const existing = findOne({ where: { [field.name]: c } })
+            const existing = findOne({ where: { [field.name]: inputFieldData } })
             if (existing) {
               throwKnownError(
                 `Unique constraint failed on the fields: (\`${field.name}\`)`,
@@ -305,11 +305,11 @@ const createPrismaMock = <P>(
           }
 
           if (field.kind === "object") {
-            if (c.set) {
+            if (inputFieldData.set) {
               const {
                 [field.name]: { set },
                 ...rest
-              } = d
+              } = inputData
 
               const otherModel = datamodel.models.find((model) => {
                 return model.name === field.type
@@ -319,12 +319,12 @@ const createPrismaMock = <P>(
                   field.relationName === otherField.relationName
               )
               const delegate = Delegate(getCamelCase(field.type), otherModel)
-              const items = c.set.map(where => delegate.findUnique({
+              const items = inputFieldData.set.map(where => delegate.findUnique({
                 where
               })).filter(Boolean)
 
-              if (items.length !== c.set.length) {
-                throwKnownError(`An operation failed because it depends on one or more records that were required but not found. Expected ${c.set.length} records to be connected, found only ${items.length}.`)
+              if (items.length !== inputFieldData.set.length) {
+                throwKnownError(`An operation failed because it depends on one or more records that were required but not found. Expected ${inputFieldData.set.length} records to be connected, found only ${items.length}.`)
               }
 
               const idField = model?.fields.find((f) => f.isId)?.name
@@ -333,18 +333,18 @@ const createPrismaMock = <P>(
               items.forEach((createdItem) => {
                 a.push({
                   [field.type]: createdItem,
-                  [otherField.type]: item || d
+                  [otherField.type]: item || inputData
                 })
               })
               manyToManyData[field.relationName] = a
 
-              d = rest
+              inputData = rest
             }
-            if (c.connect) {
+            if (inputFieldData.connect) {
               const {
                 [field.name]: { connect },
                 ...rest
-              } = d
+              } = inputData
               const connections = connect instanceof Array ? connect : [connect]
               connections.forEach((connect, idx) => {
                 const keyToMatch = Object.keys(connect)[0]
@@ -396,13 +396,13 @@ const createPrismaMock = <P>(
                     connectionValue = matchingRow[keyToGet]
                   }
                   if (targetKey) {
-                    d = {
+                    inputData = {
                       ...rest,
                       [targetKey]: connectionValue,
                     }
                   }
                 } else {
-                  d = rest
+                  inputData = rest
                   const otherModel = datamodel.models.find((model) => {
                     return model.name === field.type
                   })
@@ -423,7 +423,7 @@ const createPrismaMock = <P>(
                       data: {
                         [getCamelCase(otherField.name)]: {
                           connect: {
-                            [otherTargetKey]: d[otherTargetKey],
+                            [otherTargetKey]: inputData[otherTargetKey],
                           },
                         },
                       }
@@ -434,20 +434,40 @@ const createPrismaMock = <P>(
                       [field.type]: delegate.findOne({
                         where: connect
                       }),
-                      [otherField.type]: item || d
+                      [otherField.type]: item || inputData
                     })
                   }
                 }
               })
             }
-            if (c.create || c.createMany) {
+
+            if (inputFieldData.upsert) {
+              const args = inputFieldData.upsert
+
+              const name = getCamelCase(field.type)
+              const delegate = Delegate(name, model)
+              const res = delegate.findOne(args)
+              if (res) {
+                delegate.update({
+                  where: args.where,
+                  data: args.update,
+                })
+              } else {
+                inputFieldData = {
+                  ...inputFieldData,
+                  create: inputFieldData.upsert.create,
+                }
+              }
+            }
+
+            if (inputFieldData.create || inputFieldData.createMany) {
 
               const otherModel = datamodel.models.find((model) => {
                 return model.name === field.type
               })
 
-              const { [field.name]: create, ...rest } = d
-              d = rest
+              const { [field.name]: _create, ...rest } = inputData
+              inputData = rest
               // @ts-ignore
               const name = getCamelCase(field.type)
               const delegate = Delegate(name, otherModel)
@@ -456,9 +476,9 @@ const createPrismaMock = <P>(
 
               if (field.relationFromFields.length > 0) {
                 const item = delegate.create({
-                  data: create.create,
+                  data: inputFieldData.create,
                 })
-                d = {
+                inputData = {
                   ...rest,
                   [field.relationFromFields[0]]:
                     item[field.relationToFields[0]],
@@ -473,7 +493,7 @@ const createPrismaMock = <P>(
                     [joinfield.name]: {
                       connect: joinfield.relationToFields.reduce(
                         (prev, cur, index) => {
-                          let val = d[cur]
+                          let val = inputData[cur]
                           if (!isCreating && !val) {
                             val = findOne(args)[cur]
                           }
@@ -489,21 +509,22 @@ const createPrismaMock = <P>(
                 }
 
                 let createdItems = []
-                if (c.createMany) {
+                if (inputFieldData.createMany) {
                   createdItems = delegate._createMany({
-                    ...c.createMany,
-                    data: c.createMany.data.map(map),
+                    ...inputFieldData.createMany,
+                    data: inputFieldData.createMany.data.map(map),
                   })
                 } else {
-                  if (Array.isArray(c.create)) {
+                  const data = inputFieldData.create
+                  if (Array.isArray(data)) {
                     createdItems = delegate._createMany({
-                      ...c.create,
-                      data: c.create.map(map),
+                      ...data,
+                      data: data.map(map),
                     })
                   } else {
                     createdItems = [delegate.create({
-                      ...create.create,
-                      data: map(create.create),
+                      ...data,
+                      data: map(data),
                     })]
                   }
                 }
@@ -515,7 +536,7 @@ const createPrismaMock = <P>(
                   createdItems.forEach((createdItem) => {
                     a.push({
                       [field.type]: createdItem,
-                      [joinfield.type]: item || d
+                      [joinfield.type]: item || inputData
                     })
                   })
                 }
@@ -525,18 +546,18 @@ const createPrismaMock = <P>(
 
             const name = getCamelCase(field.type)
             const delegate = Delegate(name, model)
-            if (c.updateMany) {
-              if (Array.isArray(c.updateMany)) {
-                c.updateMany.forEach((updateMany) => {
+            if (inputFieldData.updateMany) {
+              if (Array.isArray(inputFieldData.updateMany)) {
+                inputFieldData.updateMany.forEach((updateMany) => {
                   delegate.updateMany(updateMany)
                 })
               } else {
-                delegate.updateMany(c.updateMany)
+                delegate.updateMany(inputFieldData.updateMany)
               }
             }
-            if (c.update) {
-              if (Array.isArray(c.update)) {
-                c.update.forEach((update) => {
+            if (inputFieldData.update) {
+              if (Array.isArray(inputFieldData.update)) {
+                inputFieldData.update.forEach((update) => {
                   delegate.update(update)
                 })
               } else {
@@ -544,34 +565,34 @@ const createPrismaMock = <P>(
                 const where = getFieldRelationshipWhere(item, field, model)
                 if (where) {
                   delegate.update({
-                    data: c.update,
+                    data: inputFieldData.update,
                     where,
                   })
                 }
               }
             }
-            if (c.deleteMany) {
-              if (Array.isArray(c.deleteMany)) {
-                c.deleteMany.forEach((where) => {
+            if (inputFieldData.deleteMany) {
+              if (Array.isArray(inputFieldData.deleteMany)) {
+                inputFieldData.deleteMany.forEach((where) => {
                   delegate.deleteMany({ where })
                 })
               } else {
-                delegate.deleteMany({ where: c.deleteMany })
+                delegate.deleteMany({ where: inputFieldData.deleteMany })
               }
             }
-            if (c.delete) {
-              if (Array.isArray(c.delete)) {
-                c.delete.forEach((where) => {
+            if (inputFieldData.delete) {
+              if (Array.isArray(inputFieldData.delete)) {
+                inputFieldData.delete.forEach((where) => {
                   delegate.delete({ where })
                 })
               } else {
-                delegate.delete({ where: c.delete })
+                delegate.delete({ where: inputFieldData.delete })
               }
             }
-            if (c.disconnect) {
+            if (inputFieldData.disconnect) {
               if (field.relationFromFields.length > 0) {
-                d = {
-                  ...d,
+                inputData = {
+                  ...inputData,
                   [field.relationFromFields[0]]: null,
                 }
               } else {
@@ -587,73 +608,73 @@ const createPrismaMock = <P>(
                 })
               }
             }
-            const { [field.name]: _update, ...rest } = d
-            d = rest
+            const { [field.name]: _update, ...rest } = inputData
+            inputData = rest
           }
           if (field.kind === "scalar") {
-            if (c.increment) {
-              d = {
-                ...d,
-                [field.name]: item[field.name] + c.increment,
+            if (inputFieldData.increment) {
+              inputData = {
+                ...inputData,
+                [field.name]: item[field.name] + inputFieldData.increment,
               }
             }
-            if (c.decrement) {
-              d = {
-                ...d,
-                [field.name]: item[field.name] - c.decrement,
+            if (inputFieldData.decrement) {
+              inputData = {
+                ...inputData,
+                [field.name]: item[field.name] - inputFieldData.decrement,
               }
             }
-            if (c.multiply) {
-              d = {
-                ...d,
-                [field.name]: item[field.name] * c.multiply,
+            if (inputFieldData.multiply) {
+              inputData = {
+                ...inputData,
+                [field.name]: item[field.name] * inputFieldData.multiply,
               }
             }
-            if (c.divide) {
-              const newValue = item[field.name] / c.divide
-              d = {
-                ...d,
+            if (inputFieldData.divide) {
+              const newValue = item[field.name] / inputFieldData.divide
+              inputData = {
+                ...inputData,
                 [field.name]:
                   field.type === "Int" ? Math.floor(newValue) : newValue,
               }
             }
-            if (c.set) {
-              d = {
-                ...d,
-                [field.name]: c.set,
+            if (inputFieldData.set) {
+              inputData = {
+                ...inputData,
+                [field.name]: inputFieldData.set,
               }
             }
           }
         }
 
         if (
-          (isCreating || d[field.name] === null) &&
-          (d[field.name] === null || d[field.name] === undefined)
+          (isCreating || inputData[field.name] === null) &&
+          (inputData[field.name] === null || inputData[field.name] === undefined)
         ) {
           if (field.hasDefaultValue) {
             if (IsFieldDefault(field.default)) {
               const defaultValue = HandleDefault(prop, field, data)
               if (defaultValue) {
-                d = {
-                  ...d,
+                inputData = {
+                  ...inputData,
                   [field.name]: defaultValue,
                 }
               }
             } else {
-              d = {
-                ...d,
+              inputData = {
+                ...inputData,
                 [field.name]: field.default,
               }
             }
           } else if (field.isUpdatedAt) {
-            d = {
-              ...d,
+            inputData = {
+              ...inputData,
               [field.name]: new Date(),
             }
           } else {
             if (field.kind !== "object") {
-              d = {
-                ...d,
+              inputData = {
+                ...inputData,
                 [field.name]: null,
               }
             }
@@ -661,7 +682,7 @@ const createPrismaMock = <P>(
         }
         // return field.name === key
       })
-      return d
+      return inputData
     }
 
     const matchItem = (child: any, item: any, where: any) => {
