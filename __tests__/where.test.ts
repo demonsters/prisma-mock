@@ -588,4 +588,15 @@ Array [
       expect(users.length).toEqual(2)
     })
   })
+
+  test("lt & undefined", async () => {
+    const client = await createPrismaClient(data)
+    const users = await client.user.findMany({
+      where: {
+        // This condition should be ignored
+        id: { lt: undefined }
+      },
+    })
+    expect(users.length).toEqual(2)
+  })
 })
