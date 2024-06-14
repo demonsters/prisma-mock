@@ -40,6 +40,10 @@ function IsFieldDefault(
   return (f as Prisma.DMMF.FieldDefault).name !== undefined
 }
 
+function isDefinedWithValue<T extends  object>(v: T, key: string): boolean {
+  return v[key] !== undefined
+}
+
 const throwPrismaError = (message: string, { code = "P2025", meta }: { code?: string, meta?: any } = {}, errorClass: any = Prisma.PrismaClientKnownRequestError) => {
   const clientVersion = Prisma.prismaVersion.client
   // PrismaClientKnownRequestError prototype changed in version 4.7.0
@@ -821,16 +825,16 @@ const createPrismaMock = <P>(
           if ("contains" in matchFilter && match) {
             match = val.indexOf(matchFilter.contains) > -1
           }
-          if ("gt" in matchFilter && match) {
+          if (isDefinedWithValue(matchFilter, "gt") && match) {
             match = val > matchFilter.gt
           }
-          if ("gte" in matchFilter && match) {
+          if (isDefinedWithValue(matchFilter, "gte") && match) {
             match = val >= matchFilter.gte
           }
-          if ("lt" in matchFilter && match) {
+          if (isDefinedWithValue(matchFilter, "lt") && match) {
             match = val < matchFilter.lt
           }
-          if ("lte" in matchFilter && match) {
+          if (isDefinedWithValue(matchFilter, "lte") && match) {
             match = val <= matchFilter.lte
           }
           if ("in" in matchFilter && match) {
