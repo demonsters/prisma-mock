@@ -183,7 +183,8 @@ test("findMany one to many", async () => {
       id: 1,
     },
     include: {
-      users: true
+      users: true,
+      guest: false
     },
   })
   expect(users[0]).toMatchInlineSnapshot(`

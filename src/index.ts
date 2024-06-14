@@ -1108,6 +1108,10 @@ const createPrismaMock = <P>(
           return getCamelCase(model.name) === prop
         })
 
+        if (!obj[key]) {
+          return
+        }
+
         if (key === "_count") {
           const select = obj[key]?.select
 
