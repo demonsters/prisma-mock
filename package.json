@@ -1,6 +1,6 @@
 {
   "name": "prisma-mock",
-  "version": "0.10.2",
+  "version": "0.10.3",
   "description": "Mock prisma for unit testing database",
   "main": "lib/index.js",
   "repository": {
