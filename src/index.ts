@@ -812,14 +812,14 @@ const createPrismaMock = <P>(
             }
           }
           if ("string_ends_with" in matchFilter && match) {
-            match = val ? val.indexOf(matchFilter.string_ends_with) === val.length - matchFilter.string_ends_with.length : false
+            match = val ? val.lastIndexOf(matchFilter.string_ends_with) === val.length - matchFilter.string_ends_with.length : false
           }
           if ("string_contains" in matchFilter && match) {
             match = val ? val?.indexOf(matchFilter.string_contains) !== -1 : false
           }
           if ("endsWith" in matchFilter && match) {
             match =
-              val.indexOf(matchFilter.endsWith) ===
+              val.lastIndexOf(matchFilter.endsWith) ===
               val.length - matchFilter.endsWith.length
           }
           if ("contains" in matchFilter && match) {
