@@ -32,8 +32,5 @@
   },
   "peerDependencies": {
     "@prisma/client": "^3.5.0 || ^4.7.0 || ^5.0.0"
-  },
-  "dependencies": {
-    "jest-mock-extended": "^3.0.6"
   }
 }

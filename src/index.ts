@@ -1,10 +1,13 @@
 import { Prisma } from "@prisma/client"
-import { mockDeep } from "jest-mock-extended"
 import HandleDefault, { ResetDefaults } from "./defaults"
 import { shallowCompare } from "./utils/shallowCompare"
 import { deepEqual } from "./utils/deepEqual"
 import { deepCopy } from "./utils/deepCopy"
 import getNestedValue from "./utils/getNestedValue"
+
+type DeepMockApi = {
+  mockImplementation: (fnc: any) => void
+}
 
 type UnwrapPromise<P extends any> = P extends Promise<infer R> ? R : P
 
@@ -40,7 +43,7 @@ function IsFieldDefault(
   return (f as Prisma.DMMF.FieldDefault).name !== undefined
 }
 
-function isDefinedWithValue<T extends  object>(v: T, key: string): boolean {
+function isDefinedWithValue<T extends object>(v: T, key: string): boolean {
   return v[key] !== undefined
 }
 
@@ -87,13 +90,24 @@ export type MockPrismaOptions = {
 const createPrismaMock = <P>(
   data: PrismaMockData<P> = {},
   datamodel = Prisma.dmmf.datamodel,
-  client = mockDeep<P>(),
+  mockClient: DeepMockApi,
   options: MockPrismaOptions = {
     caseInsensitive: false,
   }
 ): P & {
   $getInternalState: () => Required<PrismaMockData<P>>
 } => {
+
+  let client = mockClient ? mockClient : {}
+
+  const mockImplementation = (name: string, fnc: any) => {
+    if (mockClient) {
+      client[name].mockImplementation(fnc)
+    } else {
+      client[name] = fnc
+    }
+  }
+
   const manyToManyData: { [relationName: string]: Array<{ [type: string]: Item }> } = {}
 
   // let data = options.data || {}
@@ -186,7 +200,7 @@ const createPrismaMock = <P>(
     return joinfield
   }
 
-  client["$transaction"].mockImplementation(async (actions: Promise<any>[] | ((prisma: P) => Promise<any>)) => {
+  mockImplementation("$transaction", async (actions: Promise<any>[] | ((prisma: P) => Promise<any>)) => {
     const res = []
     if (Array.isArray(actions)) {
       for (const action of actions) {
@@ -205,9 +219,9 @@ const createPrismaMock = <P>(
     }
   })
 
-  client["$connect"].mockImplementation(async () => { })
-  client["$disconnect"].mockImplementation(async () => { })
-  client["$use"].mockImplementation(async () => {
+  mockImplementation("$connect", async () => { })
+  mockImplementation("$disconnect", async () => { })
+  mockImplementation("$use", async () => {
     throw new Error("$use is not yet implemented in prisma-mock")
   })
 
@@ -1317,9 +1331,15 @@ const createPrismaMock = <P>(
     Object.keys(objs).forEach((fncName) => {
       if (fncName.indexOf("_") === 0) return
       if (!client[c]) client[c] = {}
-      client[c][fncName].mockImplementation(async (...params) => {
-        return objs[fncName](...params)
-      })
+      if (mockClient) {
+        client[c][fncName].mockImplementation(async (...params) => {
+          return objs[fncName](...params)
+        })
+      } else {
+        client[c][fncName] = async (...params) => {
+          return objs[fncName](...params)
+        }
+      }
     })
   })
 
