@@ -216,6 +216,7 @@ const createPrismaMock = <P>(
     } else {
       const snapshot = deepCopy(data)
       try {
+        // @ts-ignore
         return await actions(client)
       }
       catch (error) {
