@@ -308,7 +308,6 @@ const createPrismaMock = <P>(
       const model = datamodel.models.find((model) => {
         return getCamelCase(model.name) === prop
       })
-
       model.fields.forEach((field) => {
         if (inputData[field.name]) {
           let inputFieldData = inputData[field.name]
@@ -582,9 +581,10 @@ const createPrismaMock = <P>(
               } else {
                 const item = findOne(args)
                 const where = getFieldRelationshipWhere(item, field, model)
+                const data = field.relationFromFields.length > 0 ? inputFieldData.update : inputFieldData.update.data
                 if (where) {
                   delegate.update({
-                    data: inputFieldData.update,
+                    data,
                     where,
                   })
                 }
