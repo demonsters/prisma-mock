@@ -8,7 +8,7 @@ export default function createIndexes() {
   let fields: Record<string, Record<string, Prisma.DMMF.Field>> = {}
   let idFieldNames: Record<string, string[]> = {}
 
-  const addIndexFieldIfNeeded = (tableName: string, field: Prisma.DMMF.Field) => {
+  const addIndexFieldIfNeeded = (tableName: string, field: Prisma.DMMF.Field, isPrimary: boolean) => {
     if (!indexedFieldNames[tableName]) {
       indexedFieldNames[tableName] = []
     }
@@ -21,12 +21,15 @@ export default function createIndexes() {
     let thisFields = fields[tableName]
     let thisFieldNames = indexedFieldNames[tableName]
     let thisIdFieldNames = idFieldNames[tableName]
-    if (thisFieldNames.includes(field.name)) return
-    if (field.isId || field.isUnique) {
-      thisFieldNames.push(field.name)
+    if (field.isId || field.isUnique || isPrimary) {
+      if (!thisFieldNames.includes(field.name)) {
+        thisFieldNames.push(field.name)
+      }
     }
-    if (field.isId) {
-      thisIdFieldNames.push(field.name)
+    if (field.isId || isPrimary) {
+      if (!thisIdFieldNames.includes(field.name)) {
+        thisIdFieldNames.push(field.name)
+      }
     }
     if (!!field.relationFromFields?.length) {
       const fieldName = field.relationFromFields[0]
@@ -68,22 +71,22 @@ export default function createIndexes() {
         items[tableName][fieldName] = new Map()
       }
       if (!item[fieldName]) {
-          if (oldItem && oldItem[fieldName]) {
-            const array = items[tableName][fieldName].get(oldItem[fieldName])
-            if (array) {
-              for (let i = 0; i < array.length; i++) {
-                const oldItem = array[i]
-                for (const thisIdFieldName of idFieldNames[tableName]) {
-                  if (item[thisIdFieldName] === oldItem[thisIdFieldName]) {
-                    array.splice(i, 1)
-                    i--
-                    continue
-                  }
+        if (oldItem && oldItem[fieldName]) {
+          const array = items[tableName][fieldName].get(oldItem[fieldName])
+          if (array) {
+            for (let i = 0; i < array.length; i++) {
+              const oldItem = array[i]
+              for (const thisIdFieldName of idFieldNames[tableName]) {
+                if (item[thisIdFieldName] === oldItem[thisIdFieldName]) {
+                  array.splice(i, 1)
+                  i--
+                  continue
                 }
               }
             }
           }
-          continue
+        }
+        continue
       }
       if (!items[tableName][fieldName].has(item[fieldName])) {
         items[tableName][fieldName].set(item[fieldName], [item])
@@ -100,6 +103,7 @@ export default function createIndexes() {
             let hasFound = false
             for (let i = 0; i < array.length; i++) {
               const oldItem = array[i]
+              thisIdFieldNames //?
               for (const thisIdFieldName of thisIdFieldNames) {
                 if (item[thisIdFieldName] === oldItem[thisIdFieldName]) {
                   hasFound = true

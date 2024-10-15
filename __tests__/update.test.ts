@@ -221,7 +221,7 @@ test("Multi dimensional update", async () => {
     }
   })
 
-  const user = await client.user.update({
+  await client.user.update({
     where: {
       id: 1,
     },
@@ -245,6 +245,18 @@ test("Multi dimensional update", async () => {
       }
     },
   });
+
+
+  const user = await client.user.findUnique({
+    where: {
+      id: 1,
+    },
+    include: {
+      answers: true,
+    },
+  })
+
+  expect(user?.answers.length).toBe(1)
 
   const answer = await client.answers.findUnique({
     where: {

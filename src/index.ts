@@ -580,11 +580,21 @@ const createPrismaMock = <P>(
                 })
               } else {
                 const item = findOne(args)
-                const where = getFieldRelationshipWhere(item, field, model)
-                const data = field.relationFromFields.length > 0 ? inputFieldData.update : inputFieldData.update.data
-                if (where) {
+                if (field.relationFromFields.length > 0) {
+                  const where = getFieldRelationshipWhere(item, field, model)
+                  const data = inputFieldData.update
+                  if (where) {
+                    delegate.update({
+                      data: inputFieldData.update,
+                      where,
+                    })
+                  }
+                } else {
+                  const where = getFieldRelationshipWhere(item, field, model) //?
+                  // TODO: 
+                  inputFieldData.update.where //?
                   delegate.update({
-                    data,
+                    data: inputFieldData.update.data,
                     where,
                   })
                 }
@@ -993,7 +1003,9 @@ const createPrismaMock = <P>(
       //   .map(includes(args))
 
       let items = indexes.getIndexedItems(prop, args?.where) || data[prop]
-
+      if (prop === 'userAnswers') {
+        items //?
+      }
       let res = []
       for (const item of items) {
         if (match(item)) {
@@ -1251,6 +1263,7 @@ const createPrismaMock = <P>(
           }
 
           if (schema.isList) {
+            console.log("delegate._findMany(subArgs)", delegate._findMany(subArgs))
             // Add relation
             newItem = {
               ...newItem,
@@ -1388,7 +1401,10 @@ const createPrismaMock = <P>(
     data = removeMultiFieldIds(model, data)
 
     model.fields.forEach((field) => {
-      indexes.addIndexFieldIfNeeded(c, field)
+      if (model.name === "UserAnswers") {
+        model.primaryKey?.fields.includes(field.name)
+      }
+      indexes.addIndexFieldIfNeeded(c, field, !!model.primaryKey?.fields.includes(field.name))
     })
 
     data[c].forEach((item) => {
