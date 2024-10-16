@@ -1263,7 +1263,6 @@ const createPrismaMock = <P>(
           }
 
           if (schema.isList) {
-            console.log("delegate._findMany(subArgs)", delegate._findMany(subArgs))
             // Add relation
             newItem = {
               ...newItem,
