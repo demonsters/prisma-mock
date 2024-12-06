@@ -299,11 +299,13 @@ const createPrismaMock = <P>(
 
     const nestedUpdate = (args, isCreating: boolean, item: any) => {
       let inputData = args.data
-      Object.entries(inputData).forEach(([key, value]) => {
-        if (typeof value === "undefined") {
-          delete inputData[key]
-        }
-      })
+      if (inputData) {
+        Object.entries(inputData).forEach(([key, value]) => {
+          if (typeof value === "undefined") {
+            delete inputData[key]
+          }
+        })
+      }
       // Get field schema for default values
       const model = datamodel.models.find((model) => {
         return getCamelCase(model.name) === prop
