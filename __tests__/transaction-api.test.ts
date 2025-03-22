@@ -25,7 +25,7 @@ describe("prisma.$transaction", () => {
       client.user.findMany({ where: { name: { contains: "Henk" } } }),
       client.user.count(),
     ]);
-  
+
     expect(henks[0].accountId).toEqual(1);
     expect(totalUsers).toEqual(2);
   });
@@ -70,5 +70,23 @@ describe("prisma.$transaction", () => {
 
     expect(allUsers).toHaveLength(3)
     expect(result).toEqual('success');
+  })
+
+  test("restore date values", async () => {
+    const client = createPrismaClient(data);
+
+    const original = await client.post.create({
+      data: {
+        title: 'Hello, world!',
+      }
+    });
+    try {
+      await client.$transaction(() => {
+        throw 'rollback';
+      });
+    } catch {}
+
+    const actual = await client.post.findFirst();
+    expect(JSON.stringify(original)).toBe(JSON.stringify(actual));
   })
 });
