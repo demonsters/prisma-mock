@@ -1,9 +1,21 @@
 
 
 // deepEqual
-export function deepEqual(a: any, b: any) {
-  if ((typeof a == 'object' && a != null) &&
-    (typeof b == 'object' && b != null)) {
+export function deepEqual(a: any, b: any): boolean {
+  if (a === b) {
+    return true;
+  }
+  if ((typeof a === 'object' && a !== null) &&
+    (typeof b === 'object' && b !== null)) {
+    if (a instanceof Date) {
+      if (b instanceof Date) {
+        return a.getTime() === b.getTime();
+      }
+      return false;
+    } else if (b instanceof Date) {
+      return false;
+    }
+
     var count = [0, 0]
     for (var key in a) count[0]++
     for (var key in b) count[1]++
@@ -16,5 +28,5 @@ export function deepEqual(a: any, b: any) {
     }
     return true
   }
-  return a === b
+  return false;
 }
