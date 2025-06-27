@@ -12,6 +12,7 @@ const createPrismaMock = <P>(
   mockClient: DeepMockApi,
   options: MockPrismaOptions = {
     caseInsensitive: false,
+    enableIndexes: true,
   }
 ): P & {
   $getInternalState: () => Required<PrismaMockData<P>>
@@ -30,7 +31,7 @@ const createPrismaMock = <P>(
     }
   }
 
-  const indexes = createIndexes()
+  const indexes = createIndexes(!!options.enableIndexes)
 
   const caseInsensitive = options.caseInsensitive || false
 
@@ -76,9 +77,6 @@ const createPrismaMock = <P>(
     ref.data = removeMultiFieldIds(model, ref.data)
 
     model.fields.forEach((field) => {
-      if (model.name === "UserAnswers") {
-        model.primaryKey?.fields.includes(field.name)
-      }
       indexes.addIndexFieldIfNeeded(c, field, !!model.primaryKey?.fields.includes(field.name))
     })
 

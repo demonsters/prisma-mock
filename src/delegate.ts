@@ -1,6 +1,6 @@
 import { Prisma } from "@prisma/client"
 import HandleDefault from "./defaults"
-import { createGetFieldRelationshipWhere, getCamelCase, getJoinField, IsFieldDefault, removeMultiFieldIds } from "./utils/fieldHelpers"
+import { createGetFieldRelationshipWhere, getCamelCase, IsFieldDefault, removeMultiFieldIds } from "./utils/fieldHelpers"
 import { throwKnownError, throwValidationError } from "./errors"
 import { CreateArgs, Item } from "./types"
 import createMatch from "./utils/queryMatching"
@@ -31,7 +31,6 @@ export const createDelegate = (
   const Delegate = (prop: string, model: Prisma.DMMF.Model) => {
 
     const matchFnc = createMatch({ getFieldRelationshipWhere, Delegate, model, datamodel, caseInsensitive })
-
 
     const sortFunc = (orderBy) => (a, b) => {
       if (Array.isArray(orderBy)) {
@@ -623,11 +622,28 @@ export const createDelegate = (
       }
       ref.data = removeMultiFieldIds(model, ref.data)
 
+
+      // Create where from fields unique identifier
       let where = {}
-      for (const field of model.fields) {
-        if (field.default) {
-          where[field.name] = d[field.name]
+      const fields = model.primaryKey?.fields
+      if (!fields || fields.length === 0) {
+        model.fields //?
+        for (const field of model.fields) {
+          if (field.isUnique || field.isId) {
+            where[field.name] = d[field.name]
+          }
         }
+      } else if (fields.length > 1) {
+        for (const field of fields) {
+          where[field] = d[field]
+        }
+        where = {
+          [fields.join("_")]: where
+        }
+      }
+      if (prop === 'userAnswers') {
+        prop //?
+        where //?
       }
       const item = findOne({ where, ...args })
       indexes.updateItem(prop, item, null)

@@ -1,5 +1,5 @@
 import { Prisma } from "@prisma/client";
-import { PrismaMockData } from "..";
+import { PrismaMockData } from "../types";
 
 let autoincrement_cache: { [key: string]: number | bigint } = {};
 

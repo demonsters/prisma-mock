@@ -1,7 +1,7 @@
 import { Prisma } from "@prisma/client"
 
 
-export default function createIndexes() {
+export default function createIndexes(isEnabled: boolean) {
 
   let items: Record<string, Record<string, Map<any, any[]>>> = {}
   let indexedFieldNames: Record<string, string[]> = {}
@@ -9,6 +9,9 @@ export default function createIndexes() {
   let idFieldNames: Record<string, string[]> = {}
 
   const addIndexFieldIfNeeded = (tableName: string, field: Prisma.DMMF.Field, isPrimary: boolean) => {
+    if (!isEnabled) {
+      return
+    }
     if (!indexedFieldNames[tableName]) {
       indexedFieldNames[tableName] = []
     }
@@ -39,6 +42,9 @@ export default function createIndexes() {
   }
 
   const getIndexedItems = (tableName: string, where: any) => {
+    if (!isEnabled) {
+      return null
+    }
     for (const field in where) {
       if (field === "AND") {
         const subWhere = where.AND
@@ -52,14 +58,26 @@ export default function createIndexes() {
         }
       }
       if (indexedFieldNames[tableName]) {
-        if (indexedFieldNames[tableName].includes(field)) {
-          return items[tableName]?.[field]?.get(where[field])
+        if (typeof where[field] === "object") {
+          for (const key in where[field]) {
+            if (indexedFieldNames[tableName].includes(key)) {
+              return items[tableName]?.[field]?.get(where[field][key])
+            }
+          }
+        } else {
+          if (indexedFieldNames[tableName].includes(field)) {
+            return items[tableName]?.[field]?.get(where[field])
+          }
         }
       }
+
     }
   }
 
   const updateItem = (tableName: string, item: any, oldItem: any | null) => {
+    if (!isEnabled) {
+      return
+    }
     if (!items[tableName]) {
       items[tableName] = {}
     }
@@ -103,7 +121,6 @@ export default function createIndexes() {
             let hasFound = false
             for (let i = 0; i < array.length; i++) {
               const oldItem = array[i]
-              thisIdFieldNames //?
               for (const thisIdFieldName of thisIdFieldNames) {
                 if (item[thisIdFieldName] === oldItem[thisIdFieldName]) {
                   hasFound = true
@@ -122,6 +139,9 @@ export default function createIndexes() {
   }
 
   const deleteItemByField = (tableName: string, field: Prisma.DMMF.Field, item: any) => {
+    if (!isEnabled) {
+      return
+    }
     if (indexedFieldNames[tableName]) {
       if (indexedFieldNames[tableName].includes(field.name)) {
         items[tableName]?.[field.name]?.delete(item[field.name])

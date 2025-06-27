@@ -366,7 +366,7 @@ test("Should create many records", async () => {
       uniqueField: "2",
     }
   })
-  const workspace = await prismaMock.answers.create({
+  const answer = await prismaMock.answers.create({
     data: {
       title: "Test Workspace",
       users: {
@@ -394,20 +394,20 @@ test("Should create many records", async () => {
       users: true
     }
   })
-  expect(workspace).toMatchInlineSnapshot(`
+  expect(answer).toMatchInlineSnapshot(`
 Object {
   "id": 1,
   "title": "Test Workspace",
   "users": Array [
     Object {
       "answerId": 1,
-      "userId": 2,
-      "value": "2",
+      "userId": 1,
+      "value": "1",
     },
     Object {
       "answerId": 1,
-      "userId": 1,
-      "value": "1",
+      "userId": 2,
+      "value": "2",
     },
   ],
 }

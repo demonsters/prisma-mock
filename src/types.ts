@@ -31,4 +31,5 @@ export type CreateArgs = any
 
 export type MockPrismaOptions = {
   caseInsensitive?: boolean
+  enableIndexes?: boolean
 } 
