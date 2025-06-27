@@ -352,6 +352,69 @@ Array [
 })
 
 
+test("Should create many records", async () => {
+
+  const prismaMock = await createPrismaClient()
+  const user1 = await prismaMock.user.create({
+    data: {
+      name: "User 1",
+      uniqueField: "1",
+    }
+  })
+  const user2 = await prismaMock.user.create({
+    data: {
+      name: "User 2",
+      uniqueField: "2",
+    }
+  })
+  const workspace = await prismaMock.answers.create({
+    data: {
+      title: "Test Workspace",
+      users: {
+        create: [
+          {
+            user: {
+              connect: {
+                id: user1.id
+              }
+            },
+            value: "1"
+          },
+          {
+            user: {
+              connect: {
+                id: user2.id
+              }
+            },
+            value: "2"
+          }
+        ]
+      }
+    },
+    include: {
+      users: true
+    }
+  })
+  expect(workspace).toMatchInlineSnapshot(`
+Object {
+  "id": 1,
+  "title": "Test Workspace",
+  "users": Array [
+    Object {
+      "answerId": 1,
+      "userId": 1,
+      "value": "1",
+    },
+    Object {
+      "answerId": 1,
+      "userId": 2,
+      "value": "2",
+    },
+  ],
+}
+`)
+})
+
 
 xtest("connectOrCreate create", async () => {
 
