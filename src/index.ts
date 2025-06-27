@@ -12,7 +12,7 @@ const createPrismaMock = <P>(
   mockClient: DeepMockApi,
   options: MockPrismaOptions = {
     caseInsensitive: false,
-    enableIndexes: true,
+    enableIndexes: false,
   }
 ): P & {
   $getInternalState: () => Required<PrismaMockData<P>>
