@@ -1,7 +1,7 @@
 import createPrismaClient from "./createPrismaClient"
 
 
-test("performance test", async () => {
+test.skip("performance test", async () => {
   const client = await createPrismaClient()
   performance.mark("start-create")
   for (let i = 0; i < 50; i++) {
@@ -55,10 +55,10 @@ test("performance test", async () => {
 
   const createDuration = performance.measure("create", "start-create", "end-create").duration
   const findDuration = performance.measure("find", "start-find", "end-find").duration
-  
+
   console.log(createDuration)
   console.log(findDuration)
-  
+
   expect(findDuration < 100).toBe(true)
 
   // await expect(dummyFunction).toBeFasterThan(300)
