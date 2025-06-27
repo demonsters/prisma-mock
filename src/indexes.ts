@@ -1,7 +1,7 @@
 import { Prisma } from "@prisma/client"
 
 
-export default function createIndexes(isEnabled: boolean) {
+export default function createIndexes(isEnabled: boolean = true) {
 
   let items: Record<string, Record<string, Map<any, any[]>>> = {}
   let indexedFieldNames: Record<string, string[]> = {}
