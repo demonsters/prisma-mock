@@ -226,7 +226,6 @@ test("findOne nested where", async () => {
       }
     }
   })
-
   expect(account).toMatchInlineSnapshot(`
 Object {
   "id": 1,

@@ -1,6 +1,6 @@
 import { Prisma } from "@prisma/client";
 
-import { PrismaMockData } from "..";
+import { PrismaMockData } from "../types";
 
 import autoincrement, { reset as ResetAutoInc } from "./autoincrement";
 import Cuid, { ResetCuid } from "./cuid";
@@ -19,10 +19,10 @@ registry.set("now", Now);
 export default function HandleDefault<P>(
   prop: string,
   field: Prisma.DMMF.Field,
-  data: PrismaMockData<P>
+  ref: { data: PrismaMockData<P> }
 ): any {
   const key = (field.default as FieldDefault).name;
-  const val = registry.get(key)?.(prop, field, data);
+  const val = registry.get(key)?.(prop, field, ref.data);
   return val;
 }
 

@@ -36,11 +36,13 @@ describe("prisma.$transaction", () => {
 
     try {
       await client.$transaction(async tx => {
-        tx.user.create({ data: {
-          id: 3,
-          name: 'Anonymous',
-          accountId: 3
-        }})
+        tx.user.create({
+          data: {
+            id: 3,
+            name: 'Anonymous',
+            accountId: 3
+          }
+        })
         throw new Error('failed')
       })
     } catch (error) {
@@ -58,11 +60,13 @@ describe("prisma.$transaction", () => {
     const client = createPrismaClient(data);
 
     const result = await client.$transaction(async tx => {
-      tx.user.create({ data: {
-        id: 3,
-        name: 'Anonymous',
-        accountId: 3
-      }})
+      tx.user.create({
+        data: {
+          id: 3,
+          name: 'Anonymous',
+          accountId: 3
+        }
+      })
       return 'success';
     })
 
@@ -84,7 +88,7 @@ describe("prisma.$transaction", () => {
       await client.$transaction(() => {
         throw 'rollback';
       });
-    } catch {}
+    } catch { }
 
     const actual = await client.post.findFirst();
     expect(JSON.stringify(original)).toBe(JSON.stringify(actual));

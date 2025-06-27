@@ -31,12 +31,11 @@ test("Select", async () => {
       name: "123",
       participants: {
         connect: {
-          id: account.id
+          id: user.id
         }
       }
     }
   })
-
   const documents = await prismaMock.document.findMany({
     where: {
       participants: {
@@ -402,13 +401,13 @@ Object {
   "users": Array [
     Object {
       "answerId": 1,
-      "userId": 1,
-      "value": "1",
+      "userId": 2,
+      "value": "2",
     },
     Object {
       "answerId": 1,
-      "userId": 2,
-      "value": "2",
+      "userId": 1,
+      "value": "1",
     },
   ],
 }

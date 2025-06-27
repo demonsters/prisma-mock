@@ -22,14 +22,14 @@ export default function autoincrement<P>(
   } else {
     if (m === undefined) {
       m = 0;
-      data[prop].forEach((item: { [x: string]: number }) => {
+      data[prop]?.forEach((item: { [x: string]: number }) => {
         m = Math.max(m as number, item[field.name]);
       });
     }
     m = (m as number) + 1;
     autoincrement_cache[key] = m;
   }
-  
+
   return m;
 }
 
