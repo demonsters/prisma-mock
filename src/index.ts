@@ -1,5 +1,4 @@
 import { Prisma } from "@prisma/client"
-import { ResetDefaults } from "./defaults"
 import { createDelegate } from "./delegate"
 import createIndexes from "./indexes"
 import { DeepMockApi, Item, MockPrismaOptions, PrismaMockData } from "./types"
@@ -35,7 +34,6 @@ const createPrismaMock = <P>(
 
   const caseInsensitive = options.caseInsensitive || false
 
-  ResetDefaults()
 
   mockImplementation("$transaction", async (actions: Promise<any>[] | ((prisma: P) => Promise<any>)) => {
     const res = []

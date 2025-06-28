@@ -1,5 +1,4 @@
 import { Prisma } from "@prisma/client"
-import { throwKnownError } from "../errors"
 import { Item } from "../types"
 
 export function IsFieldDefault(

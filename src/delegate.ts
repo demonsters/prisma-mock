@@ -1,5 +1,5 @@
 import { Prisma } from "@prisma/client"
-import HandleDefault from "./defaults"
+import createHandleDefault from "./defaults"
 import { createGetFieldRelationshipWhere, getCamelCase, IsFieldDefault, removeMultiFieldIds } from "./utils/fieldHelpers"
 import { throwKnownError, throwValidationError } from "./errors"
 import { CreateArgs, Item } from "./types"
@@ -13,6 +13,9 @@ export const createDelegate = (
   caseInsensitive: boolean,
   indexes: ReturnType<typeof createIndexes>,
 ) => {
+
+  const handleDefaults = createHandleDefault()
+
   const manyToManyData: { [relationName: string]: Array<{ [type: string]: Item }> } = {}
 
   const getFieldRelationshipWhere = createGetFieldRelationshipWhere(datamodel, manyToManyData)
@@ -477,7 +480,7 @@ export const createDelegate = (
         ) {
           if (field.hasDefaultValue) {
             if (IsFieldDefault(field.default)) {
-              const defaultValue = HandleDefault(prop, field, ref)
+              const defaultValue = handleDefaults(prop, field, ref)
               if (defaultValue) {
                 inputData = {
                   ...inputData,

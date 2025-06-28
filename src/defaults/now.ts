@@ -1,3 +1,3 @@
-const Now = () => new Date();
+const createNow = () => new Date();
 
-export default Now;
+export default createNow;
