@@ -2,7 +2,7 @@
 
 This is a mock of the Prisma API intended for unit testing. All the data is stored in memory.
 
-The library `jest-mock-extended` is used, which means that if functionality you need is not implemented yet, you can mock it yourself.
+The library `jest-mock-extended` or `vitest-mock-extended` is used, which means that if functionality you need is not implemented yet, you can mock it yourself.
 
 # Usage
 
@@ -84,8 +84,6 @@ A `jest-mock-extended` instance. If not provided, a new instance is created.
 #### Arg: `caseInsensitive`
 
 If true, all string comparisons are case insensitive.
-
-
 
 # Supported features
 
@@ -178,7 +176,7 @@ TODO (has, hasEvery, hasSome, isEmpty, equals)
 
 - path
 - string_contains
-- string_starts_with 
+- string_starts_with
 - string_ends_with
 - array_contains
 - array_starts_with
@@ -230,11 +228,13 @@ Create a `.env-cmdrc` file in the root of your project with the following conten
 ```
 
 ## Writing Tests
+
 Create your tests in the `__tests__` directory. You can use snapshot testing with either `expect(res).toMatchSnapshot()` or `expect(res).toMatchInlineSnapshot()`. This captures the result of your tests in a snapshot, which you can use to compare agains prisma-mock results.
 
 Note: If you choose to use snapshot testing, make shore to first run your tests against the real database to create a snapshot of the expected result.
 
 ## Running Tests
+
 To run tests against a postgres database, run the following command:
 
 ```bash
