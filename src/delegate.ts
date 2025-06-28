@@ -7,19 +7,30 @@ import createMatch from "./utils/queryMatching"
 import { shallowCompare } from "./utils/shallowCompare"
 import createIndexes from "./indexes"
 
+/**
+ * Creates a delegate function that handles Prisma-like operations for a specific model
+ * This is the main factory function that generates model-specific CRUD operations
+ */
 export const createDelegate = (
-  ref: any,
-  datamodel: Prisma.DMMF.Datamodel,
-  caseInsensitive: boolean,
-  indexes: ReturnType<typeof createIndexes>,
+  ref: any, // Reference to the mock data store
+  datamodel: Prisma.DMMF.Datamodel, // Prisma datamodel definition
+  caseInsensitive: boolean, // Whether string comparisons should be case insensitive
+  indexes: ReturnType<typeof createIndexes>, // Index management for performance
 ) => {
 
+  // Initialize default value handler
   const handleDefaults = createHandleDefault()
 
+  // Store many-to-many relationship data separately from the main data store
   const manyToManyData: { [relationName: string]: Array<{ [type: string]: Item }> } = {}
 
+  // Create function to get relationship where clauses
   const getFieldRelationshipWhere = createGetFieldRelationshipWhere(datamodel, manyToManyData)
 
+  /**
+   * Finds the corresponding field in a join model for a given relation field
+   * Used for many-to-many relationships to find the join table field
+   */
   const getJoinField = (field: Prisma.DMMF.Field) => {
     const joinmodel = datamodel.models.find((model) => {
       return model.name === field.type
@@ -31,11 +42,22 @@ export const createDelegate = (
     return joinfield
   }
 
+  /**
+   * Creates a delegate for a specific model with all CRUD operations
+   * @param prop - The model name in camelCase
+   * @param model - The Prisma model definition
+   */
   const Delegate = (prop: string, model: Prisma.DMMF.Model) => {
 
+    // Create matching function for WHERE clauses
     const matchFnc = createMatch({ getFieldRelationshipWhere, Delegate, model, datamodel, caseInsensitive })
 
+    /**
+     * Sorting function that handles both simple and nested orderBy clauses
+     * Supports multiple sort criteria and nested relation sorting
+     */
     const sortFunc = (orderBy) => (a, b) => {
+      // Handle array of orderBy clauses (multiple sort criteria)
       if (Array.isArray(orderBy)) {
         for (const order of orderBy) {
           const res = sortFunc(order)(a, b)
@@ -45,6 +67,8 @@ export const createDelegate = (
         }
         return 0
       }
+
+      // Validate that only one sort field is provided
       const keys = Object.keys(orderBy)
       if (keys.length > 1) {
         throwValidationError(
@@ -53,11 +77,16 @@ export const createDelegate = (
           )}. Please choose one.`
         )
       }
+
+      // Create include function to handle nested relations during sorting
       const incl = includes({
         include: keys.reduce((acc, key) => ({ ...acc, [key]: true }), {}),
       })
+
       for (const key of keys) {
         const dir = orderBy[key]
+
+        // Handle nested relation sorting
         if (typeof dir === "object") {
           const schema = model.fields.find((field) => {
             return field.name === key
@@ -82,6 +111,7 @@ export const createDelegate = (
             return res
           }
         } else if (!!a && !!b) {
+          // Handle simple field sorting
           if (a[key] > b[key]) {
             return dir === "asc" ? 1 : -1
           } else if (a[key] < b[key]) {
@@ -92,9 +122,14 @@ export const createDelegate = (
       return 0
     }
 
-
+    /**
+     * Handles nested updates including relations, scalar operations, and default values
+     * This is the core function that processes create/update data
+     */
     const nestedUpdate = (args, isCreating: boolean, item: any) => {
       let inputData = args.data
+
+      // Remove undefined values from input data
       if (inputData) {
         Object.entries(inputData).forEach(([key, value]) => {
           if (typeof value === "undefined") {
@@ -102,14 +137,17 @@ export const createDelegate = (
           }
         })
       }
+
       // Get field schema for default values
       const model = datamodel.models.find((model) => {
         return getCamelCase(model.name) === prop
       })
+
       model.fields.forEach((field) => {
         if (inputData[field.name]) {
           let inputFieldData = inputData[field.name]
 
+          // Check for unique constraint violations during creation
           if (isCreating && (field.isUnique || field.isId)) {
             const existing = findOne({ where: { [field.name]: inputFieldData } })
             if (existing) {
@@ -120,7 +158,9 @@ export const createDelegate = (
             }
           }
 
+          // Handle relation fields (object type)
           if (field.kind === "object") {
+            // Handle set operation for many-to-many relations
             if (inputFieldData.set) {
               const {
                 [field.name]: { set },
@@ -143,6 +183,7 @@ export const createDelegate = (
                 throwKnownError(`An operation failed because it depends on one or more records that were required but not found. Expected ${inputFieldData.set.length} records to be connected, found only ${items.length}.`)
               }
 
+              // Update many-to-many data store
               const idField = model?.fields.find((f) => f.isId)?.name
               let a = manyToManyData[field.relationName] = manyToManyData[field.relationName] || []
               a = a.filter(i => i[otherField.type][idField] !== item[idField])
@@ -156,6 +197,8 @@ export const createDelegate = (
 
               inputData = rest
             }
+
+            // Handle connect operation for relations
             if (inputFieldData.connect) {
               const {
                 [field.name]: { connect },
@@ -177,6 +220,7 @@ export const createDelegate = (
                       }
                     )
                     if (!matchingRow) {
+                      // Try to find by unique index if direct match fails
                       const refModel = datamodel.models.find(
                         (model) =>
                           getCamelCase(field.type) === getCamelCase(model.name)
@@ -257,6 +301,7 @@ export const createDelegate = (
               })
             }
 
+            // Handle upsert operation
             if (inputFieldData.upsert) {
               const args = inputFieldData.upsert
 
@@ -276,6 +321,7 @@ export const createDelegate = (
               }
             }
 
+            // Handle create operations for relations
             if (inputFieldData.create || inputFieldData.createMany) {
 
               const otherModel = datamodel.models.find((model) => {
@@ -291,6 +337,7 @@ export const createDelegate = (
               const joinfield = getJoinField(field)
 
               if (field.relationFromFields.length > 0) {
+                // One-to-many relation: create the related item and set foreign key
                 const item = delegate.create({
                   data: inputFieldData.create,
                 })
@@ -300,6 +347,7 @@ export const createDelegate = (
                     item[field.relationToFields[0]],
                 }
               } else {
+                // Many-to-many relation: create items and manage join table
                 const map = (val) => {
                   if (joinfield.relationToFields.length === 0) {
                     return val
@@ -360,6 +408,7 @@ export const createDelegate = (
               }
             }
 
+            // Handle update operations for relations
             const name = getCamelCase(field.type)
             const delegate = Delegate(name, model)
             if (inputFieldData.updateMany) {
@@ -398,6 +447,8 @@ export const createDelegate = (
                 }
               }
             }
+
+            // Handle delete operations for relations
             if (inputFieldData.deleteMany) {
               if (Array.isArray(inputFieldData.deleteMany)) {
                 inputFieldData.deleteMany.forEach((where) => {
@@ -416,6 +467,8 @@ export const createDelegate = (
                 delegate.delete({ where: inputFieldData.delete })
               }
             }
+
+            // Handle disconnect operation
             if (inputFieldData.disconnect) {
               if (field.relationFromFields.length > 0) {
                 inputData = {
@@ -438,6 +491,8 @@ export const createDelegate = (
             const { [field.name]: _update, ...rest } = inputData
             inputData = rest
           }
+
+          // Handle scalar field operations
           if (field.kind === "scalar") {
             if (inputFieldData.increment) {
               inputData = {
@@ -474,6 +529,7 @@ export const createDelegate = (
           }
         }
 
+        // Handle default values and special field types
         if (
           (isCreating || inputData[field.name] === null) &&
           (inputData[field.name] === null || inputData[field.name] === undefined)
@@ -494,6 +550,7 @@ export const createDelegate = (
               }
             }
           } else if (field.isUpdatedAt) {
+            // Auto-update updatedAt fields
             inputData = {
               ...inputData,
               [field.name]: new Date(),
@@ -512,7 +569,10 @@ export const createDelegate = (
       return inputData
     }
 
-
+    /**
+     * Finds a single record matching the given criteria
+     * Returns null if no record is found
+     */
     const findOne = (args: any) => {
       if (!ref.data[prop]) return null
       const items = findMany(args)
@@ -522,6 +582,9 @@ export const createDelegate = (
       return items[0]
     }
 
+    /**
+     * Finds a single record or throws an error if not found
+     */
     const findOrThrow = (args) => {
       const found = findOne(args)
       if (!found) {
@@ -530,6 +593,10 @@ export const createDelegate = (
       return found
     }
 
+    /**
+     * Finds multiple records matching the given criteria
+     * Handles filtering, sorting, pagination, and includes
+     */
     const findMany = (args) => {
       const match = matchFnc(args?.where)
       const inc = includes(args)
@@ -543,6 +610,7 @@ export const createDelegate = (
         }
       }
 
+      // Handle distinct filtering
       if (args?.distinct) {
         let values = {}
         res = res.filter((item) => {
@@ -559,9 +627,13 @@ export const createDelegate = (
           return shouldInclude
         })
       }
+
+      // Apply sorting
       if (args?.orderBy) {
         res.sort(sortFunc(args?.orderBy))
       }
+
+      // Apply field selection
       if (args?.select) {
         res = res.map((item) => {
           const newItem = {}
@@ -569,17 +641,22 @@ export const createDelegate = (
           return newItem
         })
       }
+
+      // Apply cursor-based pagination
       if (args?.cursor !== undefined) {
         const cursorVal = res.findIndex((r) => Object.keys(args?.cursor).every((key) => r[key] === args?.cursor[key])
         )
         res = res.slice(cursorVal)
       }
+
+      // Apply skip/take pagination
       if (args?.skip !== undefined || args?.take !== undefined) {
         const start = args?.skip !== undefined ? args?.skip : 0
         const end = args?.take !== undefined ? start + args.take : undefined
         res = res.slice(start, end)
       }
-      // Replace nulls
+
+      // Replace Prisma null types with JavaScript null
       res = res.map((item) => {
         const newItem = {}
         Object.keys(item).forEach((key) => {
@@ -594,6 +671,10 @@ export const createDelegate = (
       return res
     }
 
+    /**
+     * Updates multiple records matching the given criteria
+     * Returns the updated data and count of updated records
+     */
     const updateMany = (args) => {
       let nbUpdated = 0
       const newItems = ref.data[prop].map((e) => {
@@ -617,6 +698,10 @@ export const createDelegate = (
       return { data: ref.data, nbUpdated }
     }
 
+    /**
+     * Creates a new record with the given data
+     * Handles default values, unique constraints, and indexes
+     */
     const create = (args: CreateArgs) => {
       const d = nestedUpdate(args, true, null)
       ref.data = {
@@ -625,12 +710,10 @@ export const createDelegate = (
       }
       ref.data = removeMultiFieldIds(model, ref.data)
 
-
-      // Create where from fields unique identifier
+      // Create where clause from unique identifier fields for index update
       let where = {}
       const fields = model.primaryKey?.fields
       if (!fields || fields.length === 0) {
-        model.fields //?
         for (const field of model.fields) {
           if (field.isUnique || field.isId) {
             where[field.name] = d[field.name]
@@ -644,15 +727,15 @@ export const createDelegate = (
           [fields.join("_")]: where
         }
       }
-      if (prop === 'userAnswers') {
-        prop //?
-        where //?
-      }
       const item = findOne({ where, ...args })
       indexes.updateItem(prop, item, null)
       return item
     }
 
+    /**
+     * Creates multiple records with the given data
+     * Supports skipDuplicates option to handle unique constraint violations
+     */
     const createMany = (args) => {
       const skipDuplicates = args.skipDuplicates ?? false
       return (Array.isArray(args.data) ? args.data : [args.data])
@@ -670,7 +753,10 @@ export const createDelegate = (
         .filter((item) => item !== null)
     }
 
-
+    /**
+     * Deletes multiple records matching the given criteria
+     * Handles referential actions (cascade, set null) for related records
+     */
     const deleteMany = (args) => {
       const model = datamodel.models.find((model) => {
         return getCamelCase(model.name) === prop
@@ -688,7 +774,7 @@ export const createDelegate = (
         }),
       }
 
-      // Referential Actions
+      // Handle referential actions for deleted records
       deleted.forEach((item) => {
 
         model.fields.forEach((field) => {
@@ -725,6 +811,10 @@ export const createDelegate = (
       return deleted
     }
 
+    /**
+     * Handles include and select operations for relations
+     * Resolves nested relations and applies filtering
+     */
     const includes = (args: any) => (item: any) => {
       if ((!args?.include && !args?.select) || !item) return item
       let newItem = item
@@ -733,7 +823,6 @@ export const createDelegate = (
 
       keys.forEach((key) => {
         // Get field schema for relation info
-
         const model = datamodel.models.find((model) => {
           return getCamelCase(model.name) === prop
         })
@@ -742,6 +831,7 @@ export const createDelegate = (
           return
         }
 
+        // Handle _count aggregation
         if (key === "_count") {
           const select = obj[key]?.select
 
@@ -805,12 +895,13 @@ export const createDelegate = (
           }
 
           if (schema.isList) {
-            // Add relation
+            // Add relation for one-to-many or many-to-many
             newItem = {
               ...newItem,
               [key]: delegate._findMany(subArgs),
             }
           } else {
+            // Add relation for one-to-one
             newItem = {
               ...newItem,
               [key]: delegate._findMany(subArgs)?.[0] || null,
@@ -826,6 +917,10 @@ export const createDelegate = (
       return newItem
     }
 
+    /**
+     * Updates a single record matching the given criteria
+     * Throws an error if no record is found (unless skipForeignKeysChecks is true)
+     */
     const update = (args) => {
       let updatedItem
       let hasMatch = false
@@ -858,10 +953,14 @@ export const createDelegate = (
       return findOne({ ...args, where: updatedItem })
     }
 
+    /**
+     * Returns a function that throws an error for unimplemented operations
+     */
     const notImplemented = (name: string) => () => {
       throw new Error(`${name} is not yet implemented in prisma-mock`)
     }
 
+    // Return the delegate object with all CRUD operations
     return {
       aggregate: notImplemented("aggregate"),
       groupBy: notImplemented("groupBy"),
@@ -900,6 +999,9 @@ export const createDelegate = (
         return { count: nbUpdated }
       },
 
+      /**
+       * Upsert operation: update if exists, create if not
+       */
       upsert(args) {
         const res = findOne(args)
         if (res) {
@@ -919,11 +1021,15 @@ export const createDelegate = (
         }
       },
 
+      /**
+       * Count operation: returns the number of records matching the criteria
+       */
       count(args) {
         const res = findMany(args)
         return res.length
       },
 
+      // Internal methods
       _sortFunc: sortFunc,
       _findMany: findMany,
       _createMany: createMany,
