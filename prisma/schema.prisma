@@ -34,6 +34,7 @@ model User {
   deleted     Boolean       @default(false)
   uniqueField String        @unique
   sort        Int?
+  age         Int           @default(10)
   posts       Post[]
   documents   Document[]
   pets        Pet[]

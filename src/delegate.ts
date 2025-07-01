@@ -960,9 +960,70 @@ export const createDelegate = (
       throw new Error(`${name} is not yet implemented in prisma-mock`)
     }
 
+    /**
+     * Aggregates data based on the given arguments
+     * Supports _count, _avg, _sum, _min, and _max
+     */
+    const aggregate = (args) => {
+      const items = findMany({ where: args?.where || {} })
+
+      const result: any = {}
+
+      if (args?._count) {
+        result._count = {}
+        for (const field of Object.keys(args._count)) {
+          if (args._count[field]) {
+            result._count[field] = items.length
+          }
+        }
+      }
+
+      if (args?._avg) {
+        result._avg = {}
+        for (const field of Object.keys(args._avg)) {
+          if (args._avg[field]) {
+            const values = items.map(item => item[field]).filter(val => typeof val === 'number')
+            result._avg[field] = values.length > 0 ? values.reduce((sum, val) => sum + val, 0) / values.length : null
+          }
+        }
+      }
+
+      if (args?._sum) {
+        result._sum = {}
+        for (const field of Object.keys(args._sum)) {
+          if (args._sum[field]) {
+            const values = items.map(item => item[field]).filter(val => typeof val === 'number')
+            result._sum[field] = values.length > 0 ? values.reduce((sum, val) => sum + val, 0) : null
+          }
+        }
+      }
+
+      if (args?._min) {
+        result._min = {}
+        for (const field of Object.keys(args._min)) {
+          if (args._min[field]) {
+            const values = items.map(item => item[field]).filter(val => val !== null && val !== undefined)
+            result._min[field] = values.length > 0 ? Math.min(...values) : null
+          }
+        }
+      }
+
+      if (args?._max) {
+        result._max = {}
+        for (const field of Object.keys(args._max)) {
+          if (args._max[field]) {
+            const values = items.map(item => item[field]).filter(val => val !== null && val !== undefined)
+            result._max[field] = values.length > 0 ? Math.max(...values) : null
+          }
+        }
+      }
+
+      return result
+    }
+
     // Return the delegate object with all CRUD operations
     return {
-      aggregate: notImplemented("aggregate"),
+      aggregate,
       groupBy: notImplemented("groupBy"),
       findOne,
       findUnique: findOne,
