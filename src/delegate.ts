@@ -1021,10 +1021,136 @@ export const createDelegate = (
       return result
     }
 
+
+    const groupBy = (args) => {
+      const { by, _count, _avg, _sum, _min, _max, having, orderBy } = args || {}
+
+      // Get all items that match the where clause
+      const items = findMany({ where: args?.where })
+
+      // Group items by the specified fields
+      const groups = new Map()
+
+      for (const item of items) {
+        const groupKey = by.map(field => item[field]).join('|')
+
+        if (!groups.has(groupKey)) {
+          groups.set(groupKey, [])
+        }
+        groups.get(groupKey).push(item)
+      }
+
+      // Convert groups to result format
+      const result = []
+
+      for (const [groupKey, groupItems] of groups) {
+        const groupValues = groupKey.split('|')
+        const groupObj: any = {}
+
+        // Add group by fields
+        by.forEach((field, index) => {
+          groupObj[field] = groupValues[index]
+        })
+
+        // Add aggregations
+        if (_count) {
+          groupObj._count = {}
+          for (const field of Object.keys(_count)) {
+            if (field === '_all') {
+              groupObj._count._all = groupItems.length
+            } else if (_count[field]) {
+              groupObj._count[field] = groupItems.filter(item => item[field] !== null && item[field] !== undefined).length
+            }
+          }
+        }
+
+        if (_avg) {
+          groupObj._avg = {}
+          for (const field of Object.keys(_avg)) {
+            if (_avg[field]) {
+              const values = groupItems.map(item => item[field]).filter(val => typeof val === 'number')
+              groupObj._avg[field] = values.length > 0 ? values.reduce((sum, val) => sum + val, 0) / values.length : null
+            }
+          }
+        }
+
+        if (_sum) {
+          groupObj._sum = {}
+          for (const field of Object.keys(_sum)) {
+            if (_sum[field]) {
+              const values = groupItems.map(item => item[field]).filter(val => typeof val === 'number')
+              groupObj._sum[field] = values.length > 0 ? values.reduce((sum, val) => sum + val, 0) : null
+            }
+          }
+        }
+
+        if (_min) {
+          groupObj._min = {}
+          for (const field of Object.keys(_min)) {
+            if (_min[field]) {
+              const values = groupItems.map(item => item[field]).filter(val => val !== null && val !== undefined)
+              groupObj._min[field] = values.length > 0 ? Math.min(...values) : null
+            }
+          }
+        }
+
+        if (_max) {
+          groupObj._max = {}
+          for (const field of Object.keys(_max)) {
+            if (_max[field]) {
+              const values = groupItems.map(item => item[field]).filter(val => val !== null && val !== undefined)
+              groupObj._max[field] = values.length > 0 ? Math.max(...values) : null
+            }
+          }
+        }
+
+        result.push(groupObj)
+      }
+
+      // Apply having filter if provided
+      if (having) {
+        // Simple having implementation - can be extended for more complex conditions
+        const filteredResult = result.filter(group => {
+          for (const [aggregation, conditions] of Object.entries(having)) {
+            for (const [fieldName, operatorValue] of Object.entries(conditions)) {
+              const operator = Object.keys(operatorValue)[0]
+              const value = operatorValue[operator]
+              const groupValue = group[fieldName][aggregation]
+              if (operator === 'gt' && groupValue <= value) return false
+              if (operator === 'gte' && groupValue < value) return false
+              if (operator === 'lt' && groupValue >= value) return false
+              if (operator === 'lte' && groupValue > value) return false
+              if (operator === 'equals' && groupValue !== value) return false
+            }
+          }
+          return true
+        })
+        return filteredResult
+      }
+
+      // Apply orderBy if provided
+      if (orderBy) {
+        result.sort((a, b) => {
+          for (const order of Array.isArray(orderBy) ? orderBy : [orderBy]) {
+            const field = Object.keys(order)[0]
+            const direction = order[field]
+            const aVal = a[field]
+            const bVal = b[field]
+
+            if (aVal < bVal) return direction === 'asc' ? -1 : 1
+            if (aVal > bVal) return direction === 'asc' ? 1 : -1
+          }
+          return 0
+        })
+      }
+
+      return result
+    }
+
     // Return the delegate object with all CRUD operations
     return {
       aggregate,
-      groupBy: notImplemented("groupBy"),
+      groupBy,
       findOne,
       findUnique: findOne,
       findUniqueOrThrow: findOrThrow,
