@@ -118,11 +118,12 @@ Array [
       _count: {
         age: true,
       },
+
       having: {
         age: {
           _avg: {
             gt: 30,
-          }
+          },
         }
       },
     })

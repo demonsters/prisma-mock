@@ -1025,6 +1025,21 @@ export const createDelegate = (
     const groupBy = (args) => {
       const { by, _count, _avg, _sum, _min, _max, having, orderBy } = args || {}
 
+      // Field to aggregate in having
+
+      const havingFields: any = having ? Object.keys(having).reduce((curr, field) => {
+        const aggregations = Object.keys(having[field])
+        return aggregations.reduce((p, aggregation) => {
+          const curr = p[aggregation]
+          p[aggregation] = {
+            ...curr,
+            [field]: true
+          }
+          return p
+        }, curr)
+      }, {}) : {}
+
+
       // Get all items that match the where clause
       const items = findMany({ where: args?.where })
 
@@ -1053,30 +1068,36 @@ export const createDelegate = (
         })
 
         // Add aggregations
-        if (_count) {
+        const countField = { ...havingFields._count, ..._count }
+        const countFields = Object.keys(countField)
+        if (countFields.length > 0) {
           groupObj._count = {}
-          for (const field of Object.keys(_count)) {
+          for (const field of countFields) {
             if (field === '_all') {
               groupObj._count._all = groupItems.length
-            } else if (_count[field]) {
+            } else if (countField[field]) {
               groupObj._count[field] = groupItems.filter(item => item[field] !== null && item[field] !== undefined).length
             }
           }
         }
 
-        if (_avg) {
+        const avgField = { ...havingFields._avg, ..._avg }
+        const avgFields = Object.keys(avgField)
+        if (avgFields.length > 0) {
           groupObj._avg = {}
-          for (const field of Object.keys(_avg)) {
-            if (_avg[field]) {
+          for (const field of avgFields) {
+            if (avgField[field]) {
               const values = groupItems.map(item => item[field]).filter(val => typeof val === 'number')
               groupObj._avg[field] = values.length > 0 ? values.reduce((sum, val) => sum + val, 0) / values.length : null
             }
           }
         }
 
-        if (_sum) {
+        const sumField = { ...havingFields._sum, ..._sum }
+        const sumFields = Object.keys(sumField)
+        if (sumFields.length > 0) {
           groupObj._sum = {}
-          for (const field of Object.keys(_sum)) {
+          for (const field of sumFields) {
             if (_sum[field]) {
               const values = groupItems.map(item => item[field]).filter(val => typeof val === 'number')
               groupObj._sum[field] = values.length > 0 ? values.reduce((sum, val) => sum + val, 0) : null
@@ -1084,9 +1105,11 @@ export const createDelegate = (
           }
         }
 
-        if (_min) {
+        const minField = { ...havingFields._min, ..._min }
+        const minFields = Object.keys(minField)
+        if (minFields.length > 0) {
           groupObj._min = {}
-          for (const field of Object.keys(_min)) {
+          for (const field of minFields) {
             if (_min[field]) {
               const values = groupItems.map(item => item[field]).filter(val => val !== null && val !== undefined)
               groupObj._min[field] = values.length > 0 ? Math.min(...values) : null
@@ -1094,9 +1117,11 @@ export const createDelegate = (
           }
         }
 
-        if (_max) {
+        const maxField = { ...havingFields._max, ..._max }
+        const maxFields = Object.keys(maxField)
+        if (maxFields.length > 0) {
           groupObj._max = {}
-          for (const field of Object.keys(_max)) {
+          for (const field of maxFields) {
             if (_max[field]) {
               const values = groupItems.map(item => item[field]).filter(val => val !== null && val !== undefined)
               groupObj._max[field] = values.length > 0 ? Math.max(...values) : null
@@ -1125,6 +1150,19 @@ export const createDelegate = (
           }
           return true
         })
+
+        // Strip all having fields from result (if not in aggregate)
+        if (havingFields) {
+          return filteredResult.map(group => {
+            const newGroup: any = {}
+            Object.keys(group).forEach(field => {
+              if (!(havingFields[field] && !args[field])) {
+                newGroup[field] = group[field]
+              }
+            })
+            return newGroup
+          })
+        }
         return filteredResult
       }
 
