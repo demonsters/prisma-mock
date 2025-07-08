@@ -960,10 +960,235 @@ export const createDelegate = (
       throw new Error(`${name} is not yet implemented in prisma-mock`)
     }
 
+    /**
+     * Aggregates data based on the given arguments
+     * Supports _count, _avg, _sum, _min, and _max
+     */
+    const aggregate = (args) => {
+      const items = findMany({ where: args?.where || {} })
+
+      const result: any = {}
+
+      if (args?._count) {
+        result._count = {}
+        for (const field of Object.keys(args._count)) {
+          if (args._count[field]) {
+            result._count[field] = items.length
+          }
+        }
+      }
+
+      if (args?._avg) {
+        result._avg = {}
+        for (const field of Object.keys(args._avg)) {
+          if (args._avg[field]) {
+            const values = items.map(item => item[field]).filter(val => typeof val === 'number')
+            result._avg[field] = values.length > 0 ? values.reduce((sum, val) => sum + val, 0) / values.length : null
+          }
+        }
+      }
+
+      if (args?._sum) {
+        result._sum = {}
+        for (const field of Object.keys(args._sum)) {
+          if (args._sum[field]) {
+            const values = items.map(item => item[field]).filter(val => typeof val === 'number')
+            result._sum[field] = values.length > 0 ? values.reduce((sum, val) => sum + val, 0) : null
+          }
+        }
+      }
+
+      if (args?._min) {
+        result._min = {}
+        for (const field of Object.keys(args._min)) {
+          if (args._min[field]) {
+            const values = items.map(item => item[field]).filter(val => val !== null && val !== undefined)
+            result._min[field] = values.length > 0 ? Math.min(...values) : null
+          }
+        }
+      }
+
+      if (args?._max) {
+        result._max = {}
+        for (const field of Object.keys(args._max)) {
+          if (args._max[field]) {
+            const values = items.map(item => item[field]).filter(val => val !== null && val !== undefined)
+            result._max[field] = values.length > 0 ? Math.max(...values) : null
+          }
+        }
+      }
+
+      return result
+    }
+
+
+    const groupBy = (args) => {
+      const { by, _count, _avg, _sum, _min, _max, having, orderBy } = args || {}
+
+      // Field to aggregate in having
+
+      const havingFields: any = having ? Object.keys(having).reduce((curr, field) => {
+        const aggregations = Object.keys(having[field])
+        return aggregations.reduce((p, aggregation) => {
+          const curr = p[aggregation]
+          p[aggregation] = {
+            ...curr,
+            [field]: true
+          }
+          return p
+        }, curr)
+      }, {}) : {}
+
+
+      // Get all items that match the where clause
+      const items = findMany({ where: args?.where })
+
+      // Group items by the specified fields
+      const groups = new Map()
+
+      for (const item of items) {
+        const groupKey = by.map(field => item[field]).join('|')
+
+        if (!groups.has(groupKey)) {
+          groups.set(groupKey, [])
+        }
+        groups.get(groupKey).push(item)
+      }
+
+      // Convert groups to result format
+      const result = []
+
+      for (const [groupKey, groupItems] of groups) {
+        const groupValues = groupKey.split('|')
+        const groupObj: any = {}
+
+        // Add group by fields
+        by.forEach((field, index) => {
+          groupObj[field] = groupValues[index]
+        })
+
+        // Add aggregations
+        const countField = { ...havingFields._count, ..._count }
+        const countFields = Object.keys(countField)
+        if (countFields.length > 0) {
+          groupObj._count = {}
+          for (const field of countFields) {
+            if (field === '_all') {
+              groupObj._count._all = groupItems.length
+            } else if (countField[field]) {
+              groupObj._count[field] = groupItems.filter(item => item[field] !== null && item[field] !== undefined).length
+            }
+          }
+        }
+
+        const avgField = { ...havingFields._avg, ..._avg }
+        const avgFields = Object.keys(avgField)
+        if (avgFields.length > 0) {
+          groupObj._avg = {}
+          for (const field of avgFields) {
+            if (avgField[field]) {
+              const values = groupItems.map(item => item[field]).filter(val => typeof val === 'number')
+              groupObj._avg[field] = values.length > 0 ? values.reduce((sum, val) => sum + val, 0) / values.length : null
+            }
+          }
+        }
+
+        const sumField = { ...havingFields._sum, ..._sum }
+        const sumFields = Object.keys(sumField)
+        if (sumFields.length > 0) {
+          groupObj._sum = {}
+          for (const field of sumFields) {
+            if (_sum[field]) {
+              const values = groupItems.map(item => item[field]).filter(val => typeof val === 'number')
+              groupObj._sum[field] = values.length > 0 ? values.reduce((sum, val) => sum + val, 0) : null
+            }
+          }
+        }
+
+        const minField = { ...havingFields._min, ..._min }
+        const minFields = Object.keys(minField)
+        if (minFields.length > 0) {
+          groupObj._min = {}
+          for (const field of minFields) {
+            if (_min[field]) {
+              const values = groupItems.map(item => item[field]).filter(val => val !== null && val !== undefined)
+              groupObj._min[field] = values.length > 0 ? Math.min(...values) : null
+            }
+          }
+        }
+
+        const maxField = { ...havingFields._max, ..._max }
+        const maxFields = Object.keys(maxField)
+        if (maxFields.length > 0) {
+          groupObj._max = {}
+          for (const field of maxFields) {
+            if (_max[field]) {
+              const values = groupItems.map(item => item[field]).filter(val => val !== null && val !== undefined)
+              groupObj._max[field] = values.length > 0 ? Math.max(...values) : null
+            }
+          }
+        }
+
+        result.push(groupObj)
+      }
+
+      // Apply having filter if provided
+      if (having) {
+        // Simple having implementation - can be extended for more complex conditions
+        const filteredResult = result.filter(group => {
+          for (const [aggregation, conditions] of Object.entries(having)) {
+            for (const [fieldName, operatorValue] of Object.entries(conditions)) {
+              const operator = Object.keys(operatorValue)[0]
+              const value = operatorValue[operator]
+              const groupValue = group[fieldName][aggregation]
+              if (operator === 'gt' && groupValue <= value) return false
+              if (operator === 'gte' && groupValue < value) return false
+              if (operator === 'lt' && groupValue >= value) return false
+              if (operator === 'lte' && groupValue > value) return false
+              if (operator === 'equals' && groupValue !== value) return false
+            }
+          }
+          return true
+        })
+
+        // Strip all having fields from result (if not in aggregate)
+        if (havingFields) {
+          return filteredResult.map(group => {
+            const newGroup: any = {}
+            Object.keys(group).forEach(field => {
+              if (!(havingFields[field] && !args[field])) {
+                newGroup[field] = group[field]
+              }
+            })
+            return newGroup
+          })
+        }
+        return filteredResult
+      }
+
+      // Apply orderBy if provided
+      if (orderBy) {
+        result.sort((a, b) => {
+          for (const order of Array.isArray(orderBy) ? orderBy : [orderBy]) {
+            const field = Object.keys(order)[0]
+            const direction = order[field]
+            const aVal = a[field]
+            const bVal = b[field]
+
+            if (aVal < bVal) return direction === 'asc' ? -1 : 1
+            if (aVal > bVal) return direction === 'asc' ? 1 : -1
+          }
+          return 0
+        })
+      }
+
+      return result
+    }
+
     // Return the delegate object with all CRUD operations
     return {
-      aggregate: notImplemented("aggregate"),
-      groupBy: notImplemented("groupBy"),
+      aggregate,
+      groupBy,
       findOne,
       findUnique: findOne,
       findUniqueOrThrow: findOrThrow,
