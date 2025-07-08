@@ -17,6 +17,7 @@ exports[`PrismaClient where Case inrelevant Nested deep 1`] = `
 Array [
   Object {
     "accountId": 2,
+    "age": 10,
     "clicks": null,
     "deleted": false,
     "id": 2,
@@ -210,6 +211,7 @@ exports[`PrismaClient where caseInsensitive false No mode Nested 1`] = `
 Array [
   Object {
     "accountId": 2,
+    "age": 10,
     "clicks": null,
     "deleted": false,
     "id": 2,
@@ -240,6 +242,7 @@ exports[`PrismaClient where caseInsensitive false No mode in (nested) 1`] = `
 Array [
   Object {
     "accountId": 1,
+    "age": 10,
     "clicks": null,
     "deleted": false,
     "id": 1,
@@ -432,6 +435,7 @@ exports[`PrismaClient where caseInsensitive true No mode Nested 1`] = `
 Array [
   Object {
     "accountId": 2,
+    "age": 10,
     "clicks": null,
     "deleted": false,
     "id": 2,
@@ -462,6 +466,7 @@ exports[`PrismaClient where caseInsensitive true No mode in (nested) 1`] = `
 Array [
   Object {
     "accountId": 1,
+    "age": 10,
     "clicks": null,
     "deleted": false,
     "id": 1,

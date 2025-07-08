@@ -27,6 +27,7 @@ Object {
     "sort": null,
   },
   "accountId": 1,
+  "age": 10,
   "clicks": null,
   "deleted": false,
   "id": 1,
@@ -50,7 +51,7 @@ test('update', async () => {
       customerId: "1"
     }],
   })
-  
+
   const answer = await client.stripe.update({
     data: {
       account: {

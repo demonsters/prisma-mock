@@ -69,6 +69,7 @@ test("findOne to", async () => {
       ...data.account[0],
       sort: null
     },
+    age: 10,
     deleted: false,
     role: "ADMIN",
     sort: null,
@@ -125,6 +126,7 @@ Object {
     },
   },
   "accountId": 1,
+  "age": 10,
   "clicks": null,
   "deleted": false,
   "id": 1,
@@ -165,6 +167,7 @@ Object {
     },
   },
   "accountId": 1,
+  "age": 10,
   "clicks": null,
   "deleted": false,
   "id": 1,
@@ -195,6 +198,7 @@ Object {
   "users": Array [
     Object {
       "accountId": 1,
+      "age": 10,
       "clicks": null,
       "deleted": false,
       "id": 1,
@@ -234,6 +238,7 @@ Object {
   "users": Array [
     Object {
       "accountId": 1,
+      "age": 10,
       "clicks": null,
       "deleted": false,
       "id": 1,

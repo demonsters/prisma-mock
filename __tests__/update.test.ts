@@ -167,6 +167,7 @@ describe("PrismaMock update", () => {
     expect(user).toMatchInlineSnapshot(`
 Object {
   "accountId": null,
+  "age": 10,
   "clicks": 2,
   "deleted": false,
   "id": 1,

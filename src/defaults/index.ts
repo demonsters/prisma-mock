@@ -16,7 +16,7 @@ export default function createHandleDefault() {
   registry.set("autoincrement", createAutoincrement());
   registry.set("cuid", createCuid());
   registry.set("uuid", createUuid());
-  registry.set("now", createNow());
+  registry.set("now", createNow);
 
   return <P>(
     prop: string,

@@ -30,6 +30,7 @@ Object {
   "users": Array [
     Object {
       "accountId": 1,
+      "age": 10,
       "clicks": null,
       "deleted": false,
       "id": 1,
@@ -70,6 +71,7 @@ Object {
   "users": Array [
     Object {
       "accountId": 1,
+      "age": 10,
       "clicks": null,
       "deleted": false,
       "id": 1,
@@ -80,6 +82,7 @@ Object {
     },
     Object {
       "accountId": 1,
+      "age": 10,
       "clicks": null,
       "deleted": false,
       "id": 2,
@@ -216,6 +219,7 @@ Object {
   "users": Array [
     Object {
       "accountId": 1,
+      "age": 10,
       "clicks": null,
       "deleted": false,
       "id": 2,
@@ -232,7 +236,7 @@ Object {
 
   test('update', async () => {
     const client = await createPrismaClient()
-    
+
     await client.account.create({
       data: { id: 1, }
     })
@@ -264,6 +268,7 @@ Object {
     expect(user).toMatchInlineSnapshot(`
 Object {
   "accountId": 1,
+  "age": 10,
   "clicks": null,
   "deleted": false,
   "id": 2,
@@ -316,6 +321,7 @@ Object {
   "users": Array [
     Object {
       "accountId": 1,
+      "age": 10,
       "clicks": null,
       "deleted": false,
       "id": 2,
@@ -339,7 +345,7 @@ Object {
         accountId: 1,
       }],
       user: [
-        
+
       ]
     })
     const answer = await client.account.update({
@@ -375,6 +381,7 @@ Object {
   "users": Array [
     Object {
       "accountId": 1,
+      "age": 10,
       "clicks": null,
       "deleted": false,
       "id": 2,
@@ -432,6 +439,7 @@ Object {
   "users": Array [
     Object {
       "accountId": 1,
+      "age": 10,
       "clicks": null,
       "deleted": false,
       "id": 2,
@@ -489,6 +497,7 @@ Object {
 Array [
   Object {
     "accountId": 1,
+    "age": 10,
     "clicks": null,
     "deleted": false,
     "id": 3,
@@ -543,6 +552,7 @@ Array [
 Array [
   Object {
     "accountId": 1,
+    "age": 10,
     "clicks": null,
     "deleted": false,
     "id": 3,
@@ -600,6 +610,7 @@ Array [
 Array [
   Object {
     "accountId": 1,
+    "age": 10,
     "clicks": null,
     "deleted": false,
     "id": 3,
@@ -655,6 +666,7 @@ Array [
 Array [
   Object {
     "accountId": 1,
+    "age": 10,
     "clicks": null,
     "deleted": false,
     "id": 3,
