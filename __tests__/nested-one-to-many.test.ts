@@ -30,6 +30,7 @@ Object {
   "users": Array [
     Object {
       "accountId": 1,
+      "age": 10,
       "clicks": null,
       "deleted": false,
       "id": 1,
@@ -70,6 +71,7 @@ Object {
   "users": Array [
     Object {
       "accountId": 1,
+      "age": 10,
       "clicks": null,
       "deleted": false,
       "id": 1,
@@ -80,6 +82,7 @@ Object {
     },
     Object {
       "accountId": 1,
+      "age": 10,
       "clicks": null,
       "deleted": false,
       "id": 2,
@@ -216,6 +219,7 @@ Object {
   "users": Array [
     Object {
       "accountId": 1,
+      "age": 10,
       "clicks": null,
       "deleted": false,
       "id": 2,
@@ -232,7 +236,7 @@ Object {
 
   test('update', async () => {
     const client = await createPrismaClient()
-    
+
     await client.account.create({
       data: { id: 1, }
     })
@@ -258,12 +262,13 @@ Object {
     })
     const user = await client.user.findUnique({
       where: {
-        accountId: 1
+        id: 2
       }
     })
     expect(user).toMatchInlineSnapshot(`
 Object {
   "accountId": 1,
+  "age": 10,
   "clicks": null,
   "deleted": false,
   "id": 2,
@@ -316,6 +321,125 @@ Object {
   "users": Array [
     Object {
       "accountId": 1,
+      "age": 10,
+      "clicks": null,
+      "deleted": false,
+      "id": 2,
+      "name": null,
+      "role": "USER",
+      "sort": null,
+      "uniqueField": "user",
+    },
+  ],
+}
+`)
+  })
+
+  test('nested upsert create', async () => {
+    const client = await createPrismaClient({
+      account: [
+        { id: 1, }
+      ],
+      stripe: [{
+        customerId: "1",
+        accountId: 1,
+      }],
+      user: [
+
+      ]
+    })
+    const answer = await client.account.update({
+      data: {
+        users: {
+          upsert: {
+            update: {
+              role: "USER"
+            },
+            create: {
+              id: 2,
+              role: "USER",
+              uniqueField: 'user'
+            },
+            where: {
+              id: 2,
+            }
+          }
+        }
+      },
+      where: {
+        id: 1
+      },
+      include: {
+        users: true
+      }
+    })
+    expect(answer).toMatchInlineSnapshot(`
+Object {
+  "id": 1,
+  "name": null,
+  "sort": null,
+  "users": Array [
+    Object {
+      "accountId": 1,
+      "age": 10,
+      "clicks": null,
+      "deleted": false,
+      "id": 2,
+      "name": null,
+      "role": "USER",
+      "sort": null,
+      "uniqueField": "user",
+    },
+  ],
+}
+`)
+  })
+
+  test('nested upsert update', async () => {
+    const client = await createPrismaClient({
+      account: [
+        { id: 1, }
+      ],
+      stripe: [{
+        customerId: "1",
+        accountId: 1,
+      }],
+      user: [
+        { id: 2, role: "ADMIN", accountId: 1, uniqueField: 'user' }
+      ]
+    })
+    const answer = await client.account.update({
+      data: {
+        users: {
+          upsert: {
+            update: {
+              role: "USER"
+            },
+            create: {
+              uniqueField: "user"
+            },
+            where: {
+              id: 2,
+            }
+          }
+        }
+      },
+      where: {
+        id: 1
+      },
+      include: {
+        users: true
+      }
+    })
+    expect(answer).toMatchInlineSnapshot(`
+Object {
+  "id": 1,
+  "name": null,
+  "sort": null,
+  "users": Array [
+    Object {
+      "accountId": 1,
+      "age": 10,
       "clicks": null,
       "deleted": false,
       "id": 2,
@@ -373,6 +497,7 @@ Object {
 Array [
   Object {
     "accountId": 1,
+    "age": 10,
     "clicks": null,
     "deleted": false,
     "id": 3,
@@ -427,6 +552,7 @@ Array [
 Array [
   Object {
     "accountId": 1,
+    "age": 10,
     "clicks": null,
     "deleted": false,
     "id": 3,
@@ -484,6 +610,7 @@ Array [
 Array [
   Object {
     "accountId": 1,
+    "age": 10,
     "clicks": null,
     "deleted": false,
     "id": 3,
@@ -539,6 +666,7 @@ Array [
 Array [
   Object {
     "accountId": 1,
+    "age": 10,
     "clicks": null,
     "deleted": false,
     "id": 3,
@@ -580,3 +708,5 @@ Array [
 ]
 `)
 })
+
+

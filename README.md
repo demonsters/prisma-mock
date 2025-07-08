@@ -1,12 +1,22 @@
 # Prisma Mock
 
-This is a mock of the Prisma API intended for unit testing. All the data is stored in memory.
+A comprehensive mock of the Prisma API intended for unit testing. All data is stored in memory, providing fast and reliable test execution without external dependencies.
 
-The library `jest-mock-extended` is used, which means that if functionality you need is not implemented yet, you can mock it yourself.
+The library uses `jest-mock-extended` or `vitest-mock-extended`, which means that if functionality you need is not implemented yet, you can mock it yourself.
 
-# Usage
+## Installation
 
-Simple example how to create a prisma mock instance:
+```bash
+npm install prisma-mock --save-dev
+# or
+yarn add prisma-mock --dev
+```
+
+## Usage
+
+### Basic Example
+
+Simple example of how to create a prisma mock instance:
 
 ```js
 import createPrismaMock from "prisma-mock"
@@ -18,7 +28,9 @@ beforeEach(() => {
 })
 ```
 
-An example how to mock a global prisma instance, as the default export in a "db" directory (like blitzjs):
+### Mocking Global Prisma Instance
+
+Example of how to mock a global prisma instance, as the default export in a "db" directory (like BlitzJS):
 
 ```js
 import createPrismaMock from "prisma-mock"
@@ -38,25 +50,12 @@ beforeEach(() => {
 })
 ```
 
-# API
+### With Initial Data
 
-```ts
-createPrismaMock(
-  data: PrismaMockData<P> = {},
-  datamodel?: Prisma.DMMF.Datamodel,
-  client = mockDeep<P>(),
-  options: {
-    caseInsensitive?: boolean
-  } = {}
-): Promise<P>
-```
-
-#### Arg: `data`
-
-You can optionally start up a pre-filled db, by passing in an object containing keys for tables, and values as arrays of objects (though using `create` is preferred). Example:
+You can optionally start with pre-filled data:
 
 ```js
-createPrismaMock({
+const client = createPrismaMock({
   user: [
     {
       id: 1,
@@ -73,150 +72,251 @@ createPrismaMock({
 })
 ```
 
-#### Arg: `datamodel`
+## API
 
-The datamodel of the prisma client, value of `Prisma.dmmf.datamodel`.
+```ts
+createPrismaMock(
+  data: PrismaMockData<P> = {},
+  datamodel?: Prisma.DMMF.Datamodel,
+  client = mockDeep<P>(),
+  options: {
+    caseInsensitive?: boolean
+    enableIndexes?: boolean
+  } = {}
+): Promise<P>
+```
 
-#### Arg: `client`
+### Parameters
+
+#### `data` (optional)
+
+Initial mock data for the Prisma models. An object containing keys for tables and values as arrays of objects.
+
+#### `datamodel` (optional)
+
+The Prisma datamodel, typically `Prisma.dmmf.datamodel`. Defaults to the current Prisma client's datamodel.
+
+#### `client` (optional)
 
 A `jest-mock-extended` instance. If not provided, a new instance is created.
 
-#### Arg: `caseInsensitive`
+#### `options` (optional)
 
-If true, all string comparisons are case insensitive.
+Configuration options for the mock client:
 
+- **`caseInsensitive`** (boolean, default: `false`): If true, all string comparisons are case insensitive
+- **`enableIndexes`** (boolean, default: `false`) Experimental: If true, enables indexing for better query performance on primary keys, unique fields, and foreign keys
 
+### Return Value
 
-# Supported features
+Returns a mock Prisma client with all standard model methods plus:
 
-Most common cases are covered, but not everything. Here is a rough list of the supported features:
+- `$getInternalState()`: Method to access the internal data state for testing/debugging
 
-## Model queries
+## Supported Features
 
-- findUnique,
-- findUniqueOrThrow,
-- findMany,
-- findFirst,
-- findFirstOrThrow,
-- create,
-- createMany
-- delete,
-- update,
-- deleteMany,
-- updateMany
-- upsert
-- count
-- TODO: aggregate
-- TODO: groupBy
+### Model Queries ✅
 
-## Model query options
+- `findUnique` / `findUniqueOrThrow`
+- `findMany`
+- `findFirst` / `findFirstOrThrow`
+- `create`
+- `createMany`
+- `delete`
+- `update`
+- `deleteMany`
+- `updateMany`
+- `upsert`
+- `count`
+- `aggregate`
 
-- distinct
-- include
-- where
-- select
-- orderBy
-- select: \_count
+### Model Query Options ✅
 
-## Nested queries
+- `distinct`
+- `include`
+- `where`
+- `select`
+- `orderBy`
+- `select: _count`
 
-- create
-- createMany
-- update
-- updateMany
-- delete
-- deleteMany
-- connect
-- disconnect
-- set
-- upsert
-- TODO: connectOrCreate
+### Nested Queries ✅
 
-## Filter conditions and operators
+- `create`
+- `createMany`
+- `update`
+- `updateMany`
+- `delete`
+- `deleteMany`
+- `connect`
+- `disconnect`
+- `set`
+- `upsert`
 
-- equals
-- gt
-- gte
-- lt
-- lte
-- not
-- in
-- notIn
-- contains
-- startWith
-- endsWith
-- AND
-- OR
-- NOT
-- mode
-- TODO: search
+### Filter Conditions and Operators ✅
 
-## Relation filters
+- `equals`
+- `gt`, `gte`, `lt`, `lte`
+- `not`
+- `in`, `notIn`
+- `contains`, `startsWith`, `endsWith`
+- `AND`, `OR`, `NOT`
+- `mode` (for case-insensitive matching)
 
-- some
-- every
-- none
-- TODO: is
+### Relation Filters ✅
 
-## Scalar list methods
+- `some`
+- `every`
+- `none`
 
-TODO (set, push)
+### Atomic Number Operations ✅
 
-## Scalar list filters
+- `increment`
+- `decrement`
+- `multiply`
+- `divide`
+- `set`
 
-TODO (has, hasEvery, hasSome, isEmpty, equals)
+### JSON Filters ✅
 
-## Atomic number operations
+- `path`
+- `string_contains`
+- `string_starts_with`
+- `string_ends_with`
+- `array_contains`
+- `array_starts_with`
+- `array_ends_with`
 
-- increment
-- decrement
-- multiply
-- divide
-- set
+### Attributes ✅
 
-## JSON filters
+- `@@id` (Primary keys)
+- `@default` (Default values)
+- `@unique` (Unique constraints)
+- `@@unique` (Compound unique constraints)
+- `@relation` (Relationships)
+- `@updatedAt` (Partially supported - set at creation)
 
-- path
-- string_contains
-- string_starts_with 
-- string_ends_with
-- array_contains
-- array_starts_with
-- array_ends_with
+### Attribute Functions ✅
 
-## Attributes
+- `autoincrement()`
+- `cuid()`
+- `uuid()`
+- `now()`
 
-- @@id
-- @default
-- @unique
-- @@unique (TODO: no error if duplicate)
-- @relation
-- @updatedAt: Partially supported, value is set at creation (TODO: update value on update)
+### Referential Actions ✅
 
-## Attribute functions
+- `onDelete: SetNull`
+- `onDelete: Cascade`
 
-- autoincrement()
-- TODO: auto()
-- cuid()
-- uuid()
-- now()
-- TODO: dbgenerated()
+### Prisma Client Methods ✅
 
-## Referential actions
+- `$transaction` (Array of promises)
+- `$transaction` (Interactive transactions with rollback)
+- `$connect`
+- `$disconnect`
 
-- onDelete (SetNull, Cascade)
-- TODO: onDelete: Restrict, NoAction, SetDefault
-- TODO: onUpdate
+## Not Yet Implemented
 
-## Prisma Client methods
+The following features are planned but not yet implemented:
 
-- $transaction
-- $transaction (interactive)
-- TODO: $transaction (isolation)
+### Model Queries
 
-# Contribution
+- `groupBy`
 
-## Requirements
+### Nested Queries
+
+- `connectOrCreate`
+
+### Filter Conditions
+
+- `search` (Full-text search)
+
+### Relation Filters
+
+- `is`
+
+### Scalar List Methods
+
+- `set`
+- `push`
+
+### Scalar List Filters
+
+- `has`
+- `hasEvery`
+- `hasSome`
+- `isEmpty`
+- `equals`
+
+### Attributes
+
+- `auto()`
+- `dbgenerated()`
+
+### Referential Actions
+
+- `onDelete: Restrict`
+- `onDelete: NoAction`
+- `onDelete: SetDefault`
+- `onUpdate` actions
+
+### Prisma Client Methods
+
+- `$transaction` (Isolation levels)
+- `$use` (Middleware)
+
+## Performance Features
+
+### Indexing (Experimental)
+
+Enable indexing for better query performance:
+
+```js
+const client = createPrismaMock({}, undefined, undefined, {
+  enableIndexes: true,
+})
+```
+
+When enabled, indexes are automatically created for:
+
+- Primary key fields
+- Unique fields
+- Foreign key fields
+
+This can significantly improve query performance for large datasets.
+
+## Error Handling
+
+The mock client throws appropriate Prisma errors with correct error codes:
+
+- `P2025`: Record not found (for `findUniqueOrThrow`, `findFirstOrThrow`)
+- `P2002`: Unique constraint violation
+- `P2003`: Foreign key constraint violation
+
+## Testing
+
+### Writing Tests
+
+Create your tests in the `__tests__` directory. You can use snapshot testing with either `expect(res).toMatchSnapshot()` or `expect(res).toMatchInlineSnapshot()`.
+
+**Note**: If you choose to use snapshot testing, make sure to first run your tests against the real database to create a snapshot of the expected result.
+
+### Running Tests
+
+To run tests against a PostgreSQL database:
+
+```bash
+yarn run test:postgres
+```
+
+To run tests against prisma-mock (in-memory database):
+
+```bash
+yarn test
+```
+
+## Development
+
+### Requirements
 
 Create a `.env-cmdrc` file in the root of your project with the following content:
 
@@ -229,20 +329,16 @@ Create a `.env-cmdrc` file in the root of your project with the following conten
 }
 ```
 
-## Writing Tests
-Create your tests in the `__tests__` directory. You can use snapshot testing with either `expect(res).toMatchSnapshot()` or `expect(res).toMatchInlineSnapshot()`. This captures the result of your tests in a snapshot, which you can use to compare agains prisma-mock results.
-
-Note: If you choose to use snapshot testing, make shore to first run your tests against the real database to create a snapshot of the expected result.
-
-## Running Tests
-To run tests against a postgres database, run the following command:
+### Building
 
 ```bash
-yarn run test:postgres
+yarn build
 ```
 
-To run tests against prisma-mock (in-memory database), run:
+## Contributing
 
-```bash
-yarn test
-```
+Contributions are welcome! Please feel free to submit a Pull Request. For major changes, please open an issue first to discuss what you would like to change.
+
+## License
+
+MIT

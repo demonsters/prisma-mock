@@ -40,6 +40,7 @@ describe("PrismaClient", () => {
     })
     expect(user).toEqual({
       id: expect.any(Number),
+      age: 10,
       ...data.user[0],
     })
     await client.$disconnect()
@@ -163,6 +164,7 @@ describe("PrismaClient", () => {
     expect(res).toMatchInlineSnapshot(`
 Object {
   "accountId": null,
+  "age": 10,
   "clicks": null,
   "deleted": false,
   "id": 2,
@@ -175,9 +177,14 @@ Object {
     const users = await client.user.findMany()
 
     expect(users).toEqual([
-      ...data.user.map((u) => ({ id: expect.any(Number), ...u })),
+      ...data.user.map((u) => ({
+        id: expect.any(Number),
+        age: 10,
+        ...u,
+      })),
       {
         id: expect.any(Number),
+        age: 10,
         name: "New user",
         role: "ADMIN",
         deleted: false,
@@ -203,6 +210,7 @@ Object {
     expect(res).toMatchInlineSnapshot(`
 Object {
   "accountId": 1,
+  "age": 10,
   "clicks": null,
   "deleted": false,
   "id": 2,
@@ -216,6 +224,7 @@ Object {
 Array [
   Object {
     "accountId": 1,
+    "age": 10,
     "clicks": null,
     "deleted": false,
     "id": 1,
@@ -226,6 +235,7 @@ Array [
   },
   Object {
     "accountId": 1,
+    "age": 10,
     "clicks": null,
     "deleted": false,
     "id": 2,
@@ -266,6 +276,7 @@ Array [
 Array [
   Object {
     "accountId": 1,
+    "age": 10,
     "clicks": null,
     "deleted": false,
     "id": 1,
@@ -463,6 +474,7 @@ Array [
 Array [
   Object {
     "accountId": null,
+    "age": 10,
     "clicks": null,
     "deleted": false,
     "guestOf": Array [

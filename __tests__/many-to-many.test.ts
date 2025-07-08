@@ -31,12 +31,11 @@ test("Select", async () => {
       name: "123",
       participants: {
         connect: {
-          id: account.id
+          id: user.id
         }
       }
     }
   })
-
   const documents = await prismaMock.document.findMany({
     where: {
       participants: {
@@ -62,6 +61,7 @@ Array [
     "participants": Array [
       Object {
         "accountId": 1,
+        "age": 10,
         "clicks": null,
         "deleted": false,
         "id": 1,
@@ -109,6 +109,7 @@ Array [
     "participants": Array [
       Object {
         "accountId": null,
+        "age": 10,
         "clicks": null,
         "deleted": false,
         "id": 1,
@@ -208,6 +209,7 @@ Object {
   "participants": Array [
     Object {
       "accountId": null,
+      "age": 10,
       "clicks": null,
       "deleted": false,
       "id": 1,
@@ -218,6 +220,7 @@ Object {
     },
     Object {
       "accountId": null,
+      "age": 10,
       "clicks": null,
       "deleted": false,
       "id": 2,
@@ -255,6 +258,7 @@ Object {
   "participants": Array [
     Object {
       "accountId": null,
+      "age": 10,
       "clicks": null,
       "deleted": false,
       "id": 1,
@@ -329,6 +333,7 @@ test("some in", async () => {
 Array [
   Object {
     "accountId": null,
+    "age": 10,
     "clicks": null,
     "deleted": false,
     "id": 1,
@@ -339,6 +344,7 @@ Array [
   },
   Object {
     "accountId": null,
+    "age": 10,
     "clicks": null,
     "deleted": false,
     "id": 2,
@@ -351,6 +357,69 @@ Array [
 `)
 })
 
+
+test("Should create many records", async () => {
+
+  const prismaMock = await createPrismaClient()
+  const user1 = await prismaMock.user.create({
+    data: {
+      name: "User 1",
+      uniqueField: "1",
+    }
+  })
+  const user2 = await prismaMock.user.create({
+    data: {
+      name: "User 2",
+      uniqueField: "2",
+    }
+  })
+  const answer = await prismaMock.answers.create({
+    data: {
+      title: "Test Workspace",
+      users: {
+        create: [
+          {
+            user: {
+              connect: {
+                id: user1.id
+              }
+            },
+            value: "1"
+          },
+          {
+            user: {
+              connect: {
+                id: user2.id
+              }
+            },
+            value: "2"
+          }
+        ]
+      }
+    },
+    include: {
+      users: true
+    }
+  })
+  expect(answer).toMatchInlineSnapshot(`
+Object {
+  "id": 1,
+  "title": "Test Workspace",
+  "users": Array [
+    Object {
+      "answerId": 1,
+      "userId": 1,
+      "value": "1",
+    },
+    Object {
+      "answerId": 1,
+      "userId": 2,
+      "value": "2",
+    },
+  ],
+}
+`)
+})
 
 
 xtest("connectOrCreate create", async () => {

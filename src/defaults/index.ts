@@ -1,33 +1,31 @@
 import { Prisma } from "@prisma/client";
 
-import { PrismaMockData } from "..";
+import { PrismaMockData } from "../types";
 
-import autoincrement, { reset as ResetAutoInc } from "./autoincrement";
-import Cuid, { ResetCuid } from "./cuid";
-import Now from "./now";
-import Uuid, { ResetUuid } from "./uuid"
+import createAutoincrement from "./autoincrement";
+import createCuid from "./cuid";
+import createNow from "./now";
+import createUuid from "./uuid"
 
 type FieldDefault = Prisma.DMMF.FieldDefault;
 
-// const registry = new Map<string, (string, Prisma.DMMF.Field, PrismaMockData) => any>();
-const registry = new Map();
-registry.set("autoincrement", autoincrement);
-registry.set("cuid", Cuid);
-registry.set("uuid", Uuid);
-registry.set("now", Now);
+export default function createHandleDefault() {
 
-export default function HandleDefault<P>(
-  prop: string,
-  field: Prisma.DMMF.Field,
-  data: PrismaMockData<P>
-): any {
-  const key = (field.default as FieldDefault).name;
-  const val = registry.get(key)?.(prop, field, data);
-  return val;
-}
+  // const registry = new Map<string, (string, Prisma.DMMF.Field, PrismaMockData) => any>();
+  const registry = new Map();
+  registry.set("autoincrement", createAutoincrement());
+  registry.set("cuid", createCuid());
+  registry.set("uuid", createUuid());
+  registry.set("now", createNow);
 
-export function ResetDefaults() {
-  ResetAutoInc();
-  ResetCuid()
-  ResetUuid()
+  return <P>(
+    prop: string,
+    field: Prisma.DMMF.Field,
+    ref: { data: PrismaMockData<P> }
+  ): any => {
+    const key = (field.default as FieldDefault).name;
+    const val = registry.get(key)?.(prop, field, ref.data);
+    return val;
+  }
+
 }

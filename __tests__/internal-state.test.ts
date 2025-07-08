@@ -67,6 +67,7 @@ Object {
   "user": Array [
     Object {
       "accountId": null,
+      "age": 10,
       "clicks": null,
       "deleted": false,
       "id": 1,
@@ -117,6 +118,7 @@ Object {
   "user": Array [
     Object {
       "accountId": null,
+      "age": 10,
       "clicks": null,
       "deleted": false,
       "id": 1,
@@ -156,6 +158,7 @@ Object {
   "user": Array [
     Object {
       "accountId": null,
+      "age": 10,
       "clicks": null,
       "deleted": false,
       "id": 1,
@@ -206,6 +209,7 @@ Object {
   "user": Array [
     Object {
       "accountId": null,
+      "age": 10,
       "clicks": null,
       "deleted": false,
       "id": 1,

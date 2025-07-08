@@ -161,12 +161,13 @@ describe("PrismaMock update", () => {
         // documents: {
         //   set: [{ id: document.id }],
         // },
-        documents: {set: []},
+        documents: { set: [] },
       },
     });
     expect(user).toMatchInlineSnapshot(`
 Object {
   "accountId": null,
+  "age": 10,
   "clicks": 2,
   "deleted": false,
   "id": 1,
@@ -178,3 +179,91 @@ Object {
 `)
   });
 });
+
+
+test("Multi dimensional update", async () => {
+
+  const client = await createPrismaClient({
+    // user: [
+    //   {
+    //     id: 1,
+    //     uniqueField: 'user 1',
+    //   }
+    // ],
+    // answer: [
+    //   {
+    //     id: 1,
+    //     title: "old title"
+    //   }
+    // ],
+    // userAnswer: [
+    //   {
+    //     answerId: 1,
+    //     userId: 1
+    //   }
+    // ],
+  });
+  await client.user.create({
+    data: {
+      id: 1,
+      uniqueField: 'user 1',
+    }
+  })
+  await client.answers.create({
+    data: {
+      id: 1,
+      title: "old title"
+    }
+  })
+  await client.userAnswers.create({
+    data: {
+      answerId: 1,
+      userId: 1
+    }
+  })
+
+  await client.user.update({
+    where: {
+      id: 1,
+    },
+    data: {
+      answers: {
+        update: {
+          data: {
+            answer: {
+              update: {
+                title: "new title",
+              },
+            }
+          },
+          where: {
+            userId_answerId: {
+              userId: 1,
+              answerId: 1
+            }
+          }
+        },
+      }
+    },
+  });
+
+
+  const user = await client.user.findUnique({
+    where: {
+      id: 1,
+    },
+    include: {
+      answers: true,
+    },
+  })
+
+  expect(user?.answers.length).toBe(1)
+
+  const answer = await client.answers.findUnique({
+    where: {
+      id: 1
+    }
+  })
+  expect(answer.title).toBe("new title")
+
+})
