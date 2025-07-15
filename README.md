@@ -122,10 +122,12 @@ Returns a mock Prisma client with all standard model methods plus:
 - `findFirst` / `findFirstOrThrow`
 - `create`
 - `createMany`
+- `createManyAndReturn`
 - `delete`
 - `update`
 - `deleteMany`
 - `updateMany`
+- `updateManyAndReturn`
 - `upsert`
 - `count`
 - `aggregate`
@@ -136,6 +138,7 @@ Returns a mock Prisma client with all standard model methods plus:
 - `include`
 - `where`
 - `select`
+- `omit`
 - `orderBy`
 - `select: _count`
 
