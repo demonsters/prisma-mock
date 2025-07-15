@@ -13,7 +13,7 @@ import createIndexes from "./indexes"
  */
 export const createDelegate = (
   ref: any, // Reference to the mock data store
-  datamodel: Prisma.DMMF.Datamodel, // Prisma datamodel definition
+  datamodel: Omit<Prisma.DMMF.Datamodel, 'indexes'>, // Prisma datamodel definition
   caseInsensitive: boolean, // Whether string comparisons should be case insensitive
   indexes: ReturnType<typeof createIndexes>, // Index management for performance
 ) => {
@@ -374,14 +374,14 @@ export const createDelegate = (
 
                 let createdItems = []
                 if (inputFieldData.createMany) {
-                  createdItems = delegate._createMany({
+                  createdItems = delegate._createManyAndReturn({
                     ...inputFieldData.createMany,
                     data: inputFieldData.createMany.data.map(map),
                   })
                 } else {
                   const data = inputFieldData.create
                   if (Array.isArray(data)) {
-                    createdItems = delegate._createMany({
+                    createdItems = delegate._createManyAndReturn({
                       ...data,
                       data: data.map(map),
                     })
@@ -641,6 +641,20 @@ export const createDelegate = (
           return newItem
         })
       }
+      // Omit fields was released into General Availability with Prisma ORM 6.2.0.
+      // Cannot combine with select
+      // https://www.prisma.io/docs/orm/reference/prisma-client-reference#omit
+      else if (args?.omit) {
+        res = res.map((item) => {
+          const newItem = { ...item }
+          Object.keys(args.omit).forEach((key) => {
+            if (key in newItem) {
+              delete newItem[key]
+            }
+          })
+          return newItem
+        })
+      }
 
       // Apply cursor-based pagination
       if (args?.cursor !== undefined) {
@@ -674,28 +688,62 @@ export const createDelegate = (
     /**
      * Updates multiple records matching the given criteria
      * Returns the updated data and count of updated records
+     * add limit option
      */
     const updateMany = (args) => {
-      let nbUpdated = 0
-      const newItems = ref.data[prop].map((e) => {
-        if (matchFnc(args.where)(e)) {
-          let data = nestedUpdate(args, false, e)
-          nbUpdated++
-          const newItem = {
-            ...e,
-            ...data,
-          }
-          indexes.updateItem(prop, newItem, e)
+      let limit = args.limit ?? 0;
+      let datas = [ ...ref.data[prop] ];
+      let updated = [];
+
+      // Configure include function
+      let inc = (item) => item
+      if (args.include || args.select) {
+        inc = includes(args)
+      }
+
+      // configure select function
+      let select = inc
+      if (args.select) {
+        select = (i) => {
+          const item = inc(i)
+          const newItem = {}
+          Object.keys(args.select).forEach((key) => (newItem[key] = item[key]))
           return newItem
         }
-        return e
-      })
-      ref.data = {
-        ...ref.data,
-        [prop]: newItems,
+      } else if (args.omit) {
+        select = (i) => {
+          const item = inc(i)
+          const newItem = { ...item }
+          Object.keys(args.omit).forEach((key) => {
+            if (key in newItem) {
+              delete newItem[key]
+            }
+          })
+          return newItem
+        }
       }
+
+      for (let i = 0; i < datas.length; i++) {
+        const e = datas[i]; 
+        if (!matchFnc(args.where)(e)) {
+          continue
+        }
+        
+        let data = nestedUpdate(args, false, e)
+        const newItem = {
+          ...e,
+          ...data,
+        }
+        updated.push(select(newItem))
+        indexes.updateItem(prop, newItem, e)
+        datas[i] = newItem;
+        if (limit > 0 && updated.length >= limit) {
+          break
+        }
+      }
+      ref.data = { ...ref.data, [prop]: datas }
       ref.data = removeMultiFieldIds(model, ref.data)
-      return { data: ref.data, nbUpdated }
+      return { data: updated, nbUpdated: updated.length }
     }
 
     /**
@@ -738,19 +786,70 @@ export const createDelegate = (
      */
     const createMany = (args) => {
       const skipDuplicates = args.skipDuplicates ?? false
-      return (Array.isArray(args.data) ? args.data : [args.data])
-        .map((data) => {
+      let count = 0;
+      (Array.isArray(args.data) ? args.data : [args.data])
+        .forEach((data) => {
           try {
-            return create({ ...args, data })
+            create({ ...args, data })
+            count++
           } catch (error) {
             if (skipDuplicates && error["code"] === "P2002") {
               return null
             }
             throw error
           }
+        });
+      return { count }
+    }
+
+    /**
+     * Creates multiple records with the given data
+     * Supports skipDuplicates option to handle unique constraint violations
+     * Supports include, select and omit options
+     * Returns the created data
+     */
+    const createManyAndReturn = (args) => {
+      const skipDuplicates = args.skipDuplicates ?? false
+      let inc = (item) => item
+      if (args.include || args.select) {
+        inc = includes(args)
+      }
+
+      // configure select function
+      let select = inc
+      if (args.select) {
+        select = (i) => {
+          const item = inc(i)
+          const newItem = {}
+          Object.keys(args.select).forEach((key) => (newItem[key] = item[key]))
+          return newItem
         }
-        )
-        .filter((item) => item !== null)
+      } else if (args.omit) {
+        select = (i) => {
+          const item = inc(i)
+          const newItem = { ...item }
+          Object.keys(args.omit).forEach((key) => {
+            if (key in newItem) {
+              delete newItem[key]
+            }
+          })
+          return newItem
+        }
+      }
+
+      let res = [];
+      (Array.isArray(args.data) ? args.data : [args.data])
+        .forEach((data) => {
+          try {
+            res.push(select(create({ ...args, data })))
+          } catch (error) {
+            if (skipDuplicates && error["code"] === "P2002") {
+              return null
+            }
+            throw error
+          }
+        });
+      return res
     }
 
     /**
@@ -1196,10 +1295,8 @@ export const createDelegate = (
       findFirst: findOne,
       findFirstOrThrow: findOrThrow,
       create,
-      createMany: (args) => {
-        const createdItems = createMany(args)
-        return { count: createdItems.length }
-      },
+      createMany,
+      createManyAndReturn,
       delete: (args) => {
         const item = findOne(args)
         if (!item) {
@@ -1222,6 +1319,10 @@ export const createDelegate = (
       updateMany: (args) => {
         const { nbUpdated } = updateMany(args)
         return { count: nbUpdated }
+      },
+      updateManyAndReturn: (args) => {
+        const { data } = updateMany(args)
+        return data;
       },
 
       /**
@@ -1258,6 +1359,7 @@ export const createDelegate = (
       _sortFunc: sortFunc,
       _findMany: findMany,
       _createMany: createMany,
+      _createManyAndReturn: createManyAndReturn,
     }
   }
   return Delegate
