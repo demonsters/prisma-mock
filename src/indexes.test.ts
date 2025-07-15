@@ -26,8 +26,8 @@ test("createIndexes", () => {
   })
 
   expect(items1).toMatchInlineSnapshot(`
-Array [
-  Object {
+[
+  {
     "accountId": 1,
     "id": 1,
     "name": "Alice",
@@ -46,8 +46,8 @@ Array [
   })
 
   expect(items2).toMatchInlineSnapshot(`
-Array [
-  Object {
+[
+  {
     "accountId": 1,
     "id": 1,
     "name": "Alice 2",
@@ -87,13 +87,13 @@ test("Index should be removed when set to null", () => {
   })
 
   expect(items1).toMatchInlineSnapshot(`
-Array [
-  Object {
+[
+  {
     "accountId": 1,
     "id": 1,
     "name": "Alice",
   },
-  Object {
+  {
     "accountId": 1,
     "id": 2,
     "name": "Piet",
@@ -116,8 +116,8 @@ Array [
   })
 
   expect(items2).toMatchInlineSnapshot(`
-Array [
-  Object {
+[
+  {
     "accountId": 1,
     "id": 2,
     "name": "Piet",
@@ -163,18 +163,18 @@ test("Should add multiple items", () => {
   })
 
   expect(items).toMatchInlineSnapshot(`
-Array [
-  Object {
+[
+  {
     "accountId": 1,
     "id": 1,
     "name": "Alice",
   },
-  Object {
+  {
     "accountId": 1,
     "id": 2,
     "name": "Alice 2",
   },
-  Object {
+  {
     "accountId": 1,
     "id": 3,
     "name": "Alice 3",
@@ -216,8 +216,8 @@ test("Should not make multiple items when has mulitple primary keys", () => {
   })
 
   expect(items).toMatchInlineSnapshot(`
-Array [
-  Object {
+[
+  {
     "accountId": 1,
     "name": "Alice 2",
     "userId": 1,
