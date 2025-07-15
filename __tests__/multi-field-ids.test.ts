@@ -55,7 +55,7 @@ describe("PrismaClient @@id()", () => {
       },
     });
     expect(user).toMatchInlineSnapshot(`
-Object {
+{
   "answerId": 2,
   "userId": 1,
   "value": null,
@@ -167,8 +167,8 @@ Object {
 
     const items = await client.userAnswers.findMany();
     expect(items).toMatchInlineSnapshot(`
-Array [
-  Object {
+[
+  {
     "answerId": 3,
     "userId": 1,
     "value": null,

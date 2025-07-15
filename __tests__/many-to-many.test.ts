@@ -55,11 +55,11 @@ test("Select", async () => {
   // This is 0 when it should be 1
   expect(documents.length).toBe(1)
   expect(documents).toMatchInlineSnapshot(`
-Array [
-  Object {
+[
+  {
     "name": "123",
-    "participants": Array [
-      Object {
+    "participants": [
+      {
         "accountId": 1,
         "age": 10,
         "clicks": null,
@@ -103,11 +103,11 @@ test("Create", async () => {
   expect(documents.length).toBe(1)
   expect(documents[0].participants.length).toBe(1)
   expect(documents).toMatchInlineSnapshot(`
-Array [
-  Object {
+[
+  {
     "name": "123",
-    "participants": Array [
-      Object {
+    "participants": [
+      {
         "accountId": null,
         "age": 10,
         "clicks": null,
@@ -204,10 +204,10 @@ test("set", async () => {
   })
 
   expect(document1).toMatchInlineSnapshot(`
-Object {
+{
   "name": "123",
-  "participants": Array [
-    Object {
+  "participants": [
+    {
       "accountId": null,
       "age": 10,
       "clicks": null,
@@ -218,7 +218,7 @@ Object {
       "sort": null,
       "uniqueField": "1",
     },
-    Object {
+    {
       "accountId": null,
       "age": 10,
       "clicks": null,
@@ -253,10 +253,10 @@ Object {
   })
 
   expect(document2).toMatchInlineSnapshot(`
-Object {
+{
   "name": "123",
-  "participants": Array [
-    Object {
+  "participants": [
+    {
       "accountId": null,
       "age": 10,
       "clicks": null,
@@ -289,9 +289,9 @@ Object {
   })
 
   expect(document3).toMatchInlineSnapshot(`
-Object {
+{
   "name": "123",
-  "participants": Array [],
+  "participants": [],
 }
 `)
 })
@@ -330,8 +330,8 @@ test("some in", async () => {
     },
   })
   expect(accounts).toMatchInlineSnapshot(`
-Array [
-  Object {
+[
+  {
     "accountId": null,
     "age": 10,
     "clicks": null,
@@ -342,7 +342,7 @@ Array [
     "sort": null,
     "uniqueField": "1",
   },
-  Object {
+  {
     "accountId": null,
     "age": 10,
     "clicks": null,
@@ -402,16 +402,16 @@ test("Should create many records", async () => {
     }
   })
   expect(answer).toMatchInlineSnapshot(`
-Object {
+{
   "id": 1,
   "title": "Test Workspace",
-  "users": Array [
-    Object {
+  "users": [
+    {
       "answerId": 1,
       "userId": 1,
       "value": "1",
     },
-    Object {
+    {
       "answerId": 1,
       "userId": 2,
       "value": "2",

@@ -23,12 +23,12 @@ describe('Create', () => {
     const users = await client.user.findMany()
     expect(users.length).toBe(1)
     expect(account).toMatchInlineSnapshot(`
-Object {
+{
   "id": 1,
   "name": null,
   "sort": null,
-  "users": Array [
-    Object {
+  "users": [
+    {
       "accountId": 1,
       "age": 10,
       "clicks": null,
@@ -64,12 +64,12 @@ Object {
       }
     })
     expect(account).toMatchInlineSnapshot(`
-Object {
+{
   "id": 1,
   "name": null,
   "sort": null,
-  "users": Array [
-    Object {
+  "users": [
+    {
       "accountId": 1,
       "age": 10,
       "clicks": null,
@@ -80,7 +80,7 @@ Object {
       "sort": null,
       "uniqueField": "user",
     },
-    Object {
+    {
       "accountId": 1,
       "age": 10,
       "clicks": null,
@@ -119,11 +119,11 @@ Object {
       }
     })
     expect(answer).toMatchInlineSnapshot(`
-Object {
+{
   "id": 1,
   "title": "Title",
-  "users": Array [
-    Object {
+  "users": [
+    {
       "answerId": 1,
       "userId": 1,
       "value": null,
@@ -212,12 +212,12 @@ describe("Update", () => {
       }
     })
     expect(answer).toMatchInlineSnapshot(`
-Object {
+{
   "id": 1,
   "name": null,
   "sort": null,
-  "users": Array [
-    Object {
+  "users": [
+    {
       "accountId": 1,
       "age": 10,
       "clicks": null,
@@ -266,7 +266,7 @@ Object {
       }
     })
     expect(user).toMatchInlineSnapshot(`
-Object {
+{
   "accountId": 1,
   "age": 10,
   "clicks": null,
@@ -314,12 +314,12 @@ Object {
       }
     })
     expect(answer).toMatchInlineSnapshot(`
-Object {
+{
   "id": 1,
   "name": null,
   "sort": null,
-  "users": Array [
-    Object {
+  "users": [
+    {
       "accountId": 1,
       "age": 10,
       "clicks": null,
@@ -374,12 +374,12 @@ Object {
       }
     })
     expect(answer).toMatchInlineSnapshot(`
-Object {
+{
   "id": 1,
   "name": null,
   "sort": null,
-  "users": Array [
-    Object {
+  "users": [
+    {
       "accountId": 1,
       "age": 10,
       "clicks": null,
@@ -432,12 +432,12 @@ Object {
       }
     })
     expect(answer).toMatchInlineSnapshot(`
-Object {
+{
   "id": 1,
   "name": null,
   "sort": null,
-  "users": Array [
-    Object {
+  "users": [
+    {
       "accountId": 1,
       "age": 10,
       "clicks": null,
@@ -494,8 +494,8 @@ Object {
       }
     })
     expect(account.users).toMatchInlineSnapshot(`
-Array [
-  Object {
+[
+  {
     "accountId": 1,
     "age": 10,
     "clicks": null,
@@ -549,8 +549,8 @@ Array [
       }
     })
     expect(account.users).toMatchInlineSnapshot(`
-Array [
-  Object {
+[
+  {
     "accountId": 1,
     "age": 10,
     "clicks": null,
@@ -607,8 +607,8 @@ Array [
     })
     expect(account.users.length).toEqual(1)
     expect(account.users).toMatchInlineSnapshot(`
-Array [
-  Object {
+[
+  {
     "accountId": 1,
     "age": 10,
     "clicks": null,
@@ -663,8 +663,8 @@ Array [
     })
     expect(account.users.length).toEqual(1)
     expect(account.users).toMatchInlineSnapshot(`
-Array [
-  Object {
+[
+  {
     "accountId": 1,
     "age": 10,
     "clicks": null,
@@ -699,8 +699,8 @@ test("Select", async () => {
   })
   expect(accounts).toHaveLength(1)
   expect(accounts).toMatchInlineSnapshot(`
-Array [
-  Object {
+[
+  {
     "id": 1,
     "name": "A",
     "sort": null,

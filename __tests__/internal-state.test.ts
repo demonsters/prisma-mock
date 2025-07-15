@@ -41,31 +41,31 @@ describe("PrismaClient $getInternalState", () => {
     const client = await createPrismaClient(data)
 
     expect(client.$getInternalState()).toMatchInlineSnapshot(`
-Object {
-  "account": Array [],
-  "answers": Array [
-    Object {
+{
+  "account": [],
+  "answers": [
+    {
       "id": 1,
       "title": "Answer",
     },
-    Object {
+    {
       "id": 2,
       "title": "Answer",
     },
-    Object {
+    {
       "id": 3,
       "title": "Answer",
     },
   ],
-  "document": Array [],
-  "element": Array [],
-  "pet": Array [],
-  "post": Array [],
-  "stripe": Array [],
-  "toy": Array [],
-  "transaction": Array [],
-  "user": Array [
-    Object {
+  "document": [],
+  "element": [],
+  "pet": [],
+  "post": [],
+  "stripe": [],
+  "toy": [],
+  "transaction": [],
+  "user": [
+    {
       "accountId": null,
       "age": 10,
       "clicks": null,
@@ -77,7 +77,7 @@ Object {
       "uniqueField": "user1",
     },
   ],
-  "userAnswers": Array [],
+  "userAnswers": [],
 }
 `)
   })
@@ -92,31 +92,31 @@ Object {
     })
 
     expect(client.$getInternalState()).toMatchInlineSnapshot(`
-Object {
-  "account": Array [],
-  "answers": Array [
-    Object {
+{
+  "account": [],
+  "answers": [
+    {
       "id": 1,
       "title": "Answer",
     },
-    Object {
+    {
       "id": 2,
       "title": "Answer",
     },
-    Object {
+    {
       "id": 3,
       "title": "Answer",
     },
   ],
-  "document": Array [],
-  "element": Array [],
-  "pet": Array [],
-  "post": Array [],
-  "stripe": Array [],
-  "toy": Array [],
-  "transaction": Array [],
-  "user": Array [
-    Object {
+  "document": [],
+  "element": [],
+  "pet": [],
+  "post": [],
+  "stripe": [],
+  "toy": [],
+  "transaction": [],
+  "user": [
+    {
       "accountId": null,
       "age": 10,
       "clicks": null,
@@ -128,8 +128,8 @@ Object {
       "uniqueField": "user1",
     },
   ],
-  "userAnswers": Array [
-    Object {
+  "userAnswers": [
+    {
       "answerId": 1,
       "userId": 1,
       "value": null,
@@ -145,18 +145,18 @@ Object {
     await client.answers.deleteMany({})
 
     expect(client.$getInternalState()).toMatchInlineSnapshot(`
-Object {
-  "account": Array [],
-  "answers": Array [],
-  "document": Array [],
-  "element": Array [],
-  "pet": Array [],
-  "post": Array [],
-  "stripe": Array [],
-  "toy": Array [],
-  "transaction": Array [],
-  "user": Array [
-    Object {
+{
+  "account": [],
+  "answers": [],
+  "document": [],
+  "element": [],
+  "pet": [],
+  "post": [],
+  "stripe": [],
+  "toy": [],
+  "transaction": [],
+  "user": [
+    {
       "accountId": null,
       "age": 10,
       "clicks": null,
@@ -168,7 +168,7 @@ Object {
       "uniqueField": "user1",
     },
   ],
-  "userAnswers": Array [],
+  "userAnswers": [],
 }
 `)
   })
@@ -183,31 +183,31 @@ Object {
     })
 
     expect(client.$getInternalState()).toMatchInlineSnapshot(`
-Object {
-  "account": Array [],
-  "answers": Array [
-    Object {
+{
+  "account": [],
+  "answers": [
+    {
       "id": 1,
       "title": "Answer",
     },
-    Object {
+    {
       "id": 2,
       "title": "Answer",
     },
-    Object {
+    {
       "id": 3,
       "title": "Answer",
     },
   ],
-  "document": Array [],
-  "element": Array [],
-  "pet": Array [],
-  "post": Array [],
-  "stripe": Array [],
-  "toy": Array [],
-  "transaction": Array [],
-  "user": Array [
-    Object {
+  "document": [],
+  "element": [],
+  "pet": [],
+  "post": [],
+  "stripe": [],
+  "toy": [],
+  "transaction": [],
+  "user": [
+    {
       "accountId": null,
       "age": 10,
       "clicks": null,
@@ -219,7 +219,7 @@ Object {
       "uniqueField": "user1",
     },
   ],
-  "userAnswers": Array [],
+  "userAnswers": [],
 }
 `)
   })

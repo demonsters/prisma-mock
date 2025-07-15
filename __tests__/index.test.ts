@@ -162,7 +162,7 @@ describe("PrismaClient", () => {
       },
     })
     expect(res).toMatchInlineSnapshot(`
-Object {
+{
   "accountId": null,
   "age": 10,
   "clicks": null,
@@ -208,7 +208,7 @@ Object {
     })
     const users = await client.user.findMany()
     expect(res).toMatchInlineSnapshot(`
-Object {
+{
   "accountId": 1,
   "age": 10,
   "clicks": null,
@@ -221,8 +221,8 @@ Object {
 }
 `)
     expect(users).toMatchInlineSnapshot(`
-Array [
-  Object {
+[
+  {
     "accountId": 1,
     "age": 10,
     "clicks": null,
@@ -233,7 +233,7 @@ Array [
     "sort": null,
     "uniqueField": "first",
   },
-  Object {
+  {
     "accountId": 1,
     "age": 10,
     "clicks": null,
@@ -273,8 +273,8 @@ Array [
     const users = await client.user.findMany()
 
     expect(users).toMatchInlineSnapshot(`
-Array [
-  Object {
+[
+  {
     "accountId": 1,
     "age": 10,
     "clicks": null,
@@ -471,14 +471,14 @@ Array [
     })
 
     expect(users).toMatchInlineSnapshot(`
-Array [
-  Object {
+[
+  {
     "accountId": null,
     "age": 10,
     "clicks": null,
     "deleted": false,
-    "guestOf": Array [
-      Object {
+    "guestOf": [
+      {
         "id": 1,
         "name": "New account",
         "sort": null,

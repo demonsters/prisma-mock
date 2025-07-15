@@ -62,7 +62,7 @@ describe("bulk-operations", () => {
     expect(count).toEqual(2)
 
     const klof = users.find(u => u.name === 'Klof')
-    expect(klof.uniqueField).toEqual('5')
+    expect(klof?.uniqueField).toEqual('5')
 
     await client.$disconnect()
   })

@@ -125,11 +125,11 @@ test('simple use case', async () => {
   const client = await createPrismaClient()
   const createElement = await setup(client)
   expect(createElement.json).toMatchInlineSnapshot(`
-Array [
-  Object {
+[
+  {
     "name": "Bob the dog",
   },
-  Object {
+  {
     "name": "Claudine the cat",
   },
 ]
@@ -151,14 +151,14 @@ describe("Filter on exact field value", () => {
       },
     })
     expect(getUsers).toMatchInlineSnapshot(`
-Array [
-  Object {
+[
+  {
     "e_id": 5,
-    "json": Array [
-      Object {
+    "json": [
+      {
         "name": "Bob the dog",
       },
-      Object {
+      {
         "name": "Claudine the cat",
       },
     ],
@@ -211,16 +211,16 @@ describe("Filter on nested object property", () => {
       },
     })
     expect(element).toMatchInlineSnapshot(`
-Array [
-  Object {
+[
+  {
     "e_id": 4,
-    "json": Object {
-      "pet1": Object {
+    "json": {
+      "pet1": {
         "petName": "Claudine",
         "petType": "House cat",
       },
-      "pet2": Object {
-        "features": Object {
+      "pet2": {
+        "features": {
           "eyeColor": "Brown",
           "furColor": "White and black",
         },
@@ -249,16 +249,16 @@ Array [
       },
     })
     expect(element).toMatchInlineSnapshot(`
-Array [
-  Object {
+[
+  {
     "e_id": 4,
-    "json": Object {
-      "pet1": Object {
+    "json": {
+      "pet1": {
         "petName": "Claudine",
         "petType": "House cat",
       },
-      "pet2": Object {
-        "features": Object {
+      "pet2": {
+        "features": {
           "eyeColor": "Brown",
           "furColor": "White and black",
         },
@@ -286,16 +286,16 @@ Array [
       },
     })
     expect(element).toMatchInlineSnapshot(`
-Array [
-  Object {
+[
+  {
     "e_id": 4,
-    "json": Object {
-      "pet1": Object {
+    "json": {
+      "pet1": {
         "petName": "Claudine",
         "petType": "House cat",
       },
-      "pet2": Object {
-        "features": Object {
+      "pet2": {
+        "features": {
           "eyeColor": "Brown",
           "furColor": "White and black",
         },
@@ -323,16 +323,16 @@ Array [
       },
     })
     expect(element).toMatchInlineSnapshot(`
-Array [
-  Object {
+[
+  {
     "e_id": 4,
-    "json": Object {
-      "pet1": Object {
+    "json": {
+      "pet1": {
         "petName": "Claudine",
         "petType": "House cat",
       },
-      "pet2": Object {
-        "features": Object {
+      "pet2": {
+        "features": {
           "eyeColor": "Brown",
           "furColor": "White and black",
         },
@@ -364,14 +364,14 @@ describe("Filtering on an array value", () => {
       },
     })
     expect(element).toMatchInlineSnapshot(`
-Array [
-  Object {
+[
+  {
     "e_id": 5,
-    "json": Array [
-      Object {
+    "json": [
+      {
         "name": "Bob the dog",
       },
-      Object {
+      {
         "name": "Claudine the cat",
       },
     ],
@@ -398,25 +398,25 @@ describe("Filtering on nested array value", () => {
       },
     })
     expect(element).toMatchInlineSnapshot(`
-Array [
-  Object {
+[
+  {
     "e_id": 6,
-    "json": Object {
-      "cats": Object {
-        "fostering": Array [
+    "json": {
+      "cats": {
+        "fostering": [
           "Fido",
         ],
-        "owned": Array [
+        "owned": [
           "Bob",
           "Sunny",
         ],
       },
-      "dogs": Object {
-        "fostering": Array [
+      "dogs": {
+        "fostering": [
           "Prince",
           "Empress",
         ],
-        "owned": Array [
+        "owned": [
           "Ella",
         ],
       },
@@ -440,7 +440,7 @@ Array [
         },
       },
     })
-    expect(element).toMatchInlineSnapshot(`Array []`)
+    expect(element).toMatchInlineSnapshot(`[]`)
   })
 
   test("Two with match", async () => {
@@ -455,16 +455,16 @@ Array [
       },
     })
     expect(element).toMatchInlineSnapshot(`
-Array [
-  Object {
+[
+  {
     "e_id": 8,
-    "json": Object {
-      "cats": Object {
-        "fostering": Array [
+    "json": {
+      "cats": {
+        "fostering": [
           "Bob",
           "Bill",
         ],
-        "owned": Array [
+        "owned": [
           "John",
         ],
       },
@@ -511,8 +511,8 @@ describe("Using null Values", () => {
       }
     })
     expect(element).toMatchInlineSnapshot(`
-Array [
-  Object {
+[
+  {
     "e_id": 9,
     "json": null,
     "userId": 1,
@@ -533,8 +533,8 @@ Array [
       }
     })
     expect(element).toMatchInlineSnapshot(`
-Array [
-  Object {
+[
+  {
     "e_id": 10,
     "json": null,
     "userId": 1,
@@ -555,14 +555,14 @@ Array [
       }
     })
     expect(element).toMatchInlineSnapshot(`
-Array [
-  Object {
+[
+  {
     "e_id": 9,
     "json": null,
     "userId": 1,
     "value": "9",
   },
-  Object {
+  {
     "e_id": 10,
     "json": null,
     "userId": 1,

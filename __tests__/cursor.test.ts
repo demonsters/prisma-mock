@@ -52,14 +52,14 @@ test('findMany cursor', async () => {
     }
   })
   expect(users).toMatchInlineSnapshot(`
-Array [
-  Object {
+[
+  {
     "accountId": 2,
     "id": 4,
     "name": "user 4",
     "uniqueField": "user 4",
   },
-  Object {
+  {
     "accountId": 2,
     "id": 5,
     "name": "user 5",

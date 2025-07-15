@@ -20,8 +20,8 @@ test('create', async () => {
     }
   })
   expect(user).toMatchInlineSnapshot(`
-Object {
-  "account": Object {
+{
+  "account": {
     "id": 1,
     "name": null,
     "sort": null,
@@ -68,8 +68,8 @@ test('update', async () => {
     }
   })
   expect(answer).toMatchInlineSnapshot(`
-Object {
-  "account": Object {
+{
+  "account": {
     "id": 1,
     "name": "B",
     "sort": null,

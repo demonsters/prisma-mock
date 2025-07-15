@@ -480,13 +480,13 @@ describe("PrismaClient where", () => {
         },
       })
       expect(accounts).toMatchInlineSnapshot(`
-Array [
-  Object {
+[
+  {
     "id": 1,
     "name": "A",
     "sort": null,
   },
-  Object {
+  {
     "id": 3,
     "name": "C",
     "sort": null,
@@ -506,13 +506,13 @@ Array [
         },
       })
       expect(accounts).toMatchInlineSnapshot(`
-Array [
-  Object {
+[
+  {
     "id": 1,
     "name": "A",
     "sort": null,
   },
-  Object {
+  {
     "id": 2,
     "name": "B",
     "sort": null,
@@ -535,8 +535,8 @@ Array [
         },
       })
       expect(accounts).toMatchInlineSnapshot(`
-Array [
-  Object {
+[
+  {
     "id": 3,
     "name": "C",
     "sort": null,

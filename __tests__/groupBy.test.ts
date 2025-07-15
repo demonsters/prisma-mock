@@ -28,15 +28,15 @@ test("Should group by name with count", async () => {
   })
 
   expect(result).toMatchInlineSnapshot(`
-Array [
-  Object {
-    "_count": Object {
+[
+  {
+    "_count": {
       "_all": 2,
     },
     "name": "Jane",
   },
-  Object {
-    "_count": Object {
+  {
+    "_count": {
       "_all": 2,
     },
     "name": "John",
@@ -60,15 +60,15 @@ test("Should group by name with avg", async () => {
   })
 
   expect(result).toMatchInlineSnapshot(`
-Array [
-  Object {
-    "_avg": Object {
+[
+  {
+    "_avg": {
       "age": 35,
     },
     "name": "Jane",
   },
-  Object {
-    "_avg": Object {
+  {
+    "_avg": {
       "age": 30,
     },
     "name": "John",
@@ -99,9 +99,9 @@ describe("Having", () => {
     })
 
     expect(result).toMatchInlineSnapshot(`
-Array [
-  Object {
-    "_avg": Object {
+[
+  {
+    "_avg": {
       "age": 35,
     },
     "name": "Jane",
@@ -129,9 +129,9 @@ Array [
     })
 
     expect(result).toMatchInlineSnapshot(`
-Array [
-  Object {
-    "_count": Object {
+[
+  {
+    "_count": {
       "age": 2,
     },
     "name": "Jane",

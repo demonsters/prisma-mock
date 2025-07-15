@@ -112,12 +112,12 @@ test("findOne deep", async () => {
     },
   })
   expect(user).toMatchInlineSnapshot(`
-Object {
-  "account": Object {
+{
+  "account": {
     "id": 1,
     "name": "sadfsdf",
     "sort": null,
-    "stripe": Object {
+    "stripe": {
       "accountId": 1,
       "active": false,
       "customerId": "sadfsdf",
@@ -153,12 +153,12 @@ test("findMany deep", async () => {
     },
   })
   expect(users[0]).toMatchInlineSnapshot(`
-Object {
-  "account": Object {
+{
+  "account": {
     "id": 1,
     "name": "sadfsdf",
     "sort": null,
-    "stripe": Object {
+    "stripe": {
       "accountId": 1,
       "active": false,
       "customerId": "sadfsdf",
@@ -191,12 +191,12 @@ test("findMany one to many", async () => {
     },
   })
   expect(users[0]).toMatchInlineSnapshot(`
-Object {
+{
   "id": 1,
   "name": "sadfsdf",
   "sort": null,
-  "users": Array [
-    Object {
+  "users": [
+    {
       "accountId": 1,
       "age": 10,
       "clicks": null,
@@ -231,20 +231,20 @@ test("findOne nested where", async () => {
     }
   })
   expect(account).toMatchInlineSnapshot(`
-Object {
+{
   "id": 1,
   "name": "sadfsdf",
   "sort": null,
-  "users": Array [
-    Object {
+  "users": [
+    {
       "accountId": 1,
       "age": 10,
       "clicks": null,
       "deleted": false,
       "id": 1,
       "name": "sadfsdf",
-      "posts": Array [
-        Object {
+      "posts": [
+        {
           "authorId": 1,
           "created": 2020-01-01T00:00:00.000Z,
           "id": 1,
@@ -252,7 +252,7 @@ Object {
           "title": "Published ",
           "updated": 2020-01-01T00:00:00.000Z,
         },
-        Object {
+        {
           "authorId": 1,
           "created": 2020-01-01T00:00:00.000Z,
           "id": 2,

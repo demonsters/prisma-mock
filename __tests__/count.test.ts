@@ -69,11 +69,11 @@ test("_count", async () => {
   })
 
   expect(result).toMatchInlineSnapshot(`
-Array [
-  Object {
-    "users": Array [
-      Object {
-        "_count": Object {
+[
+  {
+    "users": [
+      {
+        "_count": {
           "posts": 2,
         },
       },

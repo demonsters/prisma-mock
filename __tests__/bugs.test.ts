@@ -50,5 +50,5 @@ test("#22", async () => {
     },
   })
 
-  expect(element).toMatchInlineSnapshot(`Array []`)
+  expect(element).toMatchInlineSnapshot(`[]`)
 })
