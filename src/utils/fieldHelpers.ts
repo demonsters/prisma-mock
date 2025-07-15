@@ -56,7 +56,7 @@ export const removeMultiFieldIds = (
   return data
 }
 
-export const createGetFieldRelationshipWhere = (datamodel: Prisma.DMMF.Datamodel, manyToManyData: { [relationName: string]: Array<{ [type: string]: Item }> }) =>
+export const createGetFieldRelationshipWhere = (datamodel: Omit<Prisma.DMMF.Datamodel, 'indexes'>, manyToManyData: { [relationName: string]: Array<{ [type: string]: Item }> }) =>
   (item: any, field: Prisma.DMMF.Field, model: Prisma.DMMF.Model) => {
     if (field.relationFromFields.length === 0) {
       const joinmodel = datamodel.models.find((model) => {

@@ -13,7 +13,7 @@ import { shallowCompare } from "./utils/shallowCompare"
  */
 export const createDelegate = (
   ref: any, // Reference to the mock data store
-  datamodel: Prisma.DMMF.Datamodel, // Prisma datamodel definition
+  datamodel: Omit<Prisma.DMMF.Datamodel, 'indexes'>, // Prisma datamodel definition
   caseInsensitive: boolean, // Whether string comparisons should be case insensitive
   indexes: ReturnType<typeof createIndexes>, // Index management for performance
 ) => {
