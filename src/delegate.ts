@@ -1210,6 +1210,10 @@ export const createDelegate = (
         const createdItems = createMany(args)
         return { count: createdItems.length }
       },
+      createManyAndReturn: (args) => {
+        const createdItems = createMany(args)
+        return createdItems
+      },
       delete: (args) => {
         const item = findOne(args)
         if (!item) {

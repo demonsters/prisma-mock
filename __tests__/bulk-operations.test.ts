@@ -66,4 +66,42 @@ describe("bulk-operations", () => {
 
     await client.$disconnect()
   })
+
+  test("createManyAndReturn", async () => {
+    const client = await createPrismaClient(data)
+    const users = await client.user.createManyAndReturn({
+      data: [
+        { name: 'Plaf', clicks: 4, uniqueField: '4' },
+        { name: 'Klof', clicks: 2, uniqueField: '5' },
+      ],
+    })
+    expect(users.length).toBe(2)
+    expect(users).toMatchInlineSnapshot(`
+Array [
+  Object {
+    "accountId": null,
+    "age": 10,
+    "clicks": 4,
+    "deleted": false,
+    "id": 3,
+    "name": "Plaf",
+    "role": "ADMIN",
+    "sort": null,
+    "uniqueField": "4",
+  },
+  Object {
+    "accountId": null,
+    "age": 10,
+    "clicks": 2,
+    "deleted": false,
+    "id": 4,
+    "name": "Klof",
+    "role": "ADMIN",
+    "sort": null,
+    "uniqueField": "5",
+  },
+]
+`)
+  })
+
 })
