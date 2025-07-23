@@ -1,11 +1,11 @@
 import { Prisma } from "@prisma/client"
 import createHandleDefault from "./defaults"
-import { createGetFieldRelationshipWhere, getCamelCase, IsFieldDefault, removeMultiFieldIds } from "./utils/fieldHelpers"
 import { throwKnownError, throwValidationError } from "./errors"
+import createIndexes from "./indexes"
 import { CreateArgs, Item } from "./types"
+import { createGetFieldRelationshipWhere, getCamelCase, isFieldDefault, removeMultiFieldIds } from "./utils/fieldHelpers"
 import createMatch from "./utils/queryMatching"
 import { shallowCompare } from "./utils/shallowCompare"
-import createIndexes from "./indexes"
 
 /**
  * Creates a delegate function that handles Prisma-like operations for a specific model
@@ -142,6 +142,7 @@ export const createDelegate = (
       const model = datamodel.models.find((model) => {
         return getCamelCase(model.name) === prop
       })
+
 
       model.fields.forEach((field) => {
         if (inputData[field.name]) {
@@ -535,7 +536,7 @@ export const createDelegate = (
           (inputData[field.name] === null || inputData[field.name] === undefined)
         ) {
           if (field.hasDefaultValue) {
-            if (IsFieldDefault(field.default)) {
+            if (isFieldDefault(field.default)) {
               const defaultValue = handleDefaults(prop, field, ref)
               if (defaultValue) {
                 inputData = {
@@ -566,6 +567,10 @@ export const createDelegate = (
         }
         // return field.name === key
       })
+      if (model.name === "Stripe") {
+        model //?
+        inputData //?
+      }
       return inputData
     }
 
@@ -703,6 +708,11 @@ export const createDelegate = (
      * Handles default values, unique constraints, and indexes
      */
     const create = (args: CreateArgs) => {
+      // Get field schema for default values
+      const model = datamodel.models.find((model) => {
+        return getCamelCase(model.name) === prop
+      })
+
       const d = nestedUpdate(args, true, null)
       ref.data = {
         ...ref.data,
@@ -715,7 +725,7 @@ export const createDelegate = (
       const fields = model.primaryKey?.fields
       if (!fields || fields.length === 0) {
         for (const field of model.fields) {
-          if (field.isUnique || field.isId) {
+          if (field.isId) {
             where[field.name] = d[field.name]
           }
         }

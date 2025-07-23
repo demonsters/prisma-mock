@@ -66,8 +66,7 @@ const createPrismaMock = <P>(
       try {
         // @ts-ignore
         return await actions(client)
-      }
-      catch (error) {
+      } catch (error) {
         // Rollback data on error
         ref.data = snapshot
         throw error

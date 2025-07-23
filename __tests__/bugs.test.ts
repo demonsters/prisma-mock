@@ -52,3 +52,26 @@ test("#22", async () => {
 
   expect(element).toMatchInlineSnapshot(`Array []`)
 })
+
+
+test("create returning null", async () => {
+
+  const prismaMock = await createPrismaClient()
+
+  const globalPlaylist = await prismaMock.stripe.create({
+    data: {
+      id: 1,
+      account: {
+        create: {
+          id: 1,
+          name: "Account"
+        }
+      },
+    }
+  })
+
+  expect(globalPlaylist).not.toBeNull()
+
+
+})
+

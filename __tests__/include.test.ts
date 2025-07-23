@@ -88,6 +88,7 @@ test("findOne from", async () => {
   })
   expect(stripe).toEqual({
     ...data.stripe[0],
+    accountId: 1,
     active: false,
     sort: null,
     account: {

@@ -1,7 +1,7 @@
 import { Prisma } from "@prisma/client"
 import { Item } from "../types"
 
-export function IsFieldDefault(
+export function isFieldDefault(
   f:
     | Prisma.DMMF.FieldDefault
     | readonly Prisma.DMMF.FieldDefaultScalar[]
@@ -48,7 +48,9 @@ export const removeMultiFieldIds = (
 
   if (model.uniqueFields?.length > 0) {
     for (const uniqueField of model.uniqueFields) {
-      removeId(uniqueField)
+      if (uniqueField.length > 1) {
+        removeId(uniqueField)
+      }
     }
   }
   return data

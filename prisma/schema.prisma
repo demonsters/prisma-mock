@@ -15,7 +15,7 @@ enum Role {
 model Account {
   id     Int     @id @default(autoincrement())
   users  User[]  @relation("AccountUsers")
-  stripe Stripe? @relation
+  stripe Stripe?
   name   String?
   guest  User[]  @relation("AccountGuest")
   sort   Int?
@@ -43,10 +43,12 @@ model User {
 model Stripe {
   id         Int     @id @default(autoincrement())
   customerId String  @unique
-  accountId  Int     @unique
+  accountId  Int
   account    Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
   active     Boolean @default(false)
   sort       Int?
+
+  @@unique([accountId])
 }
 
 model Answers {

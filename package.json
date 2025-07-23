@@ -27,6 +27,7 @@
     "preversion": "jest && tsc",
     "build": "tsc",
     "test": "jest",
+    "generate": "prisma generate",
     "watch": "tsc --watch",
     "test:postgres": "env-cmd -e postgres jest --maxWorkers=1"
   },
