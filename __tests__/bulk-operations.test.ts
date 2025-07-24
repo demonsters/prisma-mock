@@ -1,3 +1,5 @@
+// @ts-nocheck
+
 import createPrismaClient from './createPrismaClient'
 
 describe("bulk-operations", () => {
@@ -99,6 +101,36 @@ Array [
     "role": "ADMIN",
     "sort": null,
     "uniqueField": "5",
+  },
+]
+`)
+  })
+
+
+  test("updateManyAndReturn", async () => {
+    const client = await createPrismaClient(data)
+    const users = await client.user.updateManyAndReturn({
+      where: {
+        clicks: {
+          gt: 4
+        },
+      },
+      data: {
+        name: 'Bard'
+      }
+    })
+    expect(users).toMatchInlineSnapshot(`
+Array [
+  Object {
+    "accountId": null,
+    "age": 10,
+    "clicks": 5,
+    "deleted": false,
+    "id": 2,
+    "name": "Bard",
+    "role": "ADMIN",
+    "sort": null,
+    "uniqueField": "2",
   },
 ]
 `)

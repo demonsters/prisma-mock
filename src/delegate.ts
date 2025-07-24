@@ -700,7 +700,8 @@ export const createDelegate = (
         [prop]: newItems,
       }
       ref.data = removeMultiFieldIds(model, ref.data)
-      return { data: ref.data, nbUpdated }
+      const data = findMany({ where: args.where })
+      return { data, nbUpdated }
     }
 
     /**
@@ -1236,6 +1237,10 @@ export const createDelegate = (
       updateMany: (args) => {
         const { nbUpdated } = updateMany(args)
         return { count: nbUpdated }
+      },
+      updateManyAndReturn: (args) => {
+        const { data, nbUpdated } = updateMany(args)
+        return data
       },
 
       /**
