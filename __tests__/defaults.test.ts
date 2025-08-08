@@ -90,4 +90,13 @@ describe("defaults", () => {
     expect(transaction.id).toHaveLength(36)
   })
 
+  test("dbgenerated: gen_random_uuid()", async () => {
+    const client = await createPrismaClient({});
+    const dbGeneratedId = await client.dbGeneratedId.create({
+      data: {},
+    });
+
+    expect(dbGeneratedId.id).toHaveLength(36);
+  });
+
 });
