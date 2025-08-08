@@ -1,7 +1,7 @@
-import { Prisma } from "@prisma/client"
+import type { Prisma } from "@prisma/client"
 import { createDelegate } from "./delegate"
 import createIndexes from "./indexes"
-import { DeepMockApi, Item, MockPrismaOptions, PrismaMockData } from "./types"
+import { MockPrismaOptions, PrismaMockData } from "./types"
 import { deepCopy } from "./utils/deepCopy"
 import { getCamelCase, removeMultiFieldIds } from "./utils/fieldHelpers"
 
@@ -14,9 +14,7 @@ import { getCamelCase, removeMultiFieldIds } from "./utils/fieldHelpers"
  * @returns A mock Prisma client with all model methods and internal state access
  */
 const createPrismaMock = <P>(
-  data: PrismaMockData<P> = {},
-  datamodel = Prisma.dmmf.datamodel,
-  mockClient: DeepMockApi,
+  prisma: typeof Prisma,
   options: MockPrismaOptions = {
     caseInsensitive: false,
     enableIndexes: false,
@@ -27,10 +25,11 @@ const createPrismaMock = <P>(
 
   // Reference object to hold the mock data state
   let ref = {
-    data,
+    data: {},
   }
+
   // Initialize the mock client (either use provided one or create new)
-  let client = mockClient ? mockClient : {}
+  let client = options.mockClient ? options.mockClient : {}
 
   /**
    * Helper function to implement mock methods consistently
@@ -38,7 +37,7 @@ const createPrismaMock = <P>(
    * @param fnc - Function implementation
    */
   const mockImplementation = (name: string, fnc: any) => {
-    if (mockClient) {
+    if (options.mockClient) {
       client[name].mockImplementation(fnc)
     } else {
       client[name] = fnc
@@ -46,7 +45,7 @@ const createPrismaMock = <P>(
   }
 
   // Create indexes if enabled in options
-  const indexes = createIndexes(!!options.enableIndexes)
+  const indexes = createIndexes(!!options.enableIndexes, prisma)
 
   // Determine if case-insensitive matching should be used
   const caseInsensitive = options.caseInsensitive || false
@@ -82,10 +81,10 @@ const createPrismaMock = <P>(
   })
 
   // Create delegate functions for model operations
-  const Delegate = createDelegate(ref, datamodel, caseInsensitive, indexes)
+  const Delegate = createDelegate(ref, prisma, caseInsensitive, indexes)
 
   // Initialize each model in the datamodel
-  datamodel.models.forEach((model) => {
+  prisma.dmmf.datamodel.models.forEach((model) => {
     if (!model) return
 
     // Convert model name to camelCase for consistency
@@ -125,7 +124,7 @@ const createPrismaMock = <P>(
       if (!client[c]) client[c] = {}
 
       // Bind the delegate function to the client
-      if (mockClient) {
+      if (options.mockClient) {
         client[c][fncName].mockImplementation(async (...params) => {
           return objs[fncName](...params)
         })
