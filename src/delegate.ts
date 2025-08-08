@@ -6,6 +6,7 @@ import { CreateArgs, Item } from "./types"
 import { createGetFieldRelationshipWhere, getCamelCase, isFieldDefault, removeMultiFieldIds } from "./utils/fieldHelpers"
 import createMatch from "./utils/queryMatching"
 import { shallowCompare } from "./utils/shallowCompare"
+import getWhereOnIds from "./utils/getWhereOnIds"
 
 /**
  * Creates a delegate function that handles Prisma-like operations for a specific model
@@ -682,6 +683,7 @@ export const createDelegate = (
      */
     const updateMany = (args) => {
       let nbUpdated = 0
+      const wheres = []
       const newItems = ref.data[prop].map((e) => {
         if (matchFnc(args.where)(e)) {
           let data = nestedUpdate(args, false, e)
@@ -691,6 +693,7 @@ export const createDelegate = (
             ...data,
           }
           indexes.updateItem(prop, newItem, e)
+          wheres.push(getWhereOnIds(model, newItem))
           return newItem
         }
         return e
@@ -700,7 +703,11 @@ export const createDelegate = (
         [prop]: newItems,
       }
       ref.data = removeMultiFieldIds(model, ref.data)
-      const data = findMany({ where: args.where })
+      const data = findMany({
+        where: {
+          OR: wheres
+        }, include: args.include
+      })
       return { data, nbUpdated }
     }
 
@@ -722,22 +729,7 @@ export const createDelegate = (
       ref.data = removeMultiFieldIds(model, ref.data)
 
       // Create where clause from unique identifier fields for index update
-      let where = {}
-      const fields = model.primaryKey?.fields
-      if (!fields || fields.length === 0) {
-        for (const field of model.fields) {
-          if (field.isId) {
-            where[field.name] = d[field.name]
-          }
-        }
-      } else if (fields.length > 1) {
-        for (const field of fields) {
-          where[field] = d[field]
-        }
-        where = {
-          [fields.join("_")]: where
-        }
-      }
+      let where = getWhereOnIds(model, d)
       const item = findOne({ where, ...args })
       indexes.updateItem(prop, item, null)
       return item

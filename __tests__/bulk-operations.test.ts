@@ -136,4 +136,38 @@ Array [
 `)
   })
 
+
+  test("updateManyAndReturn update where values", async () => {
+    const client = await createPrismaClient(data)
+    const users = await client.user.updateManyAndReturn({
+      where: {
+        clicks: {
+          gt: 3
+        },
+      },
+      data: {
+        name: 'Bard',
+        clicks: 2,
+      },
+    })
+    expect(users).toMatchInlineSnapshot(`
+Array [
+  Object {
+    "accountId": null,
+    "age": 10,
+    "clicks": 2,
+    "deleted": false,
+    "id": 2,
+    "name": "Bard",
+    "role": "ADMIN",
+    "sort": null,
+    "uniqueField": "2",
+  },
+]
+`)
+  })
+
 })
+
+
+
