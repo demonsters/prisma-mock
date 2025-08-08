@@ -179,6 +179,7 @@ export default function createIndexes(isEnabled: boolean = true) {
         // Create new index entry
         items[tableName][fieldName].set(item[fieldName], [item])
       } else {
+
         const field = fields[tableName][fieldName]
         const array = items[tableName][fieldName].get(item[fieldName])
 
@@ -190,7 +191,8 @@ export default function createIndexes(isEnabled: boolean = true) {
           if (array.length === 0) {
             array.push(item)
           } else {
-            const thisIdFieldNames = idFieldNames[tableName] || []
+            // Filter out this field 
+            const thisIdFieldNames = (idFieldNames[tableName] || []).filter(f => f !== fieldName)
             let hasFound = false
 
             // Try to find and update existing item by ID
