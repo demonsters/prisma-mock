@@ -1,4 +1,4 @@
-import { Prisma } from "@prisma/client"
+import type { Prisma } from "@prisma/client"
 import { deepEqual } from "./deepEqual"
 import { shallowCompare } from "./shallowCompare"
 import getNestedValue from "./getNestedValue"
@@ -12,9 +12,10 @@ type Props = {
   model: Prisma.DMMF.Model
   datamodel: Omit<Prisma.DMMF.Datamodel, 'indexes'>
   caseInsensitive: boolean
+  prisma: typeof Prisma
 }
 
-export default function createMatch({ getFieldRelationshipWhere, getDelegateForFieldName, model, datamodel, caseInsensitive }: Props) {
+export default function createMatch({ prisma, getFieldRelationshipWhere, getDelegateForFieldName, model, datamodel, caseInsensitive }: Props) {
 
   const matchItem = (child: any, item: any, where: any) => {
     let val = item[child]
@@ -140,14 +141,14 @@ export default function createMatch({ getFieldRelationshipWhere, getDelegateForF
         }
         if ("equals" in matchFilter && match) {
           // match = deepEqual(matchFilter.equals, val)
-          if (matchFilter.equals === Prisma.DbNull) {
-            if (val === Prisma.DbNull) {
+          if (matchFilter.equals === prisma.DbNull) {
+            if (val === prisma.DbNull) {
             }
-            match = val === Prisma.DbNull
-          } else if (matchFilter.equals === Prisma.AnyNull) {
-            match = val === Prisma.DbNull || val === Prisma.JsonNull
+            match = val === prisma.DbNull
+          } else if (matchFilter.equals === prisma.AnyNull) {
+            match = val === prisma.DbNull || val === prisma.JsonNull
           } else {
-            if (val === Prisma.DbNull) {
+            if (val === prisma.DbNull) {
               match = false
             } else {
               match = deepEqual(matchFilter.equals, val)
@@ -206,10 +207,10 @@ export default function createMatch({ getFieldRelationshipWhere, getDelegateForF
           match = matchFilter.in.includes(val)
         }
         if ("not" in matchFilter && match) {
-          if (matchFilter.not === Prisma.DbNull) {
-            match = val !== Prisma.DbNull
+          if (matchFilter.not === prisma.DbNull) {
+            match = val !== prisma.DbNull
           } else {
-            if (val === Prisma.DbNull) {
+            if (val === prisma.DbNull) {
               match = false
             } else {
               match = !deepEqual(matchFilter.not, val)
