@@ -18,11 +18,7 @@ concurrency: ${{ github.workflow }}-${{ github.ref }}
 jobs:
   publish:
     name: Publish npm packages
-    runs-on: [self-hosted, trueconf]
-    permissions:
-      contents: write
-      pull-requests: write
-      packages: write
+    runs-on: ubuntu-24.04
 
     steps:
       - name: Checkout Repo
