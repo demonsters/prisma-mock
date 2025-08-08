@@ -1,7 +1,7 @@
 // @ts-nocheck
 
 import { spawn } from "cross-spawn"
-import { PrismaClient } from "@prisma/client"
+import { Prisma, PrismaClient } from "@prisma/client"
 import createPrismaMock from "../src/"
 
 
@@ -29,7 +29,7 @@ export default async function createPrismaClient(data?: any, options?: any) {
 
   const isReal = process.env.PROVIDER === "postgresql"
 
-  let client = isReal ? new PrismaClient() : createPrismaMock<PrismaClient>({}, undefined, undefined, {
+  let client = isReal ? new PrismaClient() : createPrismaMock<PrismaClient>(Prisma, {
     enableIndexes: true,
     ...options,
   })
