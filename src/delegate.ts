@@ -1,4 +1,4 @@
-import { Prisma } from "@prisma/client"
+import type { Prisma } from "@prisma/client"
 import createHandleDefault from "./defaults"
 import { throwKnownError, throwValidationError } from "./errors"
 import createIndexes from "./indexes"
@@ -14,10 +14,12 @@ import getWhereOnIds from "./utils/getWhereOnIds"
  */
 export const createDelegate = (
   ref: any, // Reference to the mock data store
-  datamodel: Omit<Prisma.DMMF.Datamodel, 'indexes'>, // Prisma datamodel definition
+  prisma: typeof Prisma, // Prisma datamodel definition
   caseInsensitive: boolean, // Whether string comparisons should be case insensitive
   indexes: ReturnType<typeof createIndexes>, // Index management for performance
 ) => {
+
+  const datamodel = prisma.dmmf.datamodel
 
   // Initialize default value handler
   const handleDefaults = createHandleDefault()
@@ -51,7 +53,7 @@ export const createDelegate = (
   const Delegate = (prop: string, model: Prisma.DMMF.Model) => {
 
     // Create matching function for WHERE clauses
-    const matchFnc = createMatch({ getFieldRelationshipWhere, Delegate, model, datamodel, caseInsensitive })
+    const matchFnc = createMatch({ prisma, getFieldRelationshipWhere, Delegate, model, datamodel, caseInsensitive })
 
     /**
      * Sorting function that handles both simple and nested orderBy clauses
@@ -72,7 +74,7 @@ export const createDelegate = (
       // Validate that only one sort field is provided
       const keys = Object.keys(orderBy)
       if (keys.length > 1) {
-        throwValidationError(
+        throwValidationError(prisma,
           `Argument orderBy of needs exactly one argument, but you provided ${keys.join(
             " and "
           )}. Please choose one.`
@@ -153,7 +155,7 @@ export const createDelegate = (
           if (isCreating && (field.isUnique || field.isId)) {
             const existing = findOne({ where: { [field.name]: inputFieldData } })
             if (existing) {
-              throwKnownError(
+              throwKnownError(prisma,
                 `Unique constraint failed on the fields: (\`${field.name}\`)`,
                 { code: 'P2002', meta: { target: [field.name] } },
               )
@@ -182,7 +184,7 @@ export const createDelegate = (
               })).filter(Boolean)
 
               if (items.length !== inputFieldData.set.length) {
-                throwKnownError(`An operation failed because it depends on one or more records that were required but not found. Expected ${inputFieldData.set.length} records to be connected, found only ${items.length}.`)
+                throwKnownError(prisma, `An operation failed because it depends on one or more records that were required but not found. Expected ${inputFieldData.set.length} records to be connected, found only ${items.length}.`)
               }
 
               // Update many-to-many data store
@@ -250,7 +252,7 @@ export const createDelegate = (
                         }
                       )
                       if (!matchingRow) {
-                        throwKnownError(
+                        throwKnownError(prisma,
                           "An operation failed because it depends on one or more records that were required but not found. {cause}"
                         )
                       }
@@ -594,7 +596,7 @@ export const createDelegate = (
     const findOrThrow = (args) => {
       const found = findOne(args)
       if (!found) {
-        throwKnownError(`No ${prop.slice(0, 1).toUpperCase()}${prop.slice(1)} found`)
+        throwKnownError(prisma, `No ${prop.slice(0, 1).toUpperCase()}${prop.slice(1)} found`)
       }
       return found
     }
@@ -666,7 +668,7 @@ export const createDelegate = (
       res = res.map((item) => {
         const newItem = {}
         Object.keys(item).forEach((key) => {
-          if (item[key] === Prisma.JsonNull || item[key] === Prisma.DbNull) {
+          if (item[key] === prisma.JsonNull || item[key] === prisma.DbNull) {
             newItem[key] = null
           } else {
             newItem[key] = item[key]
@@ -943,7 +945,7 @@ export const createDelegate = (
       })
       if (!hasMatch) {
         if (args.skipForeignKeysChecks) return
-        throwKnownError(
+        throwKnownError(prisma,
           "An operation failed because it depends on one or more records that were required but not found. Record to update not found.",
           { meta: { cause: "Record to update not found." } }
         )
@@ -1210,7 +1212,7 @@ export const createDelegate = (
       delete: (args) => {
         const item = findOne(args)
         if (!item) {
-          throwKnownError(
+          throwKnownError(prisma,
             "An operation failed because it depends on one or more records that were required but not found. Record to delete does not exist.",
             { meta: { cause: "Record to delete does not exist." } }
           )

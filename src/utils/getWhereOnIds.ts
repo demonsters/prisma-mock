@@ -1,4 +1,4 @@
-import { Prisma } from "@prisma/client";
+import type { Prisma } from "@prisma/client";
 
 
 export default function getWhereOnIds(model: Prisma.DMMF.Model, item: any) {
