@@ -118,3 +118,7 @@ model Transaction {
   id        String @id @default(uuid())
   initiator String
 }
+
+model DbGeneratedId {
+  id String @id @default(dbgenerated("gen_random_uuid()"))
+}

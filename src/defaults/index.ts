@@ -17,6 +17,8 @@ export default function createHandleDefault() {
   registry.set("cuid", createCuid());
   registry.set("uuid", createUuid());
   registry.set("now", createNow);
+  registry.set("dbgenerated", createUuid());
+  registry.set(`dbgenerated("gen_random_uuid()")`, createUuid());
 
   return <P>(
     prop: string,
