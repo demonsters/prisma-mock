@@ -1,0 +1,59 @@
+name: Publish npm packages
+
+env:
+  BLITZ_DEV_SERVER_ORIGIN: "https://stringtale.com"
+  PUPPETEER_SKIP_DOWNLOAD: "true"
+  PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: "1"
+  SKIP_ENV_VALIDATION: "true"
+  IS_REACT_ACT_ENVIRONMENT: "true"
+  CI: "true"
+
+on:
+  push:
+    branches:
+      - main
+
+concurrency: ${{ github.workflow }}-${{ github.ref }}
+
+jobs:
+  publish:
+    name: Publish npm packages
+    runs-on: [self-hosted, trueconf]
+    permissions:
+      contents: write
+      pull-requests: write
+      packages: write
+
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      # Need to install everything because of https://github.com/changesets/changesets/issues/945
+      - name: Install Dependencies
+        run: yarn install --immutable --inline-builds
+
+      # Required for changesets to publish to NPM or it will only publish to ghcr
+      - name: Creating .npmrc
+        run: |
+          cat << EOF > "$HOME/.npmrc"
+            //registry.npmjs.org/:_authToken=$NPM_TOKEN
+          EOF
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Create Release Pull Request or Publish to npm
+        id: changesets
+        uses: changesets/action@v1
+        with:
+          publish: yarn release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}

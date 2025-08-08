@@ -10,7 +10,7 @@ type Props = {
   getFieldRelationshipWhere: ReturnType<typeof createGetFieldRelationshipWhere>
   Delegate: any
   model: Prisma.DMMF.Model
-  datamodel: Prisma.DMMF.Datamodel
+  datamodel: Omit<Prisma.DMMF.Datamodel, 'indexes'>
   caseInsensitive: boolean
 }
 
