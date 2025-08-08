@@ -30,7 +30,7 @@
     "build": "tsc",
     "test": "jest",
     "generate": "prisma generate",
-    "release": "yarn build && changeset publish",
+    "release": "yarn build && changeset publish && git push --follow-tags",
     "watch": "tsc --watch",
     "test:postgres": "env-cmd -e postgres jest --maxWorkers=1",
     "changeset": "changeset",
