@@ -2,7 +2,7 @@
 
 import { spawn } from "cross-spawn"
 import { Prisma, PrismaClient } from "@prisma/client"
-import createPrismaMock from "../src/"
+import createPrismaMock from "../src/client"
 
 
 const reset = async () => await new Promise((res, rej) => {

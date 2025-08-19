@@ -12,6 +12,20 @@
   "files": [
     "lib/"
   ],
+  "exports": {
+    ".": {
+      "types": "./lib/index.d.ts",
+      "default": "./lib/index.js"
+    },
+    "./legacy": {
+      "types": "./lib/legacy.d.ts",
+      "default": "./lib/legacy.js"
+    },
+    "./custom-client": {
+      "types": "./lib/custom-client.d.ts",
+      "default": "./lib/custom-client.js"
+    }
+  },
   "devDependencies": {
     "@changesets/cli": "^2.29.5",
     "@prisma/client": "6.11.1",
