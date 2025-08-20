@@ -1,5 +1,11 @@
 # prisma-mock
 
+## 0.12.1
+
+### Patch Changes
+
+- 44ccf2d: correctly handle nested one-to-one updates and tidy tests
+
 ## 0.12.0
 
 ### Minor Changes
