@@ -1,196 +1,235 @@
-// @ts-nocheck
+import createPrismaClient from "./createPrismaClient"
 
-import createPrismaClient from './createPrismaClient'
-
-test('create', async () => {
+test("create", async () => {
   const client = await createPrismaClient({})
   // TODO: Check output
   const user = await client.user.create({
     data: {
       role: "USER",
       account: {
-        create: {
-
-        },
+        create: {},
       },
-      uniqueField: 'user',
+      uniqueField: "user",
     },
     include: {
-      account: true
-    }
+      account: true,
+    },
   })
   expect(user).toMatchInlineSnapshot(`
-Object {
-  "account": Object {
-    "id": 1,
-    "name": null,
-    "sort": null,
-  },
-  "accountId": 1,
-  "age": 10,
-  "clicks": null,
-  "deleted": false,
-  "id": 1,
-  "name": null,
-  "role": "USER",
-  "sort": null,
-  "uniqueField": "user",
-}
-`)
+    Object {
+      "account": Object {
+        "id": 1,
+        "name": null,
+        "sort": null,
+      },
+      "accountId": 1,
+      "age": 10,
+      "clicks": null,
+      "deleted": false,
+      "id": 1,
+      "name": null,
+      "role": "USER",
+      "sort": null,
+      "uniqueField": "user",
+    }
+  `)
 })
 
-
-test('update', async () => {
+test("update", async () => {
   const client = await createPrismaClient({
-    account: [
-      { id: 1, name: "A" }
+    account: [{ id: 1, name: "A" }],
+    stripe: [
+      {
+        id: 2,
+        accountId: 1,
+        customerId: "1",
+      },
     ],
-    stripe: [{
-      id: 2,
-      accountId: 1,
-      customerId: "1"
-    }],
   })
 
   const answer = await client.stripe.update({
     data: {
       account: {
         update: {
-          name: "B"
+          name: "B",
         },
-      }
+      },
     },
     where: {
-      id: 2
+      id: 2,
     },
     include: {
-      account: true
-    }
+      account: true,
+    },
   })
   expect(answer).toMatchInlineSnapshot(`
-Object {
-  "account": Object {
-    "id": 1,
-    "name": "B",
-    "sort": null,
-  },
-  "accountId": 1,
-  "active": false,
-  "customerId": "1",
-  "id": 2,
-  "sort": null,
-}
-`)
+    Object {
+      "account": Object {
+        "id": 1,
+        "name": "B",
+        "sort": null,
+      },
+      "accountId": 1,
+      "active": false,
+      "customerId": "1",
+      "id": 2,
+      "sort": null,
+    }
+  `)
 })
 
-test('disconnect', async () => {
+test("update another direction", async () => {
   const client = await createPrismaClient({
-    account: [
-      { id: 1, name: "A" }
+    account: [{ id: 1, name: "A" }],
+    stripe: [
+      {
+        id: 2,
+        accountId: 1,
+        customerId: "1",
+      },
     ],
-    user: [{
-      id: 2,
-      accountId: 1,
-      uniqueField: 'user'
-    }],
+  })
+
+  const answer = await client.account.update({
+    data: {
+      stripe: {
+        update: {
+          sort: 13,
+        },
+      },
+    },
+    where: {
+      id: 1,
+    },
+    include: {
+      stripe: true,
+    },
+  })
+  expect(answer).toMatchInlineSnapshot(`
+    Object {
+      "id": 1,
+      "name": "A",
+      "sort": null,
+      "stripe": Object {
+        "accountId": 1,
+        "active": false,
+        "customerId": "1",
+        "id": 2,
+        "sort": 13,
+      },
+    }
+  `)
+})
+
+test("disconnect", async () => {
+  const client = await createPrismaClient({
+    account: [{ id: 1, name: "A" }],
+    user: [
+      {
+        id: 2,
+        accountId: 1,
+        uniqueField: "user",
+      },
+    ],
   })
   const user = await client.user.update({
     data: {
       account: {
-        disconnect: true
-      }
+        disconnect: true,
+      },
     },
     where: {
-      id: 2
+      id: 2,
     },
     include: {
-      account: true
-    }
+      account: true,
+    },
   })
   expect(user.account).toEqual(null)
 })
 
-test.skip('disconnect other direction', async () => {
-  const client = await createPrismaClient({
-    account: [
-      { id: 1, name: "A" }
-    ],
-    user: [{
-      id: 2,
-      accountId: 1,
-      uniqueField: 'user'
-    }],
-  })
-  const answer = await client.account.update({
-    data: {
-      user: {
-        disconnect: true
-      }
-    },
-    where: {
-      id: 1
-    },
-    include: {
-      user: true
-    }
-  })
-  expect(answer.stripe).toEqual(null)
-})
+// test.skip('disconnect other direction', async () => {
+//   const client = await createPrismaClient({
+//     account: [
+//       { id: 1, name: "A" }
+//     ],
+//     user: [{
+//       id: 2,
+//       accountId: 1,
+//       uniqueField: 'user'
+//     }],
+//   })
+//   const answer = await client.account.update({
+//     data: {
+//       user: {
+//         disconnect: true
+//       }
+//     },
+//     where: {
+//       id: 1
+//     },
+//     include: {
+//       user: true
+//     }
+//   })
+//   expect(answer.user).toEqual(null)
+// })
 
-test('Delete', async () => {
+test("Delete", async () => {
   const client = await createPrismaClient({
-    account: [
-      { id: 1, name: "A" }
+    account: [{ id: 1, name: "A" }],
+    user: [
+      {
+        id: 2,
+        accountId: 1,
+        uniqueField: "user",
+      },
     ],
-    user: [{
-      id: 2,
-      accountId: 1,
-      uniqueField: 'user'
-    }],
   })
   const user = await client.user.update({
     data: {
       account: {
-        delete: true
-      }
+        delete: true,
+      },
     },
     where: {
-      id: 2
+      id: 2,
     },
     include: {
-      account: true
-    }
+      account: true,
+    },
   })
   expect(user.account).toEqual(null)
   const accounts = await client.account.findMany()
   expect(accounts).toEqual([])
 })
 
-
-
 test("select", async () => {
   const client = await createPrismaClient({
     account: [
-      { id: 1, name: "A", },
-      { id: 2, name: "B", },
+      { id: 1, name: "A" },
+      { id: 2, name: "B" },
     ],
-    stripe: [{
-      id: 1,
-      accountId: 1,
-      active: false,
-      customerId: "1",
-    }, {
-      id: 2,
-      accountId: 2,
-      active: true,
-      customerId: "2",
-    }],
+    stripe: [
+      {
+        id: 1,
+        accountId: 1,
+        active: false,
+        customerId: "1",
+      },
+      {
+        id: 2,
+        accountId: 2,
+        active: true,
+        customerId: "2",
+      },
+    ],
   })
 
   const accounts = await client.account.findMany({
     where: {
-      stripe: { active: true }
-    }
+      stripe: { active: true },
+    },
   })
   expect(accounts).toHaveLength(1)
 })

@@ -1,4 +1,3 @@
-// @ts-nocheck
 
 import createPrismaClient from "./createPrismaClient";
 
@@ -264,6 +263,6 @@ test("Multi dimensional update", async () => {
       id: 1
     }
   })
-  expect(answer.title).toBe("new title")
+  expect(answer?.title).toBe("new title")
 
 })
