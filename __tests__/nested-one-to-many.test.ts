@@ -1,5 +1,3 @@
-// @ts-nocheck
-
 import createPrismaClient from './createPrismaClient'
 
 describe('Create', () => {
@@ -280,7 +278,7 @@ Object {
 `)
   })
 
-  test('nested update', async () => {
+  test('nested update array', async () => {
     const client = await createPrismaClient({
       account: [
         { id: 1, }
@@ -304,6 +302,62 @@ Object {
               id: 2,
             }
           }]
+        }
+      },
+      where: {
+        id: 1
+      },
+      include: {
+        users: true
+      }
+    })
+    expect(answer).toMatchInlineSnapshot(`
+Object {
+  "id": 1,
+  "name": null,
+  "sort": null,
+  "users": Array [
+    Object {
+      "accountId": 1,
+      "age": 10,
+      "clicks": null,
+      "deleted": false,
+      "id": 2,
+      "name": null,
+      "role": "USER",
+      "sort": null,
+      "uniqueField": "user",
+    },
+  ],
+}
+`)
+  })
+
+
+  test('nested update', async () => {
+    const client = await createPrismaClient({
+      account: [
+        { id: 1, }
+      ],
+      stripe: [{
+        customerId: "1",
+        accountId: 1,
+      }],
+      user: [
+        { id: 2, role: "ADMIN", accountId: 1, uniqueField: 'user' }
+      ]
+    })
+    const answer = await client.account.update({
+      data: {
+        users: {
+          update: {
+            data: {
+              role: "USER"
+            },
+            where: {
+              id: 2,
+            }
+          }
         }
       },
       where: {

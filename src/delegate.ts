@@ -429,23 +429,29 @@ export const createDelegate = (
                 })
               } else {
                 const item = findOne(args)
-                if (field.relationFromFields.length > 0) {
+                if (field.isList) {
+                  const otherModel = datamodel.models.find((model) => {
+                    return model.name === field.type
+                  })
+                  const where = getFieldRelationshipWhere(item, field, otherModel)
+                  const delegate = Delegate(name, otherModel)
+                  delegate.update({
+                    data: inputFieldData.update.data,
+                    where: where ? {
+                      AND: [
+                        inputFieldData.update.where,
+                        where
+                      ]
+                    } : inputFieldData.update.where,
+                  })
+                } else {
                   const where = getFieldRelationshipWhere(item, field, model)
-                  const data = inputFieldData.update
                   if (where) {
                     delegate.update({
                       data: inputFieldData.update,
                       where,
                     })
                   }
-                } else {
-                  const where = getFieldRelationshipWhere(item, field, model) //?
-                  // TODO: 
-                  inputFieldData.update.where //?
-                  delegate.update({
-                    data: inputFieldData.update.data,
-                    where,
-                  })
                 }
               }
             }
