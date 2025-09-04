@@ -50,8 +50,17 @@ export const createDelegate = (
    */
   const Delegate = (prop: string, model: Prisma.DMMF.Model) => {
 
+    const getDelegateForFieldName = (field: Prisma.DMMF.Field["type"]) => {
+      const otherModel = datamodel.models.find((model) => {
+        return getCamelCase(model.name) === getCamelCase(field)
+      })
+      const name = getCamelCase(field)
+      return Delegate(name, otherModel)
+    }
+
+
     // Create matching function for WHERE clauses
-    const matchFnc = createMatch({ getFieldRelationshipWhere, Delegate, model, datamodel, caseInsensitive })
+    const matchFnc = createMatch({ getFieldRelationshipWhere, getDelegateForFieldName, model, datamodel, caseInsensitive })
 
     /**
      * Sorting function that handles both simple and nested orderBy clauses
@@ -95,10 +104,7 @@ export const createDelegate = (
           if (!schema) {
             return 0
           }
-          const submodel = datamodel.models.find((model) => {
-            return model.name === schema.type
-          })
-          const delegate = Delegate(getCamelCase(schema.type), submodel)
+          const delegate = getDelegateForFieldName(schema.type)
           const valA = incl(a)
           const valB = incl(b)
           if (!valB || !valB[key]) {
@@ -176,7 +182,7 @@ export const createDelegate = (
                 (otherField) =>
                   field.relationName === otherField.relationName
               )
-              const delegate = Delegate(getCamelCase(field.type), otherModel)
+              const delegate = getDelegateForFieldName(field.type)
               const items = inputFieldData.set.map(where => delegate.findUnique({
                 where
               })).filter(Boolean)
@@ -273,10 +279,7 @@ export const createDelegate = (
                       field.relationName === otherField.relationName
                   )
 
-                  const delegate = Delegate(
-                    getCamelCase(otherModel.name),
-                    otherModel
-                  )
+                  const delegate = getDelegateForFieldName(field.type)
 
                   const otherTargetKey = otherField.relationToFields[0]
                   if ((!targetKey && !keyToGet) && otherTargetKey) {
@@ -326,15 +329,10 @@ export const createDelegate = (
             // Handle create operations for relations
             if (inputFieldData.create || inputFieldData.createMany) {
 
-              const otherModel = datamodel.models.find((model) => {
-                return model.name === field.type
-              })
-
               const { [field.name]: _create, ...rest } = inputData
               inputData = rest
-              // @ts-ignore
-              const name = getCamelCase(field.type)
-              const delegate = Delegate(name, otherModel)
+
+              const delegate = getDelegateForFieldName(field.type)
 
               const joinfield = getJoinField(field)
 
@@ -656,8 +654,7 @@ export const createDelegate = (
 
       // Apply cursor-based pagination
       if (args?.cursor !== undefined) {
-        const cursorVal = res.findIndex((r) => Object.keys(args?.cursor).every((key) => r[key] === args?.cursor[key])
-        )
+        const cursorVal = res.findIndex((r) => Object.keys(args?.cursor).every((key) => r[key] === args?.cursor[key]))
         res = res.slice(cursorVal)
       }
 
@@ -855,12 +852,9 @@ export const createDelegate = (
             if (!schema?.relationName) {
               return
             }
-            const submodel = datamodel.models.find((model) => {
-              return model.name === schema.type
-            })
 
             // Get delegate for relation
-            const delegate = Delegate(getCamelCase(schema.type), submodel)
+            const delegate = getDelegateForFieldName(schema.type)
             const joinWhere = getFieldRelationshipWhere(item, schema, model)
 
             _count = {
