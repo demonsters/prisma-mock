@@ -1,5 +1,11 @@
 # prisma-mock
 
+## 0.12.2
+
+### Patch Changes
+
+- 739ff6a: Fix an issue where every did not work correctly
+
 ## 0.12.1
 
 ### Patch Changes
