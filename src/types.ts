@@ -32,4 +32,5 @@ export type MockPrismaOptions = {
   mockClient?: DeepMockApi
   caseInsensitive?: boolean
   enableIndexes?: boolean
+  data?: any
 } 
