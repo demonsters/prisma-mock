@@ -8,13 +8,13 @@ import { Where, Item } from "../types"
 
 type Props = {
   getFieldRelationshipWhere: ReturnType<typeof createGetFieldRelationshipWhere>
-  Delegate: any
+  getDelegateForFieldName: (field: Prisma.DMMF.Field["type"]) => any
   model: Prisma.DMMF.Model
   datamodel: Omit<Prisma.DMMF.Datamodel, 'indexes'>
   caseInsensitive: boolean
 }
 
-export default function createMatch({ getFieldRelationshipWhere, Delegate, model, datamodel, caseInsensitive }: Props) {
+export default function createMatch({ getFieldRelationshipWhere, getDelegateForFieldName, model, datamodel, caseInsensitive }: Props) {
 
   const matchItem = (child: any, item: any, where: any) => {
     let val = item[child]
@@ -61,8 +61,9 @@ export default function createMatch({ getFieldRelationshipWhere, Delegate, model
           const submodel = datamodel.models.find((model) => {
             return getCamelCase(model.name) === childName
           })
-          const delegate = Delegate(getCamelCase(childName), submodel)
+          const delegate = getDelegateForFieldName(childName)
           const joinWhere = getFieldRelationshipWhere(item, info, submodel)
+
           if (!joinWhere) {
             return false
           }
@@ -76,7 +77,6 @@ export default function createMatch({ getFieldRelationshipWhere, Delegate, model
             }
           })
           if (filter.every) {
-            if (res.length === 0) return true
             // const all = data[childName].filter(
             //   matchFnc(getFieldRelationshipWhere(item, info)),
             // )
@@ -85,6 +85,9 @@ export default function createMatch({ getFieldRelationshipWhere, Delegate, model
             const all = delegate.findMany({
               where,
             })
+            // For "every": all related records must match the condition
+            // If no related records exist, "every" is vacuously true
+            if (all.length === 0) return true
             return res.length === all.length
           } else if (filter.some) {
             return res.length > 0

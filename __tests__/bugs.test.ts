@@ -1,6 +1,5 @@
 // @ts-nocheck
 
-
 import createPrismaClient from "./createPrismaClient"
 
 test("#22", async () => {
@@ -9,21 +8,21 @@ test("#22", async () => {
   // Create a page and user
   const user1 = await prismaMock.user.create({
     data: {
-      uniqueField: "1"
+      uniqueField: "1",
     },
   })
 
   // Create a second page and user
   const user2 = await prismaMock.user.create({
     data: {
-      uniqueField: "2"
+      uniqueField: "2",
     },
   })
 
   // Create a third page and user
   await prismaMock.user.create({
     data: {
-      uniqueField: "3"
+      uniqueField: "3",
     },
   })
 
@@ -55,9 +54,7 @@ test("#22", async () => {
   expect(element).toMatchInlineSnapshot(`Array []`)
 })
 
-
 test("create returning null", async () => {
-
   const prismaMock = await createPrismaClient()
 
   const globalPlaylist = await prismaMock.stripe.create({
@@ -66,14 +63,68 @@ test("create returning null", async () => {
       account: {
         create: {
           id: 1,
-          name: "Account"
-        }
+          name: "Account",
+        },
       },
-    }
+    },
   })
 
   expect(globalPlaylist).not.toBeNull()
-
-
 })
 
+test("every in where", async () => {
+  const prismaMock = await createPrismaClient()
+  await prismaMock.user.create({
+    data: {
+      name: "John",
+      uniqueField: "1",
+      posts: {
+        create: [
+          { id: 1, title: "A" },
+          { id: 2, title: "B" },
+        ],
+      },
+    },
+  })
+  await prismaMock.user.create({
+    data: {
+      name: "Pieter",
+      uniqueField: "2",
+      posts: { create: [{ id: 3, title: "B" }] },
+    },
+  })
+  await prismaMock.user.create({
+    data: {
+      name: "Sjors",
+      uniqueField: "3",
+      posts: { create: [{ id: 4, title: "C" }] },
+    },
+  })
+  const users = await prismaMock.user.findMany({
+    where: {
+      posts: {
+        every: {
+          id: {
+            in: [3, 2],
+          },
+        },
+      },
+    },
+  })
+  expect(users).toHaveLength(1)
+  expect(users).toMatchInlineSnapshot(`
+    Array [
+      Object {
+        "accountId": null,
+        "age": 10,
+        "clicks": null,
+        "deleted": false,
+        "id": 2,
+        "name": "Pieter",
+        "role": "ADMIN",
+        "sort": null,
+        "uniqueField": "2",
+      },
+    ]
+  `)
+})
