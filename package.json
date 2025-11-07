@@ -7,6 +7,9 @@
     "type": "git",
     "url": "git+https://github.com/demonsters/prisma-mock.git"
   },
+  "bin": {
+    "prisma-mock": "./prisma-dmmf-generator.js"
+  },
   "license": "MIT",
   "types": "lib/",
   "files": [
