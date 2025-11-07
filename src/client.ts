@@ -13,17 +13,17 @@ import { getCamelCase, removeMultiFieldIds } from "./utils/fieldHelpers"
 //   - enableIndexes: If true, enables index lookups for performance (default: false).
 //   - mockClient: Optionally provide your own mock client (jest-mock-extended or vitest-mock-extended) instance to use.
 // @returns A mock Prisma client with all model methods and access to internal state.
-const createPrismaMock = <PClient extends PrismaClient, P extends typeof Prisma>(
+function createPrismaMock<PClient extends PrismaClient, P extends typeof Prisma = typeof Prisma>(
   prisma: P,
-  options: MockPrismaOptions<P> = {
+  options: MockPrismaOptions<PClient, P> = {
     datamodel: prisma.dmmf.datamodel,
     caseInsensitive: false,
     enableIndexes: false,
     data: {}
   }
-): P & {
+): PClient & {
   $getInternalState: () => Required<PrismaMockData<PClient>>
-} => {
+} {
 
   // Reference object to hold the mock data state
   let ref = {

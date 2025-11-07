@@ -1,4 +1,4 @@
-import type { Prisma } from "@prisma/client"
+import type { Prisma, PrismaClient } from "@prisma/client"
 
 export type DeepMockApi = {
   mockImplementation: (fnc: any) => void
@@ -20,7 +20,7 @@ export type PrismaList<
   ? Array<Partial<UnwrapPromise<ReturnType<P[K]["findUnique"]>>>>
   : never
 
-export type PrismaMockData<P> = Partial<{
+export type PrismaMockData<P extends { [key: string]: any }> = Partial<{
   [key in IsTable<Uncapitalize<IsString<keyof P>>>]: PrismaList<P, key>
 }>
 
@@ -29,10 +29,10 @@ export type Item = any
 export type Args = any
 export type CreateArgs = any
 
-export type MockPrismaOptions<P extends typeof Prisma> = {
+export type MockPrismaOptions<PClient extends { [key: string]: any }, P extends typeof Prisma = typeof Prisma> = {
   datamodel: P["dmmf"]["datamodel"],
   mockClient?: DeepMockApi
   caseInsensitive?: boolean
   enableIndexes?: boolean
-  data?: any
+  data?: PrismaMockData<PClient>
 } 
