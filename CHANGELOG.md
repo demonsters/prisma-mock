@@ -1,5 +1,11 @@
 # prisma-mock
 
+## 1.0.0-alpha.0
+
+### Major Changes
+
+- 0b7a91e: Change the api interface & add dmmf generator
+
 ## 0.12.2
 
 ### Patch Changes
