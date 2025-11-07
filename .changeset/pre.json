@@ -5,6 +5,7 @@
     "prisma-mock": "0.12.2"
   },
   "changesets": [
+    "fancy-islands-trade",
     "public-garlics-warn"
   ]
 }

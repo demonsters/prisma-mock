@@ -1,5 +1,11 @@
 # prisma-mock
 
+## 1.0.0-alpha.1
+
+### Patch Changes
+
+- d5637e1: Fix dmmf-generator
+
 ## 1.0.0-alpha.0
 
 ### Major Changes
