@@ -1,5 +1,11 @@
 # prisma-mock
 
+## 1.0.0-alpha.3
+
+### Patch Changes
+
+- 92ef1bc: Fix types
+
 ## 1.0.0-alpha.2
 
 ### Patch Changes
