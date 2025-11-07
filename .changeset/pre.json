@@ -1,0 +1,8 @@
+{
+  "mode": "pre",
+  "tag": "alpha",
+  "initialVersions": {
+    "prisma-mock": "0.12.2"
+  },
+  "changesets": []
+}
