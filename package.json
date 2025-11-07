@@ -24,9 +24,9 @@
       "types": "./lib/legacy.d.ts",
       "default": "./lib/legacy.js"
     },
-    "./custom-client": {
-      "types": "./lib/custom-client.d.ts",
-      "default": "./lib/custom-client.js"
+    "./client": {
+      "types": "./lib/client.d.ts",
+      "default": "./lib/client.js"
     }
   },
   "devDependencies": {
