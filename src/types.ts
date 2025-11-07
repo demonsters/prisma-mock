@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client"
 
 export type DeepMockApi = {
   mockImplementation: (fnc: any) => void
@@ -28,7 +29,8 @@ export type Item = any
 export type Args = any
 export type CreateArgs = any
 
-export type MockPrismaOptions = {
+export type MockPrismaOptions<P extends typeof Prisma> = {
+  datamodel: P["dmmf"]["datamodel"],
   mockClient?: DeepMockApi
   caseInsensitive?: boolean
   enableIndexes?: boolean

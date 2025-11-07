@@ -1,4 +1,4 @@
-import type { Prisma } from "@prisma/client"
+import type { Prisma, PrismaClient } from "@prisma/client"
 import { createDelegate } from "./delegate"
 import createIndexes from "./indexes"
 import { MockPrismaOptions, PrismaMockData } from "./types"
@@ -13,15 +13,16 @@ import { getCamelCase, removeMultiFieldIds } from "./utils/fieldHelpers"
 //   - enableIndexes: If true, enables index lookups for performance (default: false).
 //   - mockClient: Optionally provide your own mock client (jest-mock-extended or vitest-mock-extended) instance to use.
 // @returns A mock Prisma client with all model methods and access to internal state.
-const createPrismaMock = <P>(
-  prisma: typeof Prisma,
-  options: MockPrismaOptions = {
+const createPrismaMock = <PClient extends PrismaClient, P extends typeof Prisma>(
+  prisma: P,
+  options: MockPrismaOptions<P> = {
+    datamodel: prisma.dmmf.datamodel,
     caseInsensitive: false,
     enableIndexes: false,
     data: {}
   }
 ): P & {
-  $getInternalState: () => Required<PrismaMockData<P>>
+  $getInternalState: () => Required<PrismaMockData<PClient>>
 } => {
 
   // Reference object to hold the mock data state
@@ -82,7 +83,7 @@ const createPrismaMock = <P>(
   })
 
   // Create delegate functions for model operations
-  const Delegate = createDelegate(ref, prisma, caseInsensitive, indexes)
+  const Delegate = createDelegate({ ref, prisma, datamodel: options.datamodel, caseInsensitive, indexes })
 
   // Initialize each model in the datamodel
   prisma.dmmf.datamodel.models.forEach((model) => {

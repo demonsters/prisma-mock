@@ -2,6 +2,6 @@ import { Prisma, PrismaClient } from "@prisma/client/default"
 import { MockPrismaOptions } from "./types"
 import createPrismaMock from "./client"
 
-export default function createPrismaClient(options?: MockPrismaOptions) {
-  return createPrismaMock<PrismaClient>(Prisma, options)
+export default function createPrismaClient(options?: MockPrismaOptions<typeof Prisma>) {
+  return createPrismaMock(Prisma, options)
 }

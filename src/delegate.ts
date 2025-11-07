@@ -12,14 +12,13 @@ import getWhereOnIds from "./utils/getWhereOnIds"
  * Creates a delegate function that handles Prisma-like operations for a specific model
  * This is the main factory function that generates model-specific CRUD operations
  */
-export const createDelegate = (
+export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel = prisma.dmmf.datamodel, caseInsensitive, indexes }: {
   ref: any, // Reference to the mock data store
-  prisma: typeof Prisma, // Prisma datamodel definition
+  prisma: P, // Prisma datamodel definition
+  datamodel: P["dmmf"]["datamodel"], // Prisma datamodel definition
   caseInsensitive: boolean, // Whether string comparisons should be case insensitive
   indexes: ReturnType<typeof createIndexes>, // Index management for performance
-) => {
-
-  const datamodel = prisma.dmmf.datamodel
+}) => {
 
   // Initialize default value handler
   const handleDefaults = createHandleDefault()
