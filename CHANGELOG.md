@@ -1,5 +1,11 @@
 # prisma-mock
 
+## 1.0.0-alpha.2
+
+### Patch Changes
+
+- ce2a428: Add missing @prisma/generator-helper dependancy
+
 ## 1.0.0-alpha.1
 
 ### Patch Changes
