@@ -12,14 +12,11 @@ export default function createPrismaClient(
   mockClient?: DeepMockApi,
   options?: Omit<MockPrismaOptions<typeof Prisma>, "data">) {
 
-  if (datamodel !== Prisma.dmmf.datamodel) {
-    throw new Error("datamodel !== Prisma.dmmf.datamodel is not supported, please use createPrismaMock instead")
-  }
-
   let client = createPrismaMock<PrismaClient, typeof Prisma>(Prisma, {
     data,
     // @ts-ignore
     mockClient: mockClient || mockDeep<PrismaClient>(),
+    datamodel: datamodel || Prisma.dmmf.datamodel,
     ...options
   })
 
