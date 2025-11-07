@@ -1,5 +1,11 @@
 # prisma-mock
 
+## 1.0.0-alpha.4
+
+### Patch Changes
+
+- d359764: Remove unneeded datamodel check in createPrismaClient
+
 ## 1.0.0-alpha.3
 
 ### Patch Changes
