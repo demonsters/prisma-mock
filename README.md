@@ -180,7 +180,7 @@ generator client {
   provider = "prisma-client-js"
 }
 
-generator prisma-mock {
+generator dmmf {
   provider = "prisma-mock"
   output   = "./generated/dmmf"
 }
