@@ -1,5 +1,11 @@
 # prisma-mock
 
+## 1.0.0-alpha.6
+
+### Patch Changes
+
+- 1a07011: Make datamodel optional when using default import
+
 ## 1.0.0-alpha.5
 
 ### Patch Changes
