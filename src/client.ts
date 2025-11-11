@@ -16,7 +16,7 @@ import { getCamelCase, removeMultiFieldIds } from "./utils/fieldHelpers"
 function createPrismaMock<PClient extends PrismaClient, P extends typeof Prisma = typeof Prisma>(
   prisma: P,
   options: MockPrismaOptions<PClient, P> = {
-    datamodel: prisma.dmmf.datamodel,
+    datamodel: prisma.dmmf?.datamodel,
     caseInsensitive: false,
     enableIndexes: false,
     data: {}
