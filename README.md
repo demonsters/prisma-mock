@@ -150,7 +150,7 @@ createPrismaMock<PClient extends PrismaClient, P extends typeof Prisma = typeof 
 - **`datamodel`** (optional): The Prisma datamodel, typically `Prisma.dmmf.datamodel`. Defaults to the Prisma client's datamodel.
 - **`mockClient`** (optional): A `jest-mock-extended` or `vitest-mock-extended` instance. If not provided, a plain object is used instead.
 - **`caseInsensitive`** (boolean, default: `false`): If true, all string comparisons are case insensitive
-- **`enableIndexes`** (boolean, default: `false`) Experimental: If true, enables indexing for better query performance on primary keys, unique fields, and foreign keys
+- **`enableIndexes`** (boolean, default: `true`) If true, enables indexing for better query performance on primary keys, unique fields, and foreign keys
 
 ### Return Value
 
@@ -353,19 +353,9 @@ The following features are planned but not yet implemented:
 
 ## Performance Features
 
-### Indexing (Experimental)
+### Indexing
 
-Enable indexing for better query performance:
-
-```js
-import createPrismaMock from "prisma-mock"
-
-const client = createPrismaMock({
-  enableIndexes: true,
-})
-```
-
-When enabled, indexes are automatically created for:
+Indexing is enabled by default for better query performance. Indexes are automatically created for:
 
 - Primary key fields
 - Unique fields

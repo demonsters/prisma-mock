@@ -9,8 +9,9 @@ import { getCamelCase, removeMultiFieldIds } from "./utils/fieldHelpers"
 // @param prisma - The Prisma namespace or client constructor.
 // @param options - Options for configuring the mock client:
 //   - data: Initial mock data for your models (default: {}).
+//   - datamodel: The Prisma datamodel, typically `Prisma.dmmf.datamodel`. Defaults to the Prisma client's datamodel.
 //   - caseInsensitive: If true, string matching is case-insensitive (default: false).
-//   - enableIndexes: If true, enables index lookups for performance (default: false).
+//   - enableIndexes: If true, enables index lookups for performance (default: true).
 //   - mockClient: Optionally provide your own mock client (jest-mock-extended or vitest-mock-extended) instance to use.
 // @returns A mock Prisma client with all model methods and access to internal state.
 function createPrismaMock<PClient extends PrismaClient, P extends typeof Prisma = typeof Prisma>(
@@ -18,7 +19,7 @@ function createPrismaMock<PClient extends PrismaClient, P extends typeof Prisma 
   options: MockPrismaOptions<PClient, P> = {
     datamodel: prisma.dmmf?.datamodel,
     caseInsensitive: false,
-    enableIndexes: false,
+    enableIndexes: true,
     data: {}
   }
 ): PClient & {
