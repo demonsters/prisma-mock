@@ -1,5 +1,11 @@
 # prisma-mock
 
+## 1.0.0-alpha.8
+
+### Patch Changes
+
+- c621b0e: Improve datamodel handling
+
 ## 1.0.0-alpha.7
 
 ### Patch Changes
