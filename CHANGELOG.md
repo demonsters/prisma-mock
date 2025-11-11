@@ -1,5 +1,11 @@
 # prisma-mock
 
+## 1.0.0-alpha.7
+
+### Patch Changes
+
+- d4a8818: Update createPrismaMock to make datamodel property optional, improving compatibility with Prisma DMMF.
+
 ## 1.0.0-alpha.6
 
 ### Patch Changes
