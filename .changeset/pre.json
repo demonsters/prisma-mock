@@ -5,6 +5,7 @@
     "prisma-mock": "0.12.2"
   },
   "changesets": [
+    "angry-chairs-arrive",
     "angry-islands-ask",
     "fancy-islands-trade",
     "fancy-planets-feel",
