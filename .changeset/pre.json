@@ -5,6 +5,7 @@
     "prisma-mock": "0.12.2"
   },
   "changesets": [
+    "angry-islands-ask",
     "fancy-islands-trade",
     "public-garlics-warn",
     "six-cloths-go",
