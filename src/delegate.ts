@@ -4,9 +4,8 @@ import { throwKnownError, throwValidationError } from "./errors"
 import createIndexes from "./indexes"
 import { CreateArgs, Item } from "./types"
 import { createGetFieldRelationshipWhere, getCamelCase, isFieldDefault, removeMultiFieldIds } from "./utils/fieldHelpers"
-import createMatch from "./utils/queryMatching"
-import { shallowCompare } from "./utils/shallowCompare"
 import getWhereOnIds from "./utils/getWhereOnIds"
+import createMatch from "./utils/queryMatching"
 
 /**
  * Creates a delegate function that handles Prisma-like operations for a specific model
@@ -52,10 +51,10 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
   const Delegate = (prop: string, model: Prisma.DMMF.Model) => {
 
     const getDelegateForFieldName = (field: Prisma.DMMF.Field["type"]) => {
-      const otherModel = datamodel.models.find((model) => {
-        return getCamelCase(model.name) === getCamelCase(field)
-      })
       const name = getCamelCase(field)
+      const otherModel = datamodel.models.find((model) => {
+        return name === getCamelCase(model.name)
+      })
       return Delegate(name, otherModel)
     }
 
@@ -219,48 +218,19 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
 
                 const keyToGet = field.relationToFields[0]
                 const targetKey = field.relationFromFields[0]
+                const delegate = getDelegateForFieldName(field.type)
+
                 if (keyToGet && targetKey) {
                   let connectionValue = connect[keyToGet]
                   if (keyToMatch !== keyToGet) {
-                    const valueToMatch = connect[keyToMatch]
-                    let matchingRow = ref.data[getCamelCase(field.type)].find(
-                      (row) => {
-                        return row[keyToMatch] === valueToMatch
-                      }
-                    )
+                    // Try to find by unique index if direct match fails
+                    let matchingRow = delegate.findOne({
+                      where: connect
+                    })
                     if (!matchingRow) {
-                      // Try to find by unique index if direct match fails
-                      const refModel = datamodel.models.find(
-                        (model) =>
-                          getCamelCase(field.type) === getCamelCase(model.name)
+                      throwKnownError(prisma,
+                        "An operation failed because it depends on one or more records that were required but not found. {cause}"
                       )
-                      const uniqueIndexes = refModel.uniqueIndexes.map(
-                        (index) => {
-                          return {
-                            ...index,
-                            key: index.name ?? index.fields.join("_"),
-                          }
-                        }
-                      )
-                      const indexKey = uniqueIndexes.find(
-                        (index) => index.key === keyToMatch
-                      )
-                      matchingRow = ref.data[getCamelCase(field.type)].find(
-                        (row) => {
-                          const target = Object.fromEntries(
-                            Object.entries(row).filter(
-                              (row) =>
-                                indexKey?.fields.includes(row[0]) ?? false
-                            )
-                          )
-                          return shallowCompare(target, valueToMatch)
-                        }
-                      )
-                      if (!matchingRow) {
-                        throwKnownError(prisma,
-                          "An operation failed because it depends on one or more records that were required but not found. {cause}"
-                        )
-                      }
                     }
                     connectionValue = matchingRow[keyToGet]
                   }
@@ -272,6 +242,10 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
                   }
                 } else {
                   inputData = rest
+                  const newData = {
+                    ...item,
+                    ...inputData,
+                  }
                   const otherModel = datamodel.models.find((model) => {
                     return model.name === field.type
                   })
@@ -280,8 +254,6 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
                       field.relationName === otherField.relationName
                   )
 
-                  const delegate = getDelegateForFieldName(field.type)
-
                   const otherTargetKey = otherField.relationToFields[0]
                   if ((!targetKey && !keyToGet) && otherTargetKey) {
                     delegate.update({
@@ -289,9 +261,9 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
                       data: {
                         [getCamelCase(otherField.name)]: {
                           connect: {
-                            [otherTargetKey]: inputData[otherTargetKey],
-                          },
-                        },
+                            [otherTargetKey]: newData[otherTargetKey],
+                          }
+                        }
                       }
                     })
                   } else {
@@ -300,7 +272,7 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
                       [field.type]: delegate.findOne({
                         where: connect
                       }),
-                      [otherField.type]: item || inputData
+                      [otherField.type]: item || newData
                     })
                   }
                 }
