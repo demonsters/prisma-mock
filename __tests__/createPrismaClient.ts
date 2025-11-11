@@ -2,7 +2,7 @@
 
 import { spawn } from "cross-spawn"
 import { Prisma, PrismaClient } from "@prisma/client"
-import createPrismaMock from "../src/client"
+import createPrismaMock from "../src/index"
 
 
 const reset = async () => await new Promise((res, rej) => {
@@ -29,7 +29,7 @@ export default async function createPrismaClient(data?: any, options?: any) {
 
   const isReal = process.env.PROVIDER === "postgresql"
 
-  let client = isReal ? new PrismaClient() : createPrismaMock<PrismaClient>(Prisma, {
+  let client = isReal ? new PrismaClient() : createPrismaMock<PrismaClient>({
     enableIndexes: true,
     ...options,
   })

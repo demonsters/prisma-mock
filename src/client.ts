@@ -86,7 +86,7 @@ function createPrismaMock<PClient extends PrismaClient, P extends typeof Prisma 
   const Delegate = createDelegate({ ref, prisma, datamodel: options.datamodel, caseInsensitive, indexes })
 
   // Initialize each model in the datamodel
-  prisma.dmmf.datamodel.models.forEach((model) => {
+  options.datamodel.models.forEach((model) => {
     if (!model) return
 
     // Convert model name to camelCase for consistency
