@@ -76,6 +76,8 @@ beforeEach(() => {
 })
 ```
 
+## API
+
 ### Exports
 
 The library provides three different exports:
@@ -83,6 +85,62 @@ The library provides three different exports:
 - **`prisma-mock`** (default): The recommended way to use the library. Automatically uses the Prisma client from `@prisma/client/default`, so you don't need to pass Prisma as an argument.
 - **`prisma-mock/client`**: Use this when you need to explicitly pass the Prisma namespace (try the default export first).
 - **`prisma-mock/legacy`**: The old API for backward compatibility. This export is deprecated but maintained for existing codebases.
+
+### Default Export (`prisma-mock`)
+
+```ts
+createPrismaMock<P extends PrismaClient = PrismaClient>(
+  options?: {
+    data?: PrismaMockData<P>
+    datamodel?: Prisma.DMMF.Datamodel
+    mockClient?: DeepMockApi
+    caseInsensitive?: boolean
+    enableIndexes?: boolean
+  }
+): P & { $getInternalState: () => Required<PrismaMockData<P>> }
+```
+
+### Parameters
+
+- **`options`** (optional): Configuration options (see below)
+
+#### Options
+
+- **`data`** (optional): Initial mock data for the Prisma models. An object containing keys for tables and values as arrays of objects.
+- **`datamodel`** (optional): The Prisma datamodel, typically `Prisma.dmmf.datamodel` (default).
+- **`mockClient`** (optional): A `jest-mock-extended` or `vitest-mock-extended` instance. If not provided, a plain object is used instead.
+- **`caseInsensitive`** (boolean, default: `false`): If true, all string comparisons are case insensitive
+- **`enableIndexes`** (boolean, default: `true`) If true, enables indexing for better query performance on primary keys, unique fields, and foreign keys
+
+### Return Value
+
+Returns a mock Prisma client with all standard model methods plus:
+
+- `$getInternalState()`: Method to access the internal data state for testing/debugging
+
+### Client Export (`prisma-mock/client`)
+
+```ts
+createPrismaMock<PClient extends PrismaClient, P extends typeof Prisma = typeof Prisma>(
+  prisma: P,
+  options?: {
+    data?: PrismaMockData<PClient>
+    datamodel?: P["dmmf"]["datamodel"]
+    mockClient?: DeepMockApi
+    caseInsensitive?: boolean
+    enableIndexes?: boolean
+  }
+): PClient & { $getInternalState: () => Required<PrismaMockData<PClient>> }
+```
+
+#### Parameters
+
+- **`prisma`** (required): The Prisma namespace (e.g., `Prisma` from `@prisma/client`). This is used to access the datamodel and type information.
+- **`options`** (optional): Configuration options (see below)
+
+#### Options
+
+Same as the default export, with the exception of the `datamodel` not being optional.
 
 ### Legacy Export
 
@@ -101,62 +159,6 @@ const client = createPrismaMock(
 ```
 
 **Note**: If you're starting a new project, use the default export instead. The legacy export is only for maintaining existing codebases that haven't migrated yet.
-
-## API
-
-### Default Export (`prisma-mock`)
-
-```ts
-createPrismaMock<P extends PrismaClient = PrismaClient>(
-  options?: {
-    data?: PrismaMockData<P>
-    datamodel?: Prisma.DMMF.Datamodel
-    mockClient?: DeepMockApi
-    caseInsensitive?: boolean
-    enableIndexes?: boolean
-  }
-): P & { $getInternalState: () => Required<PrismaMockData<P>> }
-```
-
-### Client Export (`prisma-mock/client`)
-
-```ts
-createPrismaMock<PClient extends PrismaClient, P extends typeof Prisma = typeof Prisma>(
-  prisma: P,
-  options?: {
-    data?: PrismaMockData<PClient>
-    datamodel?: P["dmmf"]["datamodel"]
-    mockClient?: DeepMockApi
-    caseInsensitive?: boolean
-    enableIndexes?: boolean
-  }
-): PClient & { $getInternalState: () => Required<PrismaMockData<PClient>> }
-```
-
-### Parameters
-
-#### Default Export
-
-- **`options`** (optional): Configuration options (see below)
-
-#### Client Export
-
-- **`prisma`** (required): The Prisma namespace (e.g., `Prisma` from `@prisma/client`). This is used to access the datamodel and type information.
-- **`options`** (optional): Configuration options (see below)
-
-#### Options
-
-- **`data`** (optional): Initial mock data for the Prisma models. An object containing keys for tables and values as arrays of objects.
-- **`datamodel`** (optional): The Prisma datamodel, typically `Prisma.dmmf.datamodel`. Defaults to the Prisma client's datamodel.
-- **`mockClient`** (optional): A `jest-mock-extended` or `vitest-mock-extended` instance. If not provided, a plain object is used instead.
-- **`caseInsensitive`** (boolean, default: `false`): If true, all string comparisons are case insensitive
-- **`enableIndexes`** (boolean, default: `true`) If true, enables indexing for better query performance on primary keys, unique fields, and foreign keys
-
-### Return Value
-
-Returns a mock Prisma client with all standard model methods plus:
-
-- `$getInternalState()`: Method to access the internal data state for testing/debugging
 
 ## DMMF Generator
 
