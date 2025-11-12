@@ -138,7 +138,7 @@ createPrismaMock<PClient extends PrismaClient, P extends typeof Prisma = typeof 
 - **`prisma`** (required): The Prisma namespace (e.g., `Prisma` from `@prisma/client`). This is used to access the datamodel and type information.
 - **`options`** (optional): Configuration options. Same as the default export, with the exception of the `datamodel` not being optional.
 
-### Legacy Export
+### Legacy Export (`prisma-mock/legacy`)
 
 The legacy export maintains the old API signature for backward compatibility:
 
