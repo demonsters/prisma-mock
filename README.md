@@ -83,7 +83,7 @@ beforeEach(() => {
 The library provides three different exports:
 
 - **`prisma-mock`** (default): The recommended way to use the library. Automatically uses the Prisma client from `@prisma/client/default`, so you don't need to pass Prisma as an argument.
-- **`prisma-mock/client`**: Use this when you need to explicitly pass the Prisma namespace (try the default export first).
+- **`prisma-mock/client`**: Use this when you need to explicitly pass the Prisma namespace.
 - **`prisma-mock/legacy`**: The old API for backward compatibility. This export is deprecated but maintained for existing codebases.
 
 ### Default Export (`prisma-mock`)
@@ -136,11 +136,7 @@ createPrismaMock<PClient extends PrismaClient, P extends typeof Prisma = typeof 
 #### Parameters
 
 - **`prisma`** (required): The Prisma namespace (e.g., `Prisma` from `@prisma/client`). This is used to access the datamodel and type information.
-- **`options`** (optional): Configuration options (see below)
-
-#### Options
-
-Same as the default export, with the exception of the `datamodel` not being optional.
+- **`options`** (optional): Configuration options. Same as the default export, with the exception of the `datamodel` not being optional.
 
 ### Legacy Export
 
