@@ -1,7 +1,7 @@
-import { Prisma } from "@prisma/client"
+import type { Prisma } from "@prisma/client"
 
-const throwPrismaError = (message: string, { code = "P2025", meta }: { code?: string, meta?: any } = {}, errorClass: any = Prisma.PrismaClientKnownRequestError) => {
-  const clientVersion = Prisma.prismaVersion.client
+const throwPrismaError = (prisma: typeof Prisma, message: string, { code = "P2025", meta }: { code?: string, meta?: any } = {}, errorClass: any = prisma.PrismaClientKnownRequestError) => {
+  const clientVersion = prisma.prismaVersion.client
   // PrismaClientKnownRequestError prototype changed in version 4.7.0
   // from: constructor(message: string, code: string, clientVersion: string, meta?: any)
   // to: constructor(message: string, { code, clientVersion, meta, batchRequestIdx }: KnownErrorParams)
@@ -26,10 +26,10 @@ const throwPrismaError = (message: string, { code = "P2025", meta }: { code?: st
   throw error
 }
 
-export const throwKnownError = (message: string, { code = "P2025", meta }: { code?: string, meta?: any } = {}) => {
-  throwPrismaError(message, { code, meta }, Prisma.PrismaClientKnownRequestError)
+export const throwKnownError = (prisma: typeof Prisma, message: string, { code = "P2025", meta }: { code?: string, meta?: any } = {}) => {
+  throwPrismaError(prisma, message, { code, meta }, prisma.PrismaClientKnownRequestError)
 }
 
-export const throwValidationError = (message: string, { code = "P2025", meta }: { code?: string, meta?: any } = {}) => {
-  throwPrismaError(message, { code, meta }, Prisma.PrismaClientValidationError)
-} 
+export const throwValidationError = (prisma: typeof Prisma, message: string, { code = "P2025", meta }: { code?: string, meta?: any } = {}) => {
+  throwPrismaError(prisma, message, { code, meta }, prisma.PrismaClientValidationError)
+}

@@ -2,7 +2,7 @@
 
 A comprehensive mock of the Prisma API intended for unit testing. All data is stored in memory, providing fast and reliable test execution without external dependencies.
 
-The library uses `jest-mock-extended` or `vitest-mock-extended`, which means that if functionality you need is not implemented yet, you can mock it yourself.
+The library optionally uses `jest-mock-extended` or `vitest-mock-extended` if you provide a mock client. If functionality you need is not implemented yet, you can mock it yourself.
 
 ## Installation
 
@@ -28,9 +28,35 @@ beforeEach(() => {
 })
 ```
 
-### Mocking Global Prisma Instance
+### With Initial Data
 
-Example of how to mock a global prisma instance, as the default export in a "db" directory (like BlitzJS):
+You can optionally start with pre-filled data:
+
+```js
+import createPrismaMock from "prisma-mock"
+
+const client = createPrismaMock({
+  data: {
+    user: [
+      {
+        id: 1,
+        name: "John Doe",
+        accountId: 1,
+      },
+    ],
+    account: [
+      {
+        id: 1,
+        name: "Company",
+      },
+    ],
+  },
+})
+```
+
+### Example: Mocking a Global Prisma Instance
+
+Example of how to mock a global prisma instance, for instance when it's the default export in a "db" directory (like in BlitzJS):
 
 ```js
 import createPrismaMock from "prisma-mock"
@@ -42,76 +68,135 @@ jest.mock("db", () => ({
   default: mockDeep(),
 }))
 
-import db, { Prisma } from "db"
+import db from "db"
 
 beforeEach(() => {
   mockReset(db)
-  createPrismaMock({}, Prisma.dmmf.datamodel)
-})
-```
-
-### With Initial Data
-
-You can optionally start with pre-filled data:
-
-```js
-const client = createPrismaMock({
-  user: [
-    {
-      id: 1,
-      name: "John Doe",
-      accountId: 1,
-    },
-  ],
-  account: [
-    {
-      id: 1,
-      name: "Company",
-    },
-  ],
+  createPrismaMock({ mockClient: db })
 })
 ```
 
 ## API
 
+### Exports
+
+The library provides three different exports:
+
+- **`prisma-mock`** (default): The recommended way to use the library. Automatically uses the Prisma client from `@prisma/client/default`, so you don't need to pass Prisma as an argument.
+- **`prisma-mock/client`**: Use this when you need to explicitly pass the Prisma namespace.
+- **`prisma-mock/legacy`**: The old API for backward compatibility. This export is deprecated but maintained for existing codebases.
+
+### Default Export (`prisma-mock`)
+
 ```ts
-createPrismaMock(
-  data: PrismaMockData<P> = {},
-  datamodel?: Prisma.DMMF.Datamodel,
-  client = mockDeep<P>(),
-  options: {
+createPrismaMock<P extends PrismaClient = PrismaClient>(
+  options?: {
+    data?: PrismaMockData<P>
+    datamodel?: Prisma.DMMF.Datamodel
+    mockClient?: DeepMockApi
     caseInsensitive?: boolean
     enableIndexes?: boolean
-  } = {}
-): Promise<P>
+  }
+): P & { $getInternalState: () => Required<PrismaMockData<P>> }
 ```
 
 ### Parameters
 
-#### `data` (optional)
+- **`options`** (optional): Configuration options (see below)
 
-Initial mock data for the Prisma models. An object containing keys for tables and values as arrays of objects.
+#### Options
 
-#### `datamodel` (optional)
-
-The Prisma datamodel, typically `Prisma.dmmf.datamodel`. Defaults to the current Prisma client's datamodel.
-
-#### `client` (optional)
-
-A `jest-mock-extended` instance. If not provided, a new instance is created.
-
-#### `options` (optional)
-
-Configuration options for the mock client:
-
+- **`data`** (optional): Initial mock data for the Prisma models. An object containing keys for tables and values as arrays of objects.
+- **`datamodel`** (optional): The Prisma datamodel, typically `Prisma.dmmf.datamodel` (default).
+- **`mockClient`** (optional): A `jest-mock-extended` or `vitest-mock-extended` instance. If not provided, a plain object is used instead.
 - **`caseInsensitive`** (boolean, default: `false`): If true, all string comparisons are case insensitive
-- **`enableIndexes`** (boolean, default: `false`) Experimental: If true, enables indexing for better query performance on primary keys, unique fields, and foreign keys
+- **`enableIndexes`** (boolean, default: `true`) If true, enables indexing for better query performance on primary keys, unique fields, and foreign keys
 
 ### Return Value
 
 Returns a mock Prisma client with all standard model methods plus:
 
 - `$getInternalState()`: Method to access the internal data state for testing/debugging
+
+### Client Export (`prisma-mock/client`)
+
+```ts
+createPrismaMock<PClient extends PrismaClient, P extends typeof Prisma = typeof Prisma>(
+  prisma: P,
+  options?: {
+    data?: PrismaMockData<PClient>
+    datamodel?: P["dmmf"]["datamodel"]
+    mockClient?: DeepMockApi
+    caseInsensitive?: boolean
+    enableIndexes?: boolean
+  }
+): PClient & { $getInternalState: () => Required<PrismaMockData<PClient>> }
+```
+
+#### Parameters
+
+- **`prisma`** (required): The Prisma namespace (e.g., `Prisma` from `@prisma/client`). This is used to access the datamodel and type information.
+- **`options`** (optional): Configuration options. Same as the default export, with the exception of the `datamodel` not being optional.
+
+### Legacy Export (`prisma-mock/legacy`)
+
+The legacy export maintains the old API signature for backward compatibility:
+
+```js
+import createPrismaMock from "prisma-mock/legacy"
+import { mockDeep } from "jest-mock-extended"
+
+const client = createPrismaMock(
+  { user: [{ id: 1, name: "John" }] }, // data
+  Prisma.dmmf.datamodel, // datamodel (optional)
+  mockDeep(), // mockClient (optional)
+  { enableIndexes: true } // options (optional)
+)
+```
+
+**Note**: If you're starting a new project, use the default export instead. The legacy export is only for maintaining existing codebases that haven't migrated yet.
+
+## DMMF Generator
+
+The library includes a Prisma generator that can be used to generate the datamodel separately. This is useful when you need to use the datamodel without having the full Prisma client available, or when you want to use a specific version of the datamodel.
+
+### When to Use the DMMF Generator
+
+You typically need the DMMF generator when:
+
+- You're running tests with jsdom
+- When you have a custom export directory for the Prisma client
+- You're building a tool that needs the datamodel structure without the full Prisma client
+- You want to use a specific version of the datamodel that differs from the current Prisma client
+
+### Setup
+
+Add the generator to your `schema.prisma` file:
+
+```prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+generator dmmf {
+  provider = "prisma-mock"
+  output   = "./generated/dmmf"
+}
+```
+
+After running `prisma generate`, the datamodel will be exported to the specified output path. You can then import and use it:
+
+```js
+import createPrismaMock from "prisma-mock/client"
+import { Prisma } from "@prisma/client"
+import * as dmmf from "./generated/dmmf"
+
+const client = createPrismaMock(Prisma, {
+  datamodel: dmmf,
+})
+```
+
+**Note**: In most cases, you don't need the generator. The library will automatically use `Prisma.dmmf.datamodel` from your Prisma client if you don't provide a custom datamodel.
 
 ## Supported Features
 
@@ -266,17 +351,9 @@ The following features are planned but not yet implemented:
 
 ## Performance Features
 
-### Indexing (Experimental)
+### Indexing
 
-Enable indexing for better query performance:
-
-```js
-const client = createPrismaMock({}, undefined, undefined, {
-  enableIndexes: true,
-})
-```
-
-When enabled, indexes are automatically created for:
+Indexing is enabled by default for better query performance. Indexes are automatically created for:
 
 - Primary key fields
 - Unique fields

@@ -4,8 +4,8 @@ import createPrismaClient from "./createPrismaClient"
 import { Role } from "@prisma/client"
 
 describe("PrismaClient where", () => {
-  const date1 = new Date('2020-02-01T14:00:00.000Z')
-  const date2 = new Date('2020-02-02T14:00:00.000Z')
+  const date1 = new Date("2020-02-01T14:00:00.000Z")
+  const date2 = new Date("2020-02-02T14:00:00.000Z")
 
   const data = {
     account: [
@@ -22,8 +22,8 @@ describe("PrismaClient where", () => {
         name: "ABBY",
       },
       {
-        name: null
-      }
+        name: null,
+      },
     ],
     user: [
       {
@@ -65,7 +65,7 @@ describe("PrismaClient where", () => {
       {
         e_id: 1,
         json: {
-          data: "first"
+          data: "first",
         },
         userId: 1,
         value: "value 1",
@@ -73,11 +73,11 @@ describe("PrismaClient where", () => {
       {
         e_id: 2,
         json: {
-          data: "second"
+          data: "second",
         },
         userId: 2,
         value: "value 2",
-      }
+      },
     ],
     stripe: [
       {
@@ -91,9 +91,7 @@ describe("PrismaClient where", () => {
   describe.each([false, true])(
     "caseInsensitive %p",
     (caseInsensitive: boolean) => {
-
       describe("No mode", () => {
-
         if (process.env.PROVIDER === "postgresql" && caseInsensitive) {
           // Can't test case insensitive for postgresql without mode right now
           return
@@ -136,9 +134,9 @@ describe("PrismaClient where", () => {
             where: {
               json: {
                 equals: {
-                  data: "first"
-                }
-              }
+                  data: "first",
+                },
+              },
             },
           })
           expect(elements).toMatchSnapshot()
@@ -167,7 +165,7 @@ describe("PrismaClient where", () => {
             where: {
               account: {
                 name: { in: ["Piet", "Sjors"] },
-              }
+              },
             },
           })
           expect(accounts).toMatchSnapshot()
@@ -261,86 +259,90 @@ describe("PrismaClient where", () => {
         })
       })
 
-      describe.each([false, true])(
-        "mode %p",
-        (mode: boolean) => {
-
-          if (process.env.PROVIDER === "postgresql" && !mode && caseInsensitive) {
-            // Can't test case insensitive for postgresql without mode right now
-            return
-          }
-
-          let client: PrismaClient
-          beforeEach(async () => {
-            client = await createPrismaClient(data, mode ? undefined : {
-              caseInsensitive: mode ? false : caseInsensitive,
-            })
-          })
-
-          test("startsWith", async () => {
-            const accounts = await client.account.findMany({
-              where: {
-                name: {
-                  startsWith: caseInsensitive ? "di" : "Di",
-                  mode: caseInsensitive && mode ? "insensitive" : "default",
-                },
-              },
-            })
-            expect(accounts.length).toBe(1)
-            expect(accounts).toMatchSnapshot()
-            // expect(account).toEqual([data.account[1]]);
-          })
-
-          test("endsWith", async () => {
-            const client = await createPrismaClient(data, mode ? undefined : {
-              caseInsensitive: mode ? false : caseInsensitive,
-            })
-            const accounts = await client.account.findMany({
-              where: {
-                name: {
-                  endsWith: "rk",
-                  mode: caseInsensitive && mode ? "insensitive" : "default",
-                },
-              },
-            })
-            expect(accounts).toMatchSnapshot()
-            // expect(account).toEqual([data.account[1]]);
-          })
-
-
-          test("contains", async () => {
-            const accounts = await client.account.findMany({
-              where: {
-                name: {
-                  contains: "BB",
-                  mode: caseInsensitive && mode ? "insensitive" : "default",
-                },
-              },
-            })
-            expect(accounts).toMatchSnapshot()
-            // expect(account).toEqual([data.account[3]]);
-          })
-
-          test("equals", async () => {
-            const accounts = await client.account.findMany({
-              where: {
-                name: {
-                  equals: caseInsensitive ? "dirk" : "Dirk",
-                  mode: caseInsensitive && mode ? "insensitive" : "default",
-                },
-              },
-            })
-            expect(accounts.length).toEqual(1)
-            expect(accounts).toMatchSnapshot()
-            // expect(account).toEqual([data.account[1]]);
-          })
+      describe.each([false, true])("mode %p", (mode: boolean) => {
+        if (process.env.PROVIDER === "postgresql" && !mode && caseInsensitive) {
+          // Can't test case insensitive for postgresql without mode right now
+          return
         }
-      )
+
+        let client: PrismaClient
+        beforeEach(async () => {
+          client = await createPrismaClient(
+            data,
+            mode
+              ? undefined
+              : {
+                caseInsensitive: mode ? false : caseInsensitive,
+              }
+          )
+        })
+
+        test("startsWith", async () => {
+          const accounts = await client.account.findMany({
+            where: {
+              name: {
+                startsWith: caseInsensitive ? "di" : "Di",
+                mode: caseInsensitive && mode ? "insensitive" : "default",
+              },
+            },
+          })
+          expect(accounts.length).toBe(1)
+          expect(accounts).toMatchSnapshot()
+          // expect(account).toEqual([data.account[1]]);
+        })
+
+        test("endsWith", async () => {
+          const client = await createPrismaClient(
+            data,
+            mode
+              ? undefined
+              : {
+                caseInsensitive: mode ? false : caseInsensitive,
+              }
+          )
+          const accounts = await client.account.findMany({
+            where: {
+              name: {
+                endsWith: "rk",
+                mode: caseInsensitive && mode ? "insensitive" : "default",
+              },
+            },
+          })
+          expect(accounts).toMatchSnapshot()
+          // expect(account).toEqual([data.account[1]]);
+        })
+
+        test("contains", async () => {
+          const accounts = await client.account.findMany({
+            where: {
+              name: {
+                contains: "BB",
+                mode: caseInsensitive && mode ? "insensitive" : "default",
+              },
+            },
+          })
+          expect(accounts).toMatchSnapshot()
+          // expect(account).toEqual([data.account[3]]);
+        })
+
+        test("equals", async () => {
+          const accounts = await client.account.findMany({
+            where: {
+              name: {
+                equals: caseInsensitive ? "dirk" : "Dirk",
+                mode: caseInsensitive && mode ? "insensitive" : "default",
+              },
+            },
+          })
+          expect(accounts.length).toEqual(1)
+          expect(accounts).toMatchSnapshot()
+          // expect(account).toEqual([data.account[1]]);
+        })
+      })
     }
   )
 
   describe("Case inrelevant", () => {
-
     test("gt", async () => {
       const client = await createPrismaClient(data)
       const accounts = await client.account.findMany({
@@ -414,9 +416,9 @@ describe("PrismaClient where", () => {
         where: {
           json: {
             not: {
-              data: "first"
-            }
-          }
+              data: "first",
+            },
+          },
         },
       })
       expect(elements).toMatchSnapshot()
@@ -451,6 +453,73 @@ describe("PrismaClient where", () => {
       expect(accounts.length).toEqual(1)
       expect(accounts).toMatchSnapshot()
     })
+
+    test("connect", async () => {
+      const data = {
+        user: [
+          {
+            id: 1,
+            name: "Henk",
+            uniqueField: "user 1",
+          },
+          {
+            id: 2,
+            name: undefined,
+            uniqueField: "user 2",
+          },
+        ],
+        post: [
+          {
+            id: 1,
+            created: date1,
+            updated: date1,
+            title: "Piet",
+          },
+          {
+            id: 2,
+            created: date2,
+            updated: date2,
+            title: "Dirk",
+          },
+        ],
+      }
+
+      const client = await createPrismaClient(data)
+      const users = await client.user.update({
+        where: {
+          id: 1,
+        },
+        data: {
+          posts: {
+            connect: {
+              id: 1,
+            },
+          },
+        },
+        include: {
+          posts: {
+            select: {
+              id: true,
+              title: true,
+              created: true,
+              published: true,
+              authorId: true,
+            }
+          },
+        },
+      })
+      expect(users.posts).toMatchInlineSnapshot(`
+        Array [
+          Object {
+            "authorId": 1,
+            "created": 2020-02-01T14:00:00.000Z,
+            "id": 1,
+            "published": false,
+            "title": "Piet",
+          },
+        ]
+      `)
+    })
   })
 
   describe("join", () => {
@@ -480,19 +549,19 @@ describe("PrismaClient where", () => {
         },
       })
       expect(accounts).toMatchInlineSnapshot(`
-Array [
-  Object {
-    "id": 1,
-    "name": "A",
-    "sort": null,
-  },
-  Object {
-    "id": 3,
-    "name": "C",
-    "sort": null,
-  },
-]
-`)
+        Array [
+          Object {
+            "id": 1,
+            "name": "A",
+            "sort": null,
+          },
+          Object {
+            "id": 3,
+            "name": "C",
+            "sort": null,
+          },
+        ]
+      `)
     })
     test("some", async () => {
       const client = await createPrismaClient(data)
@@ -506,19 +575,19 @@ Array [
         },
       })
       expect(accounts).toMatchInlineSnapshot(`
-Array [
-  Object {
-    "id": 1,
-    "name": "A",
-    "sort": null,
-  },
-  Object {
-    "id": 2,
-    "name": "B",
-    "sort": null,
-  },
-]
-`)
+        Array [
+          Object {
+            "id": 1,
+            "name": "A",
+            "sort": null,
+          },
+          Object {
+            "id": 2,
+            "name": "B",
+            "sort": null,
+          },
+        ]
+      `)
       // expect(accounts.length).toEqual(2);
       // expect(accounts).toEqual([data.account[0], data.account[1]]);
     })
@@ -535,14 +604,14 @@ Array [
         },
       })
       expect(accounts).toMatchInlineSnapshot(`
-Array [
-  Object {
-    "id": 3,
-    "name": "C",
-    "sort": null,
-  },
-]
-`)
+        Array [
+          Object {
+            "id": 3,
+            "name": "C",
+            "sort": null,
+          },
+        ]
+      `)
       // expect(accounts.length).toEqual(1);
       // expect(accounts).toEqual([data.account[2]]);
     })
@@ -594,7 +663,7 @@ Array [
     const users = await client.user.findMany({
       where: {
         // This condition should be ignored
-        id: { lt: undefined }
+        id: { lt: undefined },
       },
     })
     expect(users.length).toEqual(2)

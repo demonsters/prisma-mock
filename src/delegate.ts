@@ -1,23 +1,23 @@
-import { Prisma } from "@prisma/client"
+import type { Prisma } from "@prisma/client"
 import createHandleDefault from "./defaults"
 import { throwKnownError, throwValidationError } from "./errors"
 import createIndexes from "./indexes"
 import { CreateArgs, Item } from "./types"
 import { createGetFieldRelationshipWhere, getCamelCase, isFieldDefault, removeMultiFieldIds } from "./utils/fieldHelpers"
-import createMatch from "./utils/queryMatching"
-import { shallowCompare } from "./utils/shallowCompare"
 import getWhereOnIds from "./utils/getWhereOnIds"
+import createMatch from "./utils/queryMatching"
 
 /**
  * Creates a delegate function that handles Prisma-like operations for a specific model
  * This is the main factory function that generates model-specific CRUD operations
  */
-export const createDelegate = (
+export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel = prisma.dmmf.datamodel, caseInsensitive, indexes }: {
   ref: any, // Reference to the mock data store
-  datamodel: Omit<Prisma.DMMF.Datamodel, 'indexes'>, // Prisma datamodel definition
+  prisma: P, // Prisma datamodel definition
+  datamodel: P["dmmf"]["datamodel"], // Prisma datamodel definition
   caseInsensitive: boolean, // Whether string comparisons should be case insensitive
   indexes: ReturnType<typeof createIndexes>, // Index management for performance
-) => {
+}) => {
 
   // Initialize default value handler
   const handleDefaults = createHandleDefault()
@@ -51,16 +51,16 @@ export const createDelegate = (
   const Delegate = (prop: string, model: Prisma.DMMF.Model) => {
 
     const getDelegateForFieldName = (field: Prisma.DMMF.Field["type"]) => {
-      const otherModel = datamodel.models.find((model) => {
-        return getCamelCase(model.name) === getCamelCase(field)
-      })
       const name = getCamelCase(field)
+      const otherModel = datamodel.models.find((model) => {
+        return name === getCamelCase(model.name)
+      })
       return Delegate(name, otherModel)
     }
 
 
     // Create matching function for WHERE clauses
-    const matchFnc = createMatch({ getFieldRelationshipWhere, getDelegateForFieldName, model, datamodel, caseInsensitive })
+    const matchFnc = createMatch({ prisma, getFieldRelationshipWhere, getDelegateForFieldName, model, datamodel, caseInsensitive })
 
     /**
      * Sorting function that handles both simple and nested orderBy clauses
@@ -81,7 +81,7 @@ export const createDelegate = (
       // Validate that only one sort field is provided
       const keys = Object.keys(orderBy)
       if (keys.length > 1) {
-        throwValidationError(
+        throwValidationError(prisma,
           `Argument orderBy of needs exactly one argument, but you provided ${keys.join(
             " and "
           )}. Please choose one.`
@@ -159,7 +159,7 @@ export const createDelegate = (
           if (isCreating && (field.isUnique || field.isId)) {
             const existing = findOne({ where: { [field.name]: inputFieldData } })
             if (existing) {
-              throwKnownError(
+              throwKnownError(prisma,
                 `Unique constraint failed on the fields: (\`${field.name}\`)`,
                 { code: 'P2002', meta: { target: [field.name] } },
               )
@@ -188,7 +188,7 @@ export const createDelegate = (
               })).filter(Boolean)
 
               if (items.length !== inputFieldData.set.length) {
-                throwKnownError(`An operation failed because it depends on one or more records that were required but not found. Expected ${inputFieldData.set.length} records to be connected, found only ${items.length}.`)
+                throwKnownError(prisma, `An operation failed because it depends on one or more records that were required but not found. Expected ${inputFieldData.set.length} records to be connected, found only ${items.length}.`)
               }
 
               // Update many-to-many data store
@@ -218,48 +218,19 @@ export const createDelegate = (
 
                 const keyToGet = field.relationToFields[0]
                 const targetKey = field.relationFromFields[0]
+                const delegate = getDelegateForFieldName(field.type)
+
                 if (keyToGet && targetKey) {
                   let connectionValue = connect[keyToGet]
                   if (keyToMatch !== keyToGet) {
-                    const valueToMatch = connect[keyToMatch]
-                    let matchingRow = ref.data[getCamelCase(field.type)].find(
-                      (row) => {
-                        return row[keyToMatch] === valueToMatch
-                      }
-                    )
+                    // Try to find by unique index if direct match fails
+                    let matchingRow = delegate.findOne({
+                      where: connect
+                    })
                     if (!matchingRow) {
-                      // Try to find by unique index if direct match fails
-                      const refModel = datamodel.models.find(
-                        (model) =>
-                          getCamelCase(field.type) === getCamelCase(model.name)
+                      throwKnownError(prisma,
+                        "An operation failed because it depends on one or more records that were required but not found. {cause}"
                       )
-                      const uniqueIndexes = refModel.uniqueIndexes.map(
-                        (index) => {
-                          return {
-                            ...index,
-                            key: index.name ?? index.fields.join("_"),
-                          }
-                        }
-                      )
-                      const indexKey = uniqueIndexes.find(
-                        (index) => index.key === keyToMatch
-                      )
-                      matchingRow = ref.data[getCamelCase(field.type)].find(
-                        (row) => {
-                          const target = Object.fromEntries(
-                            Object.entries(row).filter(
-                              (row) =>
-                                indexKey?.fields.includes(row[0]) ?? false
-                            )
-                          )
-                          return shallowCompare(target, valueToMatch)
-                        }
-                      )
-                      if (!matchingRow) {
-                        throwKnownError(
-                          "An operation failed because it depends on one or more records that were required but not found. {cause}"
-                        )
-                      }
                     }
                     connectionValue = matchingRow[keyToGet]
                   }
@@ -271,6 +242,10 @@ export const createDelegate = (
                   }
                 } else {
                   inputData = rest
+                  const newData = {
+                    ...item,
+                    ...inputData,
+                  }
                   const otherModel = datamodel.models.find((model) => {
                     return model.name === field.type
                   })
@@ -279,8 +254,6 @@ export const createDelegate = (
                       field.relationName === otherField.relationName
                   )
 
-                  const delegate = getDelegateForFieldName(field.type)
-
                   const otherTargetKey = otherField.relationToFields[0]
                   if ((!targetKey && !keyToGet) && otherTargetKey) {
                     delegate.update({
@@ -288,9 +261,9 @@ export const createDelegate = (
                       data: {
                         [getCamelCase(otherField.name)]: {
                           connect: {
-                            [otherTargetKey]: inputData[otherTargetKey],
-                          },
-                        },
+                            [otherTargetKey]: newData[otherTargetKey],
+                          }
+                        }
                       }
                     })
                   } else {
@@ -299,7 +272,7 @@ export const createDelegate = (
                       [field.type]: delegate.findOne({
                         where: connect
                       }),
-                      [otherField.type]: item || inputData
+                      [otherField.type]: item || newData
                     })
                   }
                 }
@@ -598,7 +571,7 @@ export const createDelegate = (
     const findOrThrow = (args) => {
       const found = findOne(args)
       if (!found) {
-        throwKnownError(`No ${prop.slice(0, 1).toUpperCase()}${prop.slice(1)} found`)
+        throwKnownError(prisma, `No ${prop.slice(0, 1).toUpperCase()}${prop.slice(1)} found`)
       }
       return found
     }
@@ -669,7 +642,7 @@ export const createDelegate = (
       res = res.map((item) => {
         const newItem = {}
         Object.keys(item).forEach((key) => {
-          if (item[key] === Prisma.JsonNull || item[key] === Prisma.DbNull) {
+          if (item[key] === prisma.JsonNull || item[key] === prisma.DbNull) {
             newItem[key] = null
           } else {
             newItem[key] = item[key]
@@ -943,7 +916,7 @@ export const createDelegate = (
       })
       if (!hasMatch) {
         if (args.skipForeignKeysChecks) return
-        throwKnownError(
+        throwKnownError(prisma,
           "An operation failed because it depends on one or more records that were required but not found. Record to update not found.",
           { meta: { cause: "Record to update not found." } }
         )
@@ -1210,7 +1183,7 @@ export const createDelegate = (
       delete: (args) => {
         const item = findOne(args)
         if (!item) {
-          throwKnownError(
+          throwKnownError(prisma,
             "An operation failed because it depends on one or more records that were required but not found. Record to delete does not exist.",
             { meta: { cause: "Record to delete does not exist." } }
           )

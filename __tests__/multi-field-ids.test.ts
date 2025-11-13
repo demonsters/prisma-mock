@@ -95,9 +95,9 @@ Object {
     expect(user.userId_answerId).toBeFalsy();
   });
 
-  test("delete", async () => {});
+  test("delete", async () => { });
 
-  test("update", async () => {});
+  test("update", async () => { });
 
   test("upsert insert", async () => {
     const client = await createPrismaClient(data);
@@ -154,7 +154,7 @@ Object {
     // expect(found.userId).toEqual(1)
   });
 
-  test("upsert update", async () => {});
+  test("upsert update", async () => { });
 
   test("updateMany", async () => {
     const client = await createPrismaClient(data);
@@ -199,6 +199,87 @@ Array [
     expect(elements[1].userId).toBe(user.id);
   });
 
-  test.todo("connect");
+  test("connect with composite unique constraint", async () => {
+    const client = await createPrismaClient(data);
+
+    // Create a new user and connect to an existing element using composite unique constraint
+    const newUser = await client.user.create({
+      data: {
+        uniqueField: "user2",
+        element: {
+          connect: {
+            userId_value: {
+              userId: 1,
+              value: "Element1",
+            },
+          },
+        },
+      },
+    });
+
+    const elements = await client.element.findMany({
+      where: {
+        userId: newUser.id,
+      },
+    });
+    expect(elements.length).toEqual(1);
+    expect(elements[0].userId).toBe(newUser.id);
+    expect(elements[0].value).toBe("Element1");
+  });
+
+  test("connect with composite unique constraint - not found", async () => {
+    const client = await createPrismaClient(data);
+
+    await expect(
+      client.user.create({
+        data: {
+          uniqueField: "user2",
+          element: {
+            connect: {
+              userId_value: {
+                userId: 1,
+                value: "NonExistent",
+              },
+            },
+          },
+        },
+      })
+    ).rejects.toThrow();
+  });
+
+  test("connect with composite primary key", async () => {
+    const client = await createPrismaClient(data);
+
+    // Create a new answer
+    const newAnswer = await client.answers.create({
+      data: {
+        id: 4,
+        title: "New Answer",
+      },
+    });
+
+    // Create a new userAnswers record by connecting to existing userAnswers using composite primary key
+    // This tests connecting via a relation that uses composite primary key
+    const newUser = await client.user.create({
+      data: {
+        uniqueField: "user2",
+      },
+    });
+
+    // Create userAnswers by connecting to user and answer separately
+    // The composite key is formed from userId and answerId
+    const userAnswer = await client.userAnswers.create({
+      data: {
+        user: { connect: { id: newUser.id } },
+        answer: { connect: { id: newAnswer.id } },
+        value: "test value",
+      },
+    });
+
+    expect(userAnswer.userId).toBe(newUser.id);
+    expect(userAnswer.answerId).toBe(newAnswer.id);
+    expect(userAnswer.value).toBe("test value");
+  });
+
   test.todo("should throw when there is a duplicate");
 });
