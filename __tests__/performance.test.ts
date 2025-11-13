@@ -61,7 +61,7 @@ test("performance test", async () => {
   console.log(createDuration)
   console.log(findDuration)
 
-  expect(findDuration < 100).toBe(true)
+  expect(findDuration).toBeLessThan(100)
 
   // await expect(dummyFunction).toBeFasterThan(300)
 })
