@@ -1,5 +1,23 @@
 # prisma-mock
 
+## 1.0.0
+
+### Major Changes
+
+- 0b7a91e: Change the api interface & add dmmf generator
+
+### Patch Changes
+
+- d4a8818: Update createPrismaMock to make datamodel property optional, improving compatibility with Prisma DMMF.
+- 29eaa9b: Add generic type parameter back to default createPrismaClient
+- c621b0e: Improve datamodel handling
+- d5637e1: Fix dmmf-generator
+- 1a07011: Make datamodel optional when using default import
+- 92ef1bc: Fix types
+- d359764: Remove unneeded datamodel check in createPrismaClient
+- ce2a428: Add missing @prisma/generator-helper dependancy
+- b98101b: Use queryMatching for connect
+
 ## 1.0.0-alpha.9
 
 ### Patch Changes
