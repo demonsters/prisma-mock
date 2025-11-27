@@ -1,8 +1,10 @@
 {
-  "mode": "pre",
+  "mode": "exit",
   "tag": "alpha",
   "initialVersions": {
     "prisma-mock": "1.0.0"
   },
-  "changesets": ["shaggy-islands-smile"]
+  "changesets": [
+    "shaggy-islands-smile"
+  ]
 }
