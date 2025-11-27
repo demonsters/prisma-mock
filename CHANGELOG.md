@@ -1,5 +1,11 @@
 # prisma-mock
 
+## 1.0.1-alpha.3
+
+### Patch Changes
+
+- 914f68d: Update GitHub Actions workflow to use ubuntu-latest
+
 ## 1.0.1-alpha.2
 
 ### Patch Changes

@@ -5,6 +5,7 @@
     "prisma-mock": "1.0.0"
   },
   "changesets": [
+    "curvy-goats-pull",
     "gentle-dragons-wave",
     "major-heads-tell",
     "shaggy-islands-smile"
