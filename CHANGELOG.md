@@ -1,5 +1,11 @@
 # prisma-mock
 
+## 1.0.1
+
+### Patch Changes
+
+- 1cb3d6c: Add support for prisma v7
+
 ## 1.0.1-alpha.5
 
 ### Patch Changes
