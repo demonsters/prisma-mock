@@ -16,6 +16,10 @@ on:
 
 concurrency: ${{ github.workflow }}-${{ github.ref }}
 
+permissions:
+  # https://docs.npmjs.com/trusted-publishers
+  id-token: write # Required for OIDC
+
 jobs:
   publish:
     name: Publish npm packages

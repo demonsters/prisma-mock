@@ -214,6 +214,7 @@ const client = createPrismaMock(Prisma, {
 - `upsert`
 - `count`
 - `aggregate`
+- `groupBy`
 
 ### Model Query Options ✅
 
@@ -303,6 +304,8 @@ const client = createPrismaMock(Prisma, {
 
 The following features are planned but not yet implemented:
 
+### Model Queries
+
 ### Nested Queries
 
 - `connectOrCreate`
@@ -331,7 +334,6 @@ The following features are planned but not yet implemented:
 ### Attributes
 
 - `auto()`
-- `dbgenerated()`
 
 ### Referential Actions
 
@@ -342,7 +344,6 @@ The following features are planned but not yet implemented:
 
 ### Prisma Client Methods
 
-- `$transaction` (Isolation levels)
 - `$use` (Middleware)
 
 ## Performance Features
