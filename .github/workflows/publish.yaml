@@ -19,7 +19,7 @@ concurrency: ${{ github.workflow }}-${{ github.ref }}
 permissions:
   # https://docs.npmjs.com/trusted-publishers
   id-token: write # Required for OIDC
-  contents: read
+  contents: write # Required for pushing tags/commits
 
 jobs:
   publish:
