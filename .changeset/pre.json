@@ -5,6 +5,7 @@
     "prisma-mock": "1.0.0"
   },
   "changesets": [
+    "gentle-dragons-wave",
     "shaggy-islands-smile"
   ]
 }
