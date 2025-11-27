@@ -48,6 +48,15 @@ jobs:
       - name: Install Dependencies
         run: yarn install --immutable --inline-builds
 
+      # Required for changesets to publish to NPM or it will only publish to ghcr
+      - name: Creating .npmrc
+        run: |
+          cat << EOF > "$HOME/.npmrc"
+            //registry.npmjs.org/:_authToken=$NPM_TOKEN
+          EOF
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+
       - name: Create Release Pull Request or Publish to npm
         id: changesets
         uses: changesets/action@v1
@@ -55,4 +64,5 @@ jobs:
           publish: yarn release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
           # NPM_TOKEN removed - using OIDC trusted publishing instead
