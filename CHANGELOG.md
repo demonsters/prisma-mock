@@ -1,5 +1,11 @@
 # prisma-mock
 
+## 1.0.1-alpha.1
+
+### Patch Changes
+
+- e82ed1a: Update npm publish settings for oidc
+
 ## 1.0.1-alpha.0
 
 ### Patch Changes
