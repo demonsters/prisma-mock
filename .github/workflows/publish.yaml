@@ -19,6 +19,7 @@ concurrency: ${{ github.workflow }}-${{ github.ref }}
 permissions:
   # https://docs.npmjs.com/trusted-publishers
   id-token: write # Required for OIDC
+  contents: read
 
 jobs:
   publish:
@@ -49,4 +50,4 @@ jobs:
           publish: yarn release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          # NPM_TOKEN removed - using OIDC trusted publishing instead
