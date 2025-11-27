@@ -4,13 +4,5 @@
   "initialVersions": {
     "prisma-mock": "1.0.0"
   },
-  "changesets": [
-    "curvy-goats-pull",
-    "gentle-dragons-wave",
-    "major-heads-tell",
-    "nasty-pianos-hug",
-    "shaggy-islands-smile",
-    "tall-files-peel",
-    "vast-kiwis-read"
-  ]
+  "changesets": ["shaggy-islands-smile"]
 }
