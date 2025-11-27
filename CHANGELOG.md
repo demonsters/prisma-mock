@@ -1,5 +1,11 @@
 # prisma-mock
 
+## 1.0.1-alpha.4
+
+### Patch Changes
+
+- 6bef107: Add back NPM_TOKEN
+
 ## 1.0.1-alpha.3
 
 ### Patch Changes
