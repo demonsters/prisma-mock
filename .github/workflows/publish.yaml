@@ -40,6 +40,10 @@ jobs:
       - name: Enable Corepack
         run: corepack enable
 
+      # Ensure npm 11.5.1+ for OIDC trusted publishing (Node 20 ships with npm 10.x)
+      - name: Update npm
+        run: npm install -g npm@latest
+
       # Need to install everything because of https://github.com/changesets/changesets/issues/945
       - name: Install Dependencies
         run: yarn install --immutable --inline-builds
