@@ -1,5 +1,12 @@
 # prisma-mock
 
+## 1.0.1-alpha.5
+
+### Patch Changes
+
+- dae2d1a: Try new build
+- c76dbac: Fix build
+
 ## 1.0.1-alpha.4
 
 ### Patch Changes
