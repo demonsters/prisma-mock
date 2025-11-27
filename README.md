@@ -303,10 +303,6 @@ const client = createPrismaMock(Prisma, {
 
 The following features are planned but not yet implemented:
 
-### Model Queries
-
-- `groupBy`
-
 ### Nested Queries
 
 - `connectOrCreate`

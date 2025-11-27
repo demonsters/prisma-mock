@@ -55,7 +55,7 @@
     "changeset:validate:ci": "changeset status --since=origin/main --verbose"
   },
   "peerDependencies": {
-    "@prisma/client": "^3.5.0 || ^4.7.0 || ^5.0.0 || ^6.0.0"
+    "@prisma/client": "^3.5.0 || ^4.7.0 || ^5.0.0 || ^6.0.0 || ^7.0.0"
   },
   "dependencies": {
     "@prisma/generator-helper": "^6.19.0",
