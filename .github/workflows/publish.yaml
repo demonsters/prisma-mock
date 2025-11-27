@@ -20,6 +20,7 @@ permissions:
   # https://docs.npmjs.com/trusted-publishers
   id-token: write # Required for OIDC
   contents: write # Required for pushing tags/commits
+  pull-requests: write # Required for changesets to create PRs
 
 jobs:
   publish:
