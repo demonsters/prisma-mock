@@ -21,7 +21,7 @@ permissions:
   id-token: write # Required for OIDC
   contents: write # Required for pushing tags/commits
   pull-requests: write # Required for changesets to create PRs
-  workflows: write # Required for GitHub App to update workflow files
+  # Add permission to update workflow files
 
 jobs:
   publish:

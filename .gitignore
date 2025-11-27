@@ -3,3 +3,4 @@ TODO.md
 lib/
 .env
 .env-cmdrc
+.npmrc
