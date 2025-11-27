@@ -1,5 +1,11 @@
 # prisma-mock
 
+## 1.0.1-alpha.2
+
+### Patch Changes
+
+- 0876510: Ensure npm 11.5.1 or later is installed
+
 ## 1.0.1-alpha.1
 
 ### Patch Changes
