@@ -16,10 +16,17 @@ on:
 
 concurrency: ${{ github.workflow }}-${{ github.ref }}
 
+permissions:
+  # https://docs.npmjs.com/trusted-publishers
+  id-token: write # Required for OIDC
+  contents: write # Required for pushing tags/commits
+  pull-requests: write # Required for changesets to create PRs
+  # Add permission to update workflow files
+
 jobs:
   publish:
     name: Publish npm packages
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout Repo
@@ -29,22 +36,18 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
+          registry-url: "https://registry.npmjs.org"
 
       - name: Enable Corepack
         run: corepack enable
 
+      # Ensure npm 11.5.1+ for OIDC trusted publishing (Node 20 ships with npm 10.x)
+      - name: Update npm
+        run: npm install -g npm@latest
+
       # Need to install everything because of https://github.com/changesets/changesets/issues/945
       - name: Install Dependencies
         run: yarn install --immutable --inline-builds
-
-      # Required for changesets to publish to NPM or it will only publish to ghcr
-      - name: Creating .npmrc
-        run: |
-          cat << EOF > "$HOME/.npmrc"
-            //registry.npmjs.org/:_authToken=$NPM_TOKEN
-          EOF
-        env:
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Create Release Pull Request or Publish to npm
         id: changesets
@@ -53,4 +56,4 @@ jobs:
           publish: yarn release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          # NPM_TOKEN removed - using OIDC trusted publishing instead

@@ -1,5 +1,48 @@
 # prisma-mock
 
+## 1.0.1
+
+### Patch Changes
+
+- 1cb3d6c: Add support for prisma v7
+
+## 1.0.1-alpha.5
+
+### Patch Changes
+
+- dae2d1a: Try new build
+- c76dbac: Fix build
+
+## 1.0.1-alpha.4
+
+### Patch Changes
+
+- 6bef107: Add back NPM_TOKEN
+
+## 1.0.1-alpha.3
+
+### Patch Changes
+
+- 914f68d: Update GitHub Actions workflow to use ubuntu-latest
+
+## 1.0.1-alpha.2
+
+### Patch Changes
+
+- 0876510: Ensure npm 11.5.1 or later is installed
+
+## 1.0.1-alpha.1
+
+### Patch Changes
+
+- e82ed1a: Update npm publish settings for oidc
+
+## 1.0.1-alpha.0
+
+### Patch Changes
+
+- 1cb3d6c: Add support for prisma v7
+
 ## 1.0.0
 
 ### Major Changes
