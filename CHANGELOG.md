@@ -1,5 +1,11 @@
 # prisma-mock
 
+## 1.0.2
+
+### Patch Changes
+
+- dbb7861: Fix shallowCompare to handle date objects correctly
+
 ## 1.0.1
 
 ### Patch Changes
