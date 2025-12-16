@@ -28,7 +28,7 @@ function createPrismaMock<PClient extends PrismaClient, P extends typeof Prisma 
 
   // Reference object to hold the mock data state
   let ref = {
-    data: options.data || {},
+    data: options.data ? deepCopy(options.data) : {},
   }
 
   // Initialize the mock client (either use provided one or create new)
@@ -48,7 +48,7 @@ function createPrismaMock<PClient extends PrismaClient, P extends typeof Prisma 
   }
 
   // Create indexes if enabled in options
-  const indexes = createIndexes(!!options.enableIndexes, prisma)
+  const indexes = createIndexes(!!options.enableIndexes)
 
   // Determine if case-insensitive matching should be used
   const caseInsensitive = options.caseInsensitive || false
@@ -141,6 +141,9 @@ function createPrismaMock<PClient extends PrismaClient, P extends typeof Prisma 
 
   // Add method to access internal state for testing/debugging
   client['$getInternalState'] = () => ref.data
+  client['$clear'] = () => {
+    ref.data = options.data ? deepCopy(options.data) : {}
+  }
 
   // @ts-ignore
   return client
