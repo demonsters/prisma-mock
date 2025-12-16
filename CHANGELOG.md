@@ -1,5 +1,11 @@
 # prisma-mock
 
+## 1.1.0-alpha.0
+
+### Minor Changes
+
+- 1560579: Add $clear function to clear state
+
 ## 1.0.2
 
 ### Patch Changes
