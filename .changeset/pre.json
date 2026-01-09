@@ -5,6 +5,7 @@
     "prisma-mock": "1.0.2"
   },
   "changesets": [
-    "fluffy-otters-punch"
+    "fluffy-otters-punch",
+    "wide-coins-tease"
   ]
 }
