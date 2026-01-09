@@ -1,5 +1,11 @@
 # prisma-mock
 
+## 1.1.0-alpha.1
+
+### Patch Changes
+
+- bb7e7fb: Add $clear into the return type
+
 ## 1.1.0-alpha.0
 
 ### Minor Changes
