@@ -24,6 +24,7 @@ function createPrismaMock<PClient extends PrismaClient, P extends typeof Prisma 
   }
 ): PClient & {
   $getInternalState: () => Required<PrismaMockData<PClient>>
+  $clear: () => void
 } {
 
   // Reference object to hold the mock data state
