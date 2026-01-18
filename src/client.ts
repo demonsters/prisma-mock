@@ -24,12 +24,15 @@ function createPrismaMock<PClient extends PrismaClient, P extends typeof Prisma 
   }
 ): PClient & {
   $getInternalState: () => Required<PrismaMockData<PClient>>
+  $setInternalState: (state: Required<PrismaMockData<PClient>>) => void
   $clear: () => void
 } {
 
+  let internalState = options.data ? deepCopy(options.data) : {}
+
   // Reference object to hold the mock data state
   let ref = {
-    data: options.data ? deepCopy(options.data) : {},
+    data: internalState,
   }
 
   // Initialize the mock client (either use provided one or create new)
@@ -140,10 +143,15 @@ function createPrismaMock<PClient extends PrismaClient, P extends typeof Prisma 
     })
   })
 
+
   // Add method to access internal state for testing/debugging
   client['$getInternalState'] = () => ref.data
+  client['$setInternalState'] = (state: Required<PrismaMockData<PClient>>) => {
+    internalState = deepCopy(state)
+    ref.data = internalState
+  }
   client['$clear'] = () => {
-    ref.data = options.data ? deepCopy(options.data) : {}
+    ref.data = internalState
   }
 
   // @ts-ignore

@@ -14,9 +14,30 @@ yarn add prisma-mock --dev
 
 ## Usage
 
-### Basic Example
+### Prisma 7
 
-Simple example of how to create a prisma mock instance:
+With Prisma 7, you typically generate your client to a custom output directory (such as `./generated/client`), and import the generated `Prisma` namespace from your generated files. Use the `prisma-mock/client` entry point and pass the `Prisma` namespace when
+initializing your mock client.
+
+> **Note:** You will also need to configure and use the [DMMF Generator](#dmmf-generator) to produce the necessary metadata for mocking.
+
+```js
+import createPrismaMock from "prisma-mock/client"
+import { Prisma } from "./generated/client"
+import * as dmmf from "./generated/dmmf"
+
+let client
+
+beforeEach(() => {
+  client = createPrismaMock(Prisma, {
+    datamodel: dmmf,
+  })
+})
+```
+
+### Prisma 6 and below
+
+Simple example of how to create a prisma mock instance using the default (node_module) export:
 
 ```js
 import createPrismaMock from "prisma-mock"
@@ -97,7 +118,11 @@ createPrismaMock<P extends PrismaClient = PrismaClient>(
     caseInsensitive?: boolean
     enableIndexes?: boolean
   }
-): P & { $getInternalState: () => Required<PrismaMockData<P>> }
+): P & { 
+  $getInternalState: () => Required<PrismaMockData<P>>
+  $setInternalState: (state: Required<PrismaMockData<P>>) => void
+  $clear: () => void
+}
 ```
 
 ### Parameters
@@ -117,6 +142,8 @@ createPrismaMock<P extends PrismaClient = PrismaClient>(
 Returns a mock Prisma client with all standard model methods plus:
 
 - `$getInternalState()`: Method to access the internal data state for testing/debugging
+- `$setInternalState(state)`: Method to replace the entire internal data state. Useful for resetting state to a specific snapshot or setting up complex test scenarios. The state is deep copied to avoid reference issues.
+- `$clear()`: Method to reset the internal state back to the initial state
 
 ### Client Export (`prisma-mock/client`)
 
@@ -130,7 +157,11 @@ createPrismaMock<PClient extends PrismaClient, P extends typeof Prisma = typeof 
     caseInsensitive?: boolean
     enableIndexes?: boolean
   }
-): PClient & { $getInternalState: () => Required<PrismaMockData<PClient>> }
+): PClient & { 
+  $getInternalState: () => Required<PrismaMockData<PClient>>
+  $setInternalState: (state: Required<PrismaMockData<PClient>>) => void
+  $clear: () => void
+}
 ```
 
 #### Parameters
