@@ -1,5 +1,11 @@
 # prisma-mock
 
+## 1.1.0-alpha.2
+
+### Minor Changes
+
+- 4908115: Add $setInternalState method to manage internal state in createPrismaMock
+
 ## 1.1.0-alpha.1
 
 ### Patch Changes
