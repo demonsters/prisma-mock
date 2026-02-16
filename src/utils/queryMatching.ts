@@ -50,12 +50,20 @@ export default function createMatch({ prisma, getFieldRelationshipWhere, getDele
         if (info?.relationName) {
           const childName = getCamelCase(info.type)
           let childWhere = {}
+          let useIsFilter = false
+          let useIsNotFilter = false
           if (filter.every) {
             childWhere = filter.every
           } else if (filter.some) {
             childWhere = filter.some
           } else if (filter.none) {
             childWhere = filter.none
+          } else if ("is" in filter) {
+            useIsFilter = true
+            childWhere = filter.is === null ? {} : filter.is
+          } else if ("isNot" in filter) {
+            useIsNotFilter = true
+            childWhere = filter.isNot === null ? {} : filter.isNot
           } else {
             childWhere = filter
           }
@@ -65,10 +73,34 @@ export default function createMatch({ prisma, getFieldRelationshipWhere, getDele
           const delegate = getDelegateForFieldName(childName)
           const joinWhere = getFieldRelationshipWhere(item, info, submodel)
 
+          if (useIsFilter) {
+            if (filter.is === null) {
+              if (!joinWhere) return true
+              const res = delegate.findMany({ where: joinWhere })
+              return res.length === 0
+            }
+            if (!joinWhere) return false
+            const res = delegate.findMany({
+              where: { AND: [childWhere, joinWhere] },
+            })
+            return res.length > 0
+          }
+          if (useIsNotFilter) {
+            if (filter.isNot === null) {
+              if (!joinWhere) return false
+              const res = delegate.findMany({ where: joinWhere })
+              return res.length > 0
+            }
+            if (!joinWhere) return true
+            const res = delegate.findMany({
+              where: { AND: [childWhere, joinWhere] },
+            })
+            return res.length === 0
+          }
+
           if (!joinWhere) {
             return false
           }
-          // return true
           const res = delegate.findMany({
             where: {
               AND: [
@@ -78,16 +110,11 @@ export default function createMatch({ prisma, getFieldRelationshipWhere, getDele
             }
           })
           if (filter.every) {
-            // const all = data[childName].filter(
-            //   matchFnc(getFieldRelationshipWhere(item, info)),
-            // )
             const where = getFieldRelationshipWhere(item, info, model)
             if (!where) return false
             const all = delegate.findMany({
               where,
             })
-            // For "every": all related records must match the condition
-            // If no related records exist, "every" is vacuously true
             if (all.length === 0) return true
             return res.length === all.length
           } else if (filter.some) {
