@@ -1,5 +1,12 @@
 # prisma-mock
 
+## 1.1.0-alpha.3
+
+### Minor Changes
+
+- d827020: Automatic ID generation for MongoDB
+- d827020: Support is / isNot filters in relation where clauses
+
 ## 1.1.0-alpha.2
 
 ### Minor Changes
