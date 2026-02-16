@@ -3,14 +3,11 @@
 import createPrismaClient from "./createPrismaClient"
 
 describe("PrismaClient $getInternalState", () => {
-
   // Should not run for postgresql
   if (process.env.PROVIDER === "postgresql") {
-    test("skip", () => {
-    })
+    test("skip", () => {})
     return
   }
-
 
   const data = {
     user: [
@@ -41,46 +38,47 @@ describe("PrismaClient $getInternalState", () => {
     const client = await createPrismaClient(data)
 
     expect(client.$getInternalState()).toMatchInlineSnapshot(`
-Object {
-  "account": Array [],
-  "answers": Array [
-    Object {
-      "id": 1,
-      "title": "Answer",
-    },
-    Object {
-      "id": 2,
-      "title": "Answer",
-    },
-    Object {
-      "id": 3,
-      "title": "Answer",
-    },
-  ],
-  "dbGeneratedId": Array [],
-  "document": Array [],
-  "element": Array [],
-  "pet": Array [],
-  "post": Array [],
-  "stripe": Array [],
-  "toy": Array [],
-  "transaction": Array [],
-  "user": Array [
-    Object {
-      "accountId": null,
-      "age": 10,
-      "clicks": null,
-      "deleted": false,
-      "id": 1,
-      "name": "sadfsdf",
-      "role": "ADMIN",
-      "sort": null,
-      "uniqueField": "user1",
-    },
-  ],
-  "userAnswers": Array [],
-}
-`)
+      Object {
+        "account": Array [],
+        "answers": Array [
+          Object {
+            "id": 1,
+            "title": "Answer",
+          },
+          Object {
+            "id": 2,
+            "title": "Answer",
+          },
+          Object {
+            "id": 3,
+            "title": "Answer",
+          },
+        ],
+        "dbGeneratedId": Array [],
+        "document": Array [],
+        "element": Array [],
+        "pet": Array [],
+        "post": Array [],
+        "postWithMappedId": Array [],
+        "stripe": Array [],
+        "toy": Array [],
+        "transaction": Array [],
+        "user": Array [
+          Object {
+            "accountId": null,
+            "age": 10,
+            "clicks": null,
+            "deleted": false,
+            "id": 1,
+            "name": "sadfsdf",
+            "role": "ADMIN",
+            "sort": null,
+            "uniqueField": "user1",
+          },
+        ],
+        "userAnswers": Array [],
+      }
+    `)
   })
 
   test("create", async () => {
@@ -93,52 +91,53 @@ Object {
     })
 
     expect(client.$getInternalState()).toMatchInlineSnapshot(`
-Object {
-  "account": Array [],
-  "answers": Array [
-    Object {
-      "id": 1,
-      "title": "Answer",
-    },
-    Object {
-      "id": 2,
-      "title": "Answer",
-    },
-    Object {
-      "id": 3,
-      "title": "Answer",
-    },
-  ],
-  "dbGeneratedId": Array [],
-  "document": Array [],
-  "element": Array [],
-  "pet": Array [],
-  "post": Array [],
-  "stripe": Array [],
-  "toy": Array [],
-  "transaction": Array [],
-  "user": Array [
-    Object {
-      "accountId": null,
-      "age": 10,
-      "clicks": null,
-      "deleted": false,
-      "id": 1,
-      "name": "sadfsdf",
-      "role": "ADMIN",
-      "sort": null,
-      "uniqueField": "user1",
-    },
-  ],
-  "userAnswers": Array [
-    Object {
-      "answerId": 1,
-      "userId": 1,
-      "value": null,
-    },
-  ],
-}
-`)
+      Object {
+        "account": Array [],
+        "answers": Array [
+          Object {
+            "id": 1,
+            "title": "Answer",
+          },
+          Object {
+            "id": 2,
+            "title": "Answer",
+          },
+          Object {
+            "id": 3,
+            "title": "Answer",
+          },
+        ],
+        "dbGeneratedId": Array [],
+        "document": Array [],
+        "element": Array [],
+        "pet": Array [],
+        "post": Array [],
+        "postWithMappedId": Array [],
+        "stripe": Array [],
+        "toy": Array [],
+        "transaction": Array [],
+        "user": Array [
+          Object {
+            "accountId": null,
+            "age": 10,
+            "clicks": null,
+            "deleted": false,
+            "id": 1,
+            "name": "sadfsdf",
+            "role": "ADMIN",
+            "sort": null,
+            "uniqueField": "user1",
+          },
+        ],
+        "userAnswers": Array [
+          Object {
+            "answerId": 1,
+            "userId": 1,
+            "value": null,
+          },
+        ],
+      }
+    `)
   })
 
   test("delete", async () => {
@@ -147,33 +146,34 @@ Object {
     await client.answers.deleteMany({})
 
     expect(client.$getInternalState()).toMatchInlineSnapshot(`
-Object {
-  "account": Array [],
-  "answers": Array [],
-  "dbGeneratedId": Array [],
-  "document": Array [],
-  "element": Array [],
-  "pet": Array [],
-  "post": Array [],
-  "stripe": Array [],
-  "toy": Array [],
-  "transaction": Array [],
-  "user": Array [
-    Object {
-      "accountId": null,
-      "age": 10,
-      "clicks": null,
-      "deleted": false,
-      "id": 1,
-      "name": "sadfsdf",
-      "role": "ADMIN",
-      "sort": null,
-      "uniqueField": "user1",
-    },
-  ],
-  "userAnswers": Array [],
-}
-`)
+      Object {
+        "account": Array [],
+        "answers": Array [],
+        "dbGeneratedId": Array [],
+        "document": Array [],
+        "element": Array [],
+        "pet": Array [],
+        "post": Array [],
+        "postWithMappedId": Array [],
+        "stripe": Array [],
+        "toy": Array [],
+        "transaction": Array [],
+        "user": Array [
+          Object {
+            "accountId": null,
+            "age": 10,
+            "clicks": null,
+            "deleted": false,
+            "id": 1,
+            "name": "sadfsdf",
+            "role": "ADMIN",
+            "sort": null,
+            "uniqueField": "user1",
+          },
+        ],
+        "userAnswers": Array [],
+      }
+    `)
   })
 
   test("updateMany", async () => {
@@ -186,46 +186,46 @@ Object {
     })
 
     expect(client.$getInternalState()).toMatchInlineSnapshot(`
-Object {
-  "account": Array [],
-  "answers": Array [
-    Object {
-      "id": 1,
-      "title": "Answer",
-    },
-    Object {
-      "id": 2,
-      "title": "Answer",
-    },
-    Object {
-      "id": 3,
-      "title": "Answer",
-    },
-  ],
-  "dbGeneratedId": Array [],
-  "document": Array [],
-  "element": Array [],
-  "pet": Array [],
-  "post": Array [],
-  "stripe": Array [],
-  "toy": Array [],
-  "transaction": Array [],
-  "user": Array [
-    Object {
-      "accountId": null,
-      "age": 10,
-      "clicks": null,
-      "deleted": false,
-      "id": 1,
-      "name": "sadfsdf",
-      "role": "ADMIN",
-      "sort": null,
-      "uniqueField": "user1",
-    },
-  ],
-  "userAnswers": Array [],
-}
-`)
+      Object {
+        "account": Array [],
+        "answers": Array [
+          Object {
+            "id": 1,
+            "title": "Answer",
+          },
+          Object {
+            "id": 2,
+            "title": "Answer",
+          },
+          Object {
+            "id": 3,
+            "title": "Answer",
+          },
+        ],
+        "dbGeneratedId": Array [],
+        "document": Array [],
+        "element": Array [],
+        "pet": Array [],
+        "post": Array [],
+        "postWithMappedId": Array [],
+        "stripe": Array [],
+        "toy": Array [],
+        "transaction": Array [],
+        "user": Array [
+          Object {
+            "accountId": null,
+            "age": 10,
+            "clicks": null,
+            "deleted": false,
+            "id": 1,
+            "name": "sadfsdf",
+            "role": "ADMIN",
+            "sort": null,
+            "uniqueField": "user1",
+          },
+        ],
+        "userAnswers": Array [],
+      }
+    `)
   })
-
 })

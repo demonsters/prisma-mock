@@ -315,6 +315,7 @@ const client = createPrismaMock(Prisma, {
 ### Attribute Functions ✅
 
 - `autoincrement()`
+- `auto()` (MongoDB ObjectId)
 - `cuid()`
 - `uuid()`
 - `now()`
@@ -361,10 +362,6 @@ The following features are planned but not yet implemented:
 - `hasSome`
 - `isEmpty`
 - `equals`
-
-### Attributes
-
-- `auto()`
 
 ### Referential Actions
 
