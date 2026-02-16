@@ -59,13 +59,14 @@ test("create returning null", async () => {
 
   const globalPlaylist = await prismaMock.stripe.create({
     data: {
-      id: 1,
+      customerId: "cus_123",
       account: {
         create: {
-          id: 1,
           name: "Account",
         },
       },
+      active: true,
+      sort: 1,
     },
   })
 

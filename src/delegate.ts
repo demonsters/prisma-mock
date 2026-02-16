@@ -161,7 +161,7 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
             if (existing) {
               throwKnownError(prisma,
                 `Unique constraint failed on the fields: (\`${field.name}\`)`,
-                { code: 'P2002', meta: { target: [field.name] } },
+                { code: 'P2002', meta: { modelName: model.name, target: [field.name] } },
               )
             }
           }
@@ -571,7 +571,9 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
     const findOrThrow = (args) => {
       const found = findOne(args)
       if (!found) {
-        throwKnownError(prisma, `No ${prop.slice(0, 1).toUpperCase()}${prop.slice(1)} found`)
+        throwKnownError(prisma, `No ${prop.slice(0, 1).toUpperCase()}${prop.slice(1)} found`, {
+          meta: { cause: "No record was found for a query.", modelName: model.name },
+        })
       }
       return found
     }
@@ -918,7 +920,7 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
         if (args.skipForeignKeysChecks) return
         throwKnownError(prisma,
           "An operation failed because it depends on one or more records that were required but not found. Record to update not found.",
-          { meta: { cause: "Record to update not found." } }
+          { meta: { cause: "No record was found for an update.", modelName: model.name } }
         )
       }
       ref.data = {
@@ -1185,7 +1187,7 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
         if (!item) {
           throwKnownError(prisma,
             "An operation failed because it depends on one or more records that were required but not found. Record to delete does not exist.",
-            { meta: { cause: "Record to delete does not exist." } }
+            { meta: { cause: "No record was found for a delete.", modelName: model.name } }
           )
         }
         const deleted = deleteMany(args)
