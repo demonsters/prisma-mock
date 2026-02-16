@@ -5,7 +5,7 @@ import createPrismaClient from "./createPrismaClient"
 describe("PrismaClient $getInternalState", () => {
   // Should not run for postgresql
   if (process.env.PROVIDER === "postgresql") {
-    test("skip", () => {})
+    test("skip", () => { })
     return
   }
 
@@ -59,7 +59,6 @@ describe("PrismaClient $getInternalState", () => {
         "element": Array [],
         "pet": Array [],
         "post": Array [],
-        "postWithMappedId": Array [],
         "stripe": Array [],
         "toy": Array [],
         "transaction": Array [],
@@ -112,7 +111,6 @@ describe("PrismaClient $getInternalState", () => {
         "element": Array [],
         "pet": Array [],
         "post": Array [],
-        "postWithMappedId": Array [],
         "stripe": Array [],
         "toy": Array [],
         "transaction": Array [],
@@ -154,7 +152,6 @@ describe("PrismaClient $getInternalState", () => {
         "element": Array [],
         "pet": Array [],
         "post": Array [],
-        "postWithMappedId": Array [],
         "stripe": Array [],
         "toy": Array [],
         "transaction": Array [],
@@ -207,7 +204,6 @@ describe("PrismaClient $getInternalState", () => {
         "element": Array [],
         "pet": Array [],
         "post": Array [],
-        "postWithMappedId": Array [],
         "stripe": Array [],
         "toy": Array [],
         "transaction": Array [],
