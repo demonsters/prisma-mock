@@ -1,5 +1,11 @@
 # prisma-mock
 
+## 1.1.0-alpha.4
+
+### Patch Changes
+
+- b8e4c87: Add unique constraint
+
 ## 1.1.0-alpha.3
 
 ### Minor Changes
