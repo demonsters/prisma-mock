@@ -5,6 +5,7 @@
     "prisma-mock": "1.0.2"
   },
   "changesets": [
+    "eleven-showers-double",
     "fluffy-otters-punch",
     "happy-rats-sing",
     "tall-forks-send",
