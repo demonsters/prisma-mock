@@ -700,6 +700,24 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
       })
 
       const d = nestedUpdate(args, true, null)
+
+      // Check compound @@unique constraint violations during creation
+      const compoundUniques = model.uniqueFields?.filter((uf) => uf.length > 1) || []
+      for (const fields of compoundUniques) {
+        const hasAllValues = fields.every((f) => d[f] !== undefined && d[f] !== null)
+        if (hasAllValues) {
+          const whereKey = fields.join("_")
+          const whereClause = fields.reduce((acc, f) => ({ ...acc, [f]: d[f] }), {})
+          const existing = findOne({ where: { [whereKey]: whereClause } })
+          if (existing) {
+            throwKnownError(prisma,
+              `Unique constraint failed on the fields: (\`${fields.join("`, `")}\`)`,
+              { code: "P2002", meta: { modelName: model.name, target: fields } },
+            )
+          }
+        }
+      }
+
       ref.data = {
         ...ref.data,
         [prop]: [...ref.data[prop] || [], d],
