@@ -1,5 +1,19 @@
 # prisma-mock
 
+## 1.1.0
+
+### Minor Changes
+
+- 1560579: Add $clear function to clear state
+- 4908115: Add $setInternalState method to manage internal state in createPrismaMock
+- d827020: Automatic ID generation for MongoDB
+- d827020: Support is / isNot filters in relation where clauses
+
+### Patch Changes
+
+- b8e4c87: Add unique constraint
+- bb7e7fb: Add $clear into the return type
+
 ## 1.1.0-alpha.4
 
 ### Patch Changes
