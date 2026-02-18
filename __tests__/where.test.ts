@@ -188,6 +188,74 @@ describe("PrismaClient where", () => {
           expect(accounts).toMatchSnapshot()
         })
 
+        test("relation is: null", async () => {
+          const client = await createPrismaClient(data, {
+            caseInsensitive,
+          })
+          const accounts = await client.account.findMany({
+            where: {
+              stripe: { is: null },
+            },
+          })
+          expect(accounts.length).toEqual(4)
+          expect(accounts.every((a) => a.id !== 2)).toBe(true)
+        })
+
+        test("relation isNot: null", async () => {
+          const client = await createPrismaClient(data, {
+            caseInsensitive,
+          })
+          const accounts = await client.account.findMany({
+            where: {
+              stripe: { isNot: null },
+            },
+          })
+          expect(accounts.length).toEqual(1)
+          expect(accounts[0].id).toEqual(2)
+        })
+
+        test("relation is: { filter }", async () => {
+          const client = await createPrismaClient(data, {
+            caseInsensitive,
+          })
+          const users = await client.user.findMany({
+            where: {
+              account: {
+                is: { name: "Dirk" },
+              },
+            },
+          })
+          expect(users.length).toEqual(1)
+          expect(users[0].name).toEqual("Dirk")
+        })
+
+        test("relation isNot: { filter }", async () => {
+          const client = await createPrismaClient(data, {
+            caseInsensitive,
+          })
+          const users = await client.user.findMany({
+            where: {
+              account: {
+                isNot: { name: "Dirk" },
+              },
+            },
+          })
+          expect(users.length).toEqual(1)
+          expect(users[0].name).toEqual("Henk")
+        })
+
+        test("relation is: null (post.author)", async () => {
+          const client = await createPrismaClient(data, {
+            caseInsensitive,
+          })
+          const posts = await client.post.findMany({
+            where: {
+              author: { is: null },
+            },
+          })
+          expect(posts.length).toEqual(4)
+        })
+
         test("OR", async () => {
           const client = await createPrismaClient(data, {
             caseInsensitive,

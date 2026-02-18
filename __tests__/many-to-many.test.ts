@@ -401,24 +401,13 @@ test("Should create many records", async () => {
       users: true
     }
   })
-  expect(answer).toMatchInlineSnapshot(`
-Object {
-  "id": 1,
-  "title": "Test Workspace",
-  "users": Array [
-    Object {
-      "answerId": 1,
-      "userId": 1,
-      "value": "1",
-    },
-    Object {
-      "answerId": 1,
-      "userId": 2,
-      "value": "2",
-    },
-  ],
-}
-`)
+  expect(answer.id).toBe(1)
+  expect(answer.title).toBe("Test Workspace")
+  expect(answer.users).toHaveLength(2)
+  expect(answer.users).toEqual(expect.arrayContaining([
+    { answerId: 1, userId: 1, value: "1" },
+    { answerId: 1, userId: 2, value: "2" },
+  ]))
 })
 
 

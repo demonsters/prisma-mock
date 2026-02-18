@@ -5,16 +5,23 @@ import createPrismaClient from "./createPrismaClient";
 
 describe("prisma.$transaction", () => {
   const data = {
+    account: [
+      { id: 1, name: "Account 1" },
+      { id: 2, name: "Account 2" },
+      { id: 3, name: "Account 3" },
+    ],
     user: [
       {
         id: 1,
         name: "Henk",
         accountId: 1,
+        uniqueField: "henk",
       },
       {
         id: 2,
         name: "Dirk",
         accountId: 2,
+        uniqueField: "dirk",
       },
     ]
   };
@@ -41,7 +48,8 @@ describe("prisma.$transaction", () => {
           data: {
             id: 3,
             name: 'Anonymous',
-            accountId: 3
+            accountId: 3,
+            uniqueField: 'anonymous',
           }
         })
         throw new Error('failed')
@@ -61,11 +69,12 @@ describe("prisma.$transaction", () => {
     const client = await createPrismaClient(data);
 
     const result = await client.$transaction(async tx => {
-      tx.user.create({
+      await tx.user.create({
         data: {
           id: 3,
           name: 'Anonymous',
-          accountId: 3
+          accountId: 3,
+          uniqueField: 'anonymous',
         }
       })
       return 'success';

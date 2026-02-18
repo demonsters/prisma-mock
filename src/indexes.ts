@@ -8,7 +8,7 @@ import type { Prisma } from "@prisma/client"
  * @param isEnabled - Whether indexing is enabled. When false, all operations are no-ops.
  * @returns Object containing methods for managing indexes and performing indexed lookups
  */
-export default function createIndexes(isEnabled: boolean = true, prisma: typeof Prisma) {
+export default function createIndexes(isEnabled: boolean = true) {
 
   // Main data structures for storing indexed data
   // items: tableName -> fieldName -> fieldValue -> array of items with that value
