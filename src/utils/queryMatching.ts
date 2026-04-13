@@ -2,21 +2,30 @@ import type { Prisma } from "@prisma/client"
 import { deepEqual } from "./deepEqual"
 import { shallowCompare } from "./shallowCompare"
 import getNestedValue from "./getNestedValue"
-import { createGetFieldRelationshipWhere, getCamelCase, isDefinedWithValue } from "./fieldHelpers"
+import {
+  createGetFieldRelationshipWhere,
+  getCamelCase,
+  isDefinedWithValue,
+} from "./fieldHelpers"
 import { Where, Item } from "../types"
-
 
 type Props = {
   getFieldRelationshipWhere: ReturnType<typeof createGetFieldRelationshipWhere>
   getDelegateForFieldName: (field: Prisma.DMMF.Field["type"]) => any
   model: Prisma.DMMF.Model
-  datamodel: Omit<Prisma.DMMF.Datamodel, 'indexes'>
+  datamodel: Omit<Prisma.DMMF.Datamodel, "indexes">
   caseInsensitive: boolean
   prisma: typeof Prisma
 }
 
-export default function createMatch({ prisma, getFieldRelationshipWhere, getDelegateForFieldName, model, datamodel, caseInsensitive }: Props) {
-
+export default function createMatch({
+  prisma,
+  getFieldRelationshipWhere,
+  getDelegateForFieldName,
+  model,
+  datamodel,
+  caseInsensitive,
+}: Props) {
   const matchItem = (child: any, item: any, where: any) => {
     let val = item[child]
     const filter = where[child]
@@ -103,11 +112,8 @@ export default function createMatch({ prisma, getFieldRelationshipWhere, getDele
           }
           const res = delegate.findMany({
             where: {
-              AND: [
-                childWhere,
-                joinWhere
-              ]
-            }
+              AND: [childWhere, joinWhere],
+            },
           })
           if (filter.every) {
             const where = getFieldRelationshipWhere(item, info, model)
@@ -135,7 +141,10 @@ export default function createMatch({ prisma, getFieldRelationshipWhere, getDele
         if (model.uniqueFields?.length > 0) {
           for (const uniqueField of model.uniqueFields) {
             if (child === uniqueField.join("_")) {
-              return shallowCompare(item, filter)
+              if (uniqueField.length > 1) {
+                return shallowCompare(item, filter)
+              }
+              break
             }
           }
         }
@@ -205,7 +214,10 @@ export default function createMatch({ prisma, getFieldRelationshipWhere, getDele
           }
         }
         if ("string_ends_with" in matchFilter && match) {
-          match = val ? val.lastIndexOf(matchFilter.string_ends_with) === val.length - matchFilter.string_ends_with.length : false
+          match = val
+            ? val.lastIndexOf(matchFilter.string_ends_with) ===
+              val.length - matchFilter.string_ends_with.length
+            : false
         }
         if ("string_contains" in matchFilter && match) {
           match = val ? val?.indexOf(matchFilter.string_contains) !== -1 : false
@@ -295,7 +307,10 @@ export default function createMatch({ prisma, getFieldRelationshipWhere, getDele
   }
 
   const matchAnd = (item: any, where: Where) => {
-    return where.filter((child: Where) => matchItems(item, child)).length === where.length
+    return (
+      where.filter((child: Where) => matchItems(item, child)).length ===
+      where.length
+    )
   }
 
   const matchOr = (item: any, where: Where) => {
