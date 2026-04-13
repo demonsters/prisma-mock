@@ -32,28 +32,28 @@ jobs:
       - name: Checkout Repo
         uses: actions/checkout@v4
 
-      - name: Setup Node.js 20
+      - name: Setup Node.js 24
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
           registry-url: "https://registry.npmjs.org"
 
-      - name: Enable Corepack
-        run: corepack enable
-
-      # Ensure npm 11.5.1+ for OIDC trusted publishing (Node 20 ships with npm 10.x)
-      - name: Update npm
-        run: npm install -g npm@latest
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.11
 
       # Need to install everything because of https://github.com/changesets/changesets/issues/945
       - name: Install Dependencies
-        run: yarn install --immutable --inline-builds
+        run: bun install --frozen-lockfile
 
       - name: Create Release Pull Request or Publish to npm
         id: changesets
         uses: changesets/action@v1
         with:
-          publish: yarn release
+          publish: bun run release
         env:
+          NPM_TOKEN: ""
+          NODE_AUTH_TOKEN: ""
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # NPM_TOKEN removed - using OIDC trusted publishing instead

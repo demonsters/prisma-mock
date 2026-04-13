@@ -43,9 +43,7 @@ jobs:
           sudo rm -rf /usr/share/dotnet
           sudo rm -rf "$AGENT_TOOLSDIRECTORY"
       - uses: actions/checkout@v4
-      - run: corepack enable
-      - uses: actions/setup-node@v4
+      - uses: oven-sh/setup-bun@v2
         with:
-          node-version: "20"
-          cache: "yarn"
-      - run: yarn install && yarn lint && yarn test
+          bun-version: 1.3.11
+      - run: bun install --frozen-lockfile && bun run lint && bun run test

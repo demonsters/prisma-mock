@@ -9,7 +9,7 @@ The library optionally uses `jest-mock-extended` or `vitest-mock-extended` if yo
 ```bash
 npm install prisma-mock --save-dev
 # or
-yarn add prisma-mock --dev
+bun add prisma-mock --dev
 ```
 
 ## Usage
@@ -407,13 +407,13 @@ Create your tests in the `__tests__` directory. You can use snapshot testing wit
 To run tests against a PostgreSQL database:
 
 ```bash
-yarn run test:postgres
+bun run test:postgres
 ```
 
 To run tests against prisma-mock (in-memory database):
 
 ```bash
-yarn test
+bun run test
 ```
 
 ## Development
@@ -434,7 +434,7 @@ Create a `.env-cmdrc` file in the root of your project with the following conten
 ### Building
 
 ```bash
-yarn build
+bun run build
 ```
 
 ## Contributing
