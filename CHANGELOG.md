@@ -1,5 +1,13 @@
 # prisma-mock
 
+## 1.1.1-beta.0
+
+### Patch Changes
+
+- b81cdf0: 🐛 Bug: prisma-mock fails to match `{ equals: ... }` on fields with `@@unique([field])` defined
+
+  GitHub: https://github.com/demonsters/prisma-mock/issues/132
+
 ## 1.1.0
 
 ### Minor Changes
