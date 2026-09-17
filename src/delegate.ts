@@ -60,7 +60,7 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
 
 
     // Create matching function for WHERE clauses
-    const matchFnc = createMatch({ prisma, getFieldRelationshipWhere, getDelegateForFieldName, model, datamodel, caseInsensitive })
+    const matchFnc = createMatch({ prisma, getFieldRelationshipWhere, getDelegateForFieldName, model, datamodel, caseInsensitive, ref })
 
     /**
      * Sorting function that handles both simple and nested orderBy clauses
