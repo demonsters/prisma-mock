@@ -1,5 +1,6 @@
 // @ts-nocheck
 
+import { PrismaClientValidationError } from "@prisma/client";
 import createPrismaClient from "./createPrismaClient";
 
 describe("PrismaClient @@id()", () => {
@@ -281,5 +282,207 @@ Array [
     expect(userAnswer.value).toBe("test value");
   });
 
-  test.todo("should throw when there is a duplicate");
+  test("should throw when there is a duplicate", async () => {
+    const client = await createPrismaClient(data);
+    try {
+      await client.userAnswers.create({
+        data: { userId: 1, answerId: 2 },
+      });
+      throw new Error("Should have thrown");
+    } catch (e) {
+      expect(e.code).toBe("P2002");
+      expect(e.meta.modelName).toBe("UserAnswers");
+      expect(e.meta.target).toEqual(["userId", "answerId"]);
+    }
+  });
 });
+
+describe("PrismaClient @@id() with a custom name", () => {
+  const data = {
+    organization: [{ name: "Org 1" }, { name: "Org 2" }],
+    membership: [
+      { organizationId: 1, userId: 1, role: "admin" },
+      { organizationId: 1, userId: 2, role: "member" },
+    ],
+  }
+
+  test("findUnique", async () => {
+    const client = await createPrismaClient(data)
+    const item = await client.membership.findUnique({
+      where: {
+        membershipId: {
+          organizationId: 1,
+          userId: 2,
+        },
+      },
+    })
+    expect(item).toEqual({ organizationId: 1, userId: 2, role: "member" })
+  })
+
+  test("findUnique not found", async () => {
+    const client = await createPrismaClient(data)
+    const item = await client.membership.findUnique({
+      where: {
+        membershipId: {
+          organizationId: 2,
+          userId: 2,
+        },
+      },
+    })
+    expect(item).toBeNull()
+  })
+
+  test("findUniqueOrThrow", async () => {
+    const client = await createPrismaClient(data)
+    const item = await client.membership.findUniqueOrThrow({
+      where: {
+        membershipId: {
+          organizationId: 1,
+          userId: 1,
+        },
+      },
+    })
+    expect(item.role).toEqual("admin")
+
+    await expect(
+      client.membership.findUniqueOrThrow({
+        where: {
+          membershipId: {
+            organizationId: 2,
+            userId: 1,
+          },
+        },
+      })
+    ).rejects.toMatchObject({ code: "P2025" })
+  })
+
+  test("the default name does not match", async () => {
+    const client = await createPrismaClient(data)
+    const query = client.membership.findUnique({
+      where: {
+        organizationId_userId: {
+          organizationId: 1,
+          userId: 2,
+        },
+      },
+    })
+    if (process.env.PROVIDER === "postgresql") {
+      await expect(query).rejects.toThrow(PrismaClientValidationError)
+    } else {
+      await expect(query).resolves.toBeNull()
+    }
+  })
+
+  test("update", async () => {
+    const client = await createPrismaClient(data)
+    const item = await client.membership.update({
+      where: {
+        membershipId: {
+          organizationId: 1,
+          userId: 2,
+        },
+      },
+      data: { role: "owner" },
+    })
+    expect(item).toEqual({ organizationId: 1, userId: 2, role: "owner" })
+
+    const other = await client.membership.findUnique({
+      where: { membershipId: { organizationId: 1, userId: 1 } },
+    })
+    expect(other.role).toEqual("admin")
+  })
+
+  test("upsert insert", async () => {
+    const client = await createPrismaClient(data)
+    const item = await client.membership.upsert({
+      where: {
+        membershipId: {
+          organizationId: 2,
+          userId: 1,
+        },
+      },
+      create: { organizationId: 2, userId: 1, role: "created" },
+      update: { role: "updated" },
+    })
+    expect(item).toEqual({ organizationId: 2, userId: 1, role: "created" })
+
+    const found = await client.membership.findUnique({
+      where: {
+        membershipId: {
+          organizationId: 2,
+          userId: 1,
+        },
+      },
+    })
+    expect(found).toEqual(item)
+    expect(await client.membership.count()).toEqual(3)
+  })
+
+  test("upsert update", async () => {
+    const client = await createPrismaClient(data)
+    const item = await client.membership.upsert({
+      where: {
+        membershipId: {
+          organizationId: 1,
+          userId: 2,
+        },
+      },
+      create: { organizationId: 1, userId: 2, role: "created" },
+      update: { role: "updated" },
+    })
+    expect(item).toEqual({ organizationId: 1, userId: 2, role: "updated" })
+    expect(await client.membership.count()).toEqual(2)
+  })
+
+  test("delete", async () => {
+    const client = await createPrismaClient(data)
+    const deleted = await client.membership.delete({
+      where: {
+        membershipId: {
+          organizationId: 1,
+          userId: 1,
+        },
+      },
+    })
+    expect(deleted).toEqual({ organizationId: 1, userId: 1, role: "admin" })
+
+    const items = await client.membership.findMany()
+    expect(items).toEqual([{ organizationId: 1, userId: 2, role: "member" }])
+  })
+
+  test("connect in a nested write", async () => {
+    const client = await createPrismaClient(data)
+    const organization = await client.organization.create({
+      data: {
+        name: "Org 3",
+        memberships: {
+          connect: {
+            membershipId: {
+              organizationId: 1,
+              userId: 2,
+            },
+          },
+        },
+      },
+    })
+
+    const memberships = await client.membership.findMany({
+      where: { organizationId: organization.id },
+    })
+    expect(memberships).toEqual([{ organizationId: organization.id, userId: 2, role: "member" }])
+  })
+
+  test("create duplicate throws P2002", async () => {
+    const client = await createPrismaClient(data)
+    try {
+      await client.membership.create({
+        data: { organizationId: 1, userId: 2 },
+      })
+      throw new Error("Should have thrown")
+    } catch (e) {
+      expect(e.code).toBe("P2002")
+      expect(e.meta.modelName).toBe("Membership")
+      expect(e.meta.target).toEqual(["organizationId", "userId"])
+    }
+  })
+})

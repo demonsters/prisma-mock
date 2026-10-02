@@ -2,15 +2,19 @@ import type { Prisma } from "@prisma/client"
 import { deepEqual } from "./deepEqual"
 import { shallowCompare } from "./shallowCompare"
 import getNestedValue from "./getNestedValue"
-import { createGetFieldRelationshipWhere, getCamelCase, isDefinedWithValue } from "./fieldHelpers"
+import {
+  createGetFieldRelationshipWhere,
+  getCamelCase,
+  isDefinedWithValue,
+} from "./fieldHelpers"
+import { getCompoundKeys } from "./compoundKeys"
 import { Where, Item } from "../types"
-
 
 type Props = {
   getFieldRelationshipWhere: ReturnType<typeof createGetFieldRelationshipWhere>
   getDelegateForFieldName: (field: Prisma.DMMF.Field["type"]) => any
   model: Prisma.DMMF.Model
-  datamodel: Omit<Prisma.DMMF.Datamodel, 'indexes'>
+  datamodel: Omit<Prisma.DMMF.Datamodel, "indexes">
   caseInsensitive: boolean
   prisma: typeof Prisma
   ref: { data: any }
@@ -48,12 +52,18 @@ const getJoinPlan = (joinWhere: any) => {
   if (keys.length !== 1) return null
   const field = keys[0]
   const value = joinWhere[field]
-  if (value === undefined) return { field, kind: "all" as const, value, values: null }
-  if (value === null) return { field, kind: "null" as const, value, values: null }
+  if (value === undefined)
+    return { field, kind: "all" as const, value, values: null }
+  if (value === null)
+    return { field, kind: "null" as const, value, values: null }
   if (value instanceof Date) return null
   if (typeof value === "object") {
     const subKeys = Object.keys(value)
-    if (subKeys.length === 1 && subKeys[0] === "in" && Array.isArray(value.in)) {
+    if (
+      subKeys.length === 1 &&
+      subKeys[0] === "in" &&
+      Array.isArray(value.in)
+    ) {
       if (value.in.some(isUnhashable)) return null
       return { field, kind: "in" as const, value, values: value.in }
     }
@@ -68,16 +78,30 @@ const getJoinPlan = (joinWhere: any) => {
 const isUnhashable = (value: any) =>
   typeof value === "number" && Number.isNaN(value)
 
-export default function createMatch({ prisma, getFieldRelationshipWhere, getDelegateForFieldName, model, datamodel, caseInsensitive, ref }: Props) {
-
+export default function createMatch({
+  prisma,
+  getFieldRelationshipWhere,
+  getDelegateForFieldName,
+  model,
+  datamodel,
+  caseInsensitive,
+  ref,
+}: Props) {
   /**
    * Returns the rows of the related model matching `childWhere`, evaluating it at
    * most once per matcher. `childWhere` is the part of a relation filter that is
    * identical for every row being matched, so it is keyed by identity.
    */
-  const getRelatedRows = (ctx: MatchContext, childName: string, delegate: any, childWhere: any | null): RelatedRows => {
+  const getRelatedRows = (
+    ctx: MatchContext,
+    childName: string,
+    delegate: any,
+    childWhere: any | null
+  ): RelatedRows => {
     const build = () => ({
-      items: childWhere ? delegate.findMany({ where: childWhere }) : delegate.findMany({}),
+      items: childWhere
+        ? delegate.findMany({ where: childWhere })
+        : delegate.findMany({}),
       byField: new Map(),
     })
     if (!ctx) return build()
@@ -127,7 +151,12 @@ export default function createMatch({ prisma, getFieldRelationshipWhere, getDele
    * `fallback` performs the equivalent query for join clauses that cannot be answered
    * from a lookup table. When `firstOnly` is set the count saturates at 1.
    */
-  const countLinked = (rows: RelatedRows, joinWhere: any, fallback: () => any[], firstOnly: boolean = false) => {
+  const countLinked = (
+    rows: RelatedRows,
+    joinWhere: any,
+    fallback: () => any[],
+    firstOnly: boolean = false
+  ) => {
     const plan = getJoinPlan(joinWhere)
     if (!plan) {
       return fallback().length
@@ -143,7 +172,8 @@ export default function createMatch({ prisma, getFieldRelationshipWhere, getDele
     }
     if (plan.kind === "null") {
       // A null filter also matches rows where the field is absent
-      const count = (lookup.get(null)?.length || 0) + (lookup.get(undefined)?.length || 0)
+      const count =
+        (lookup.get(null)?.length || 0) + (lookup.get(undefined)?.length || 0)
       return firstOnly ? Math.min(count, 1) : count
     }
     let count = 0
@@ -161,8 +191,11 @@ export default function createMatch({ prisma, getFieldRelationshipWhere, getDele
     return count
   }
 
-  const hasLinked = (rows: RelatedRows, joinWhere: any, fallback: () => any[]) =>
-    countLinked(rows, joinWhere, fallback, true) > 0
+  const hasLinked = (
+    rows: RelatedRows,
+    joinWhere: any,
+    fallback: () => any[]
+  ) => countLinked(rows, joinWhere, fallback, true) > 0
 
   const matchItem = (child: any, item: any, where: any, ctx?: MatchContext) => {
     let val = item[child]
@@ -224,44 +257,52 @@ export default function createMatch({ prisma, getFieldRelationshipWhere, getDele
             if (filter.is === null) {
               if (!joinWhere) return true
               const rows = getRelatedRows(ctx, childName, delegate, null)
-              return !hasLinked(rows, joinWhere, () => delegate.findMany({ where: joinWhere }))
+              return !hasLinked(rows, joinWhere, () =>
+                delegate.findMany({ where: joinWhere })
+              )
             }
             if (!joinWhere) return false
             const rows = getRelatedRows(ctx, childName, delegate, childWhere)
-            return hasLinked(rows, joinWhere, () => delegate.findMany({
-              where: { AND: [childWhere, joinWhere] },
-            }))
+            return hasLinked(rows, joinWhere, () =>
+              delegate.findMany({
+                where: { AND: [childWhere, joinWhere] },
+              })
+            )
           }
           if (useIsNotFilter) {
             if (filter.isNot === null) {
               if (!joinWhere) return false
               const rows = getRelatedRows(ctx, childName, delegate, null)
-              return hasLinked(rows, joinWhere, () => delegate.findMany({ where: joinWhere }))
+              return hasLinked(rows, joinWhere, () =>
+                delegate.findMany({ where: joinWhere })
+              )
             }
             if (!joinWhere) return true
             const rows = getRelatedRows(ctx, childName, delegate, childWhere)
-            return !hasLinked(rows, joinWhere, () => delegate.findMany({
-              where: { AND: [childWhere, joinWhere] },
-            }))
+            return !hasLinked(rows, joinWhere, () =>
+              delegate.findMany({
+                where: { AND: [childWhere, joinWhere] },
+              })
+            )
           }
 
           if (!joinWhere) {
             return false
           }
           const rows = getRelatedRows(ctx, childName, delegate, childWhere)
-          const matchFallback = () => delegate.findMany({
-            where: {
-              AND: [
-                childWhere,
-                joinWhere
-              ]
-            }
-          })
+          const matchFallback = () =>
+            delegate.findMany({
+              where: {
+                AND: [childWhere, joinWhere],
+              },
+            })
           if (filter.every) {
             const where = getFieldRelationshipWhere(item, info, model)
             if (!where) return false
             const allRows = getRelatedRows(ctx, childName, delegate, null)
-            const all = countLinked(allRows, where, () => delegate.findMany({ where }))
+            const all = countLinked(allRows, where, () =>
+              delegate.findMany({ where })
+            )
             if (all === 0) return true
             return countLinked(rows, joinWhere, matchFallback) === all
           } else if (filter.none) {
@@ -270,20 +311,8 @@ export default function createMatch({ prisma, getFieldRelationshipWhere, getDele
           // `some` and the implicit to-one filter only need to know if anything matched
           return hasLinked(rows, joinWhere, matchFallback)
         }
-        // @ts-ignore Backwards compatibility
-        const idFields = model.idFields || model.primaryKey?.fields
-        if (idFields?.length > 1) {
-          if (child === idFields.join("_")) {
-            return shallowCompare(item, filter)
-          }
-        }
-
-        if (model.uniqueFields?.length > 0) {
-          for (const uniqueField of model.uniqueFields) {
-            if (child === uniqueField.join("_")) {
-              return shallowCompare(item, filter)
-            }
-          }
+        if (getCompoundKeys(model).some((key) => key.name === child)) {
+          return shallowCompare(item, filter)
         }
         if (val === undefined) {
           return false
@@ -351,7 +380,10 @@ export default function createMatch({ prisma, getFieldRelationshipWhere, getDele
           }
         }
         if ("string_ends_with" in matchFilter && match) {
-          match = val ? val.lastIndexOf(matchFilter.string_ends_with) === val.length - matchFilter.string_ends_with.length : false
+          match = val
+            ? val.lastIndexOf(matchFilter.string_ends_with) ===
+              val.length - matchFilter.string_ends_with.length
+            : false
         }
         if ("string_contains" in matchFilter && match) {
           match = val ? val?.indexOf(matchFilter.string_contains) !== -1 : false
@@ -441,7 +473,10 @@ export default function createMatch({ prisma, getFieldRelationshipWhere, getDele
   }
 
   const matchAnd = (item: any, where: Where, ctx?: MatchContext) => {
-    return where.filter((child: Where) => matchItems(item, child, ctx)).length === where.length
+    return (
+      where.filter((child: Where) => matchItems(item, child, ctx)).length ===
+      where.length
+    )
   }
 
   const matchOr = (item: any, where: Where, ctx?: MatchContext) => {

@@ -1,4 +1,5 @@
 import type { Prisma } from "@prisma/client";
+import { getCompoundIdKey } from "./compoundKeys";
 
 
 export default function getWhereOnIds(model: Prisma.DMMF.Model, item: any) {
@@ -15,7 +16,7 @@ export default function getWhereOnIds(model: Prisma.DMMF.Model, item: any) {
       where[field] = item[field]
     }
     where = {
-      [fields.join("_")]: where
+      [getCompoundIdKey(model).name]: where
     }
   }
   return where
