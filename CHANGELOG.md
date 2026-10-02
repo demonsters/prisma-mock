@@ -1,5 +1,11 @@
 # prisma-mock
 
+## 1.2.0-alpha.1
+
+### Patch Changes
+
+- 9db701c: Resolve a model's compound `@@id` / `@@unique` keys once per query again, instead of for every row a `where` clause is matched against.
+
 ## 1.2.0-alpha.0
 
 ### Minor Changes
