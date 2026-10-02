@@ -25,13 +25,14 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
   // Store many-to-many relationship data separately from the main data store
   const manyToManyData: { [relationName: string]: Array<{ [type: string]: Item }> } = {}
 
-  // Where each value of a unique field and compound key sits in a table, per version of
-  // the table. Writes replace a table's rows array rather than change it, and create and
-  // update carry the positions forward to the array they produce, so checking for a
-  // duplicate or finding the row a unique where points at is a lookup instead of a scan.
-  const valuePositions = new WeakMap<any[], {
+  // The rows holding each value of a unique field and compound key, per version of a
+  // table. Writes replace a table's rows array rather than change it, and create, update
+  // and delete carry these forward to the array they produce, so checking for a duplicate
+  // or finding the row a unique where points at is a lookup instead of a scan. Rows rather
+  // than positions, so a delete doesn't shift what every later row is filed under.
+  const valueRows = new WeakMap<any[], {
     length: number
-    byKey: Map<string, { positions: Map<any, number[]>, getValue: (row: any) => any }>
+    byKey: Map<string, { rows: Map<any, Set<any>>, getValue: (row: any) => any }>
   }>()
 
   // Versions of a table known to hold no compound key as a field, with their length.
@@ -39,21 +40,41 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
   // rows it wrote can hold one
   const cleanRows = new WeakMap<any[], number>()
 
-  const addPosition = (positions: Map<any, number[]>, value: any, index: number) => {
-    const list = positions.get(value)
-    if (list) {
-      list.push(index)
+  const addRow = (rowsByValue: Map<any, Set<any>>, value: any, row: any) => {
+    const rows = rowsByValue.get(value)
+    if (rows) {
+      rows.add(row)
     } else {
-      positions.set(value, [index])
+      rowsByValue.set(value, new Set([row]))
     }
   }
 
-  const removePosition = (positions: Map<any, number[]>, value: any, index: number) => {
-    const list = positions.get(value)
-    if (!list) return
-    const at = list.indexOf(index)
-    if (at !== -1) list.splice(at, 1)
-    if (list.length === 0) positions.delete(value)
+  const removeRow = (rowsByValue: Map<any, Set<any>>, value: any, row: any) => {
+    const rows = rowsByValue.get(value)
+    if (!rows) return
+    rows.delete(row)
+    if (rows.size === 0) rowsByValue.delete(value)
+  }
+
+  /**
+   * Moves the rows by value of the version a write started from to the version it produced,
+   * when the write only took the `removed` rows out and put the `added` ones in
+   */
+  const carryValueRows = (from: any[], to: any[], removed: any[], added: any[]) => {
+    const cached = valueRows.get(from)
+    if (!cached || cached.length !== from.length) return
+    for (const entry of cached.byKey.values()) {
+      for (const row of removed) {
+        removeRow(entry.rows, entry.getValue(row), row)
+      }
+      for (const row of added) {
+        addRow(entry.rows, entry.getValue(row), row)
+      }
+    }
+    cached.length = to.length
+    // The previous version can't answer with these changes in it
+    valueRows.delete(from)
+    valueRows.set(to, cached)
   }
 
   // Create function to get relationship where clauses
@@ -184,52 +205,54 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
     }
 
     /**
-     * Where each value of a unique field or compound key sits in this table, built once per
-     * version of the rows.
+     * The rows holding each value of a unique field or compound key in this table, built
+     * once per version of the rows.
      */
-    const getValuePositions = (key: string, getValue: (row: any) => any) => {
+    const getValueRows = (key: string, getValue: (row: any) => any) => {
       const rows = ref.data[prop] || []
-      let cached = valuePositions.get(rows)
+      let cached = valueRows.get(rows)
       // The length catches rows pushed straight into the internal state
       if (!cached || cached.length !== rows.length) {
         cached = { length: rows.length, byKey: new Map() }
-        valuePositions.set(rows, cached)
+        valueRows.set(rows, cached)
       }
       let entry = cached.byKey.get(key)
       if (!entry) {
-        const positions = new Map()
-        rows.forEach((row, index) => addPosition(positions, getValue(row), index))
-        entry = { positions, getValue }
+        const rowsByValue = new Map()
+        for (const row of rows) {
+          addRow(rowsByValue, getValue(row), row)
+        }
+        entry = { rows: rowsByValue, getValue }
         cached.byKey.set(key, entry)
       }
-      return entry.positions
+      return entry.rows
     }
 
-    const getFieldPositions = (field: string) =>
-      getValuePositions(`field:${field}`, (row) => row[field])
+    const getFieldRows = (field: string) =>
+      getValueRows(`field:${field}`, (row) => row[field])
 
-    const getCompoundPositions = (name: string, fields: readonly string[]) =>
-      getValuePositions(`compound:${name}`, (row) => getCompoundValue(row, fields))
+    const getCompoundRows = (name: string, fields: readonly string[]) =>
+      getValueRows(`compound:${name}`, (row) => getCompoundValue(row, fields))
 
     /**
-     * The positions of the only rows a where clause can match, when it pins a unique field
-     * or compound key to one value; null when it doesn't, and every row has to be matched.
-     * Top level keys are combined with AND, so a matching row always holds that value.
+     * The only rows a where clause can match, when it pins a unique field or compound key to
+     * one value; null when it doesn't, and every row has to be matched. Top level keys are
+     * combined with AND, so a matching row always holds that value.
      */
-    const getCandidatePositions = (where: any) => {
+    const getCandidateRows = (where: any) => {
       if (!where) return null
       const tableModel = datamodel.models.find((model) => getCamelCase(model.name) === prop)
       for (const key in where) {
         const value = where[key]
         const field = tableModel.fields.find((field) => field.name === key)
         if (field && (field.isId || field.isUnique) && isHashable(value)) {
-          return getFieldPositions(key).get(value) || []
+          return getFieldRows(key).get(value) || []
         }
         const compoundKey = getCompoundKeys(tableModel).find((compoundKey) => compoundKey.name === key)
         if (compoundKey && value && typeof value === "object") {
           const compoundValue = getCompoundValue(value, compoundKey.fields)
           if (compoundValue !== undefined) {
-            return getCompoundPositions(compoundKey.name, compoundKey.fields).get(compoundValue) || []
+            return getCompoundRows(compoundKey.name, compoundKey.fields).get(compoundValue) || []
           }
         }
       }
@@ -276,7 +299,7 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
           // Check for unique constraint violations during creation
           if (isCreating && (field.isUnique || field.isId)) {
             const existing = isHashable(inputFieldData)
-              ? getFieldPositions(field.name).has(inputFieldData)
+              ? getFieldRows(field.name).has(inputFieldData)
               : findOne({ where: { [field.name]: inputFieldData } })
             if (existing) {
               throwKnownError(prisma,
@@ -705,7 +728,7 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
       const match = matchFnc(args?.where)
       const inc = includes(args)
       // `candidates` limits the rows considered, for callers that already know them
-      let items = candidates || indexes.getIndexedItems(prop, args?.where) || ref.data[prop] || []
+      let items = candidates || indexes.getIndexedItems(prop, args?.where, ref.data[prop] || []) || ref.data[prop] || []
 
       let res = []
       for (const item of items) {
@@ -830,7 +853,7 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
         if (hasAllValues) {
           const compoundValue = getCompoundValue(d, fields)
           const existing = compoundValue !== undefined
-            ? getCompoundPositions(name, fields).has(compoundValue)
+            ? getCompoundRows(name, fields).has(compoundValue)
             : findOne({ where: { [name]: fields.reduce((acc, f) => ({ ...acc, [f]: d[f] }), {}) } })
           if (existing) {
             throwKnownError(prisma,
@@ -857,16 +880,9 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
       const item = rows[rows.length - 1]
       indexes.updateItem(prop, item, null)
 
-      // When the table only grew by this row, the positions so far still hold. They move to
-      // the new array, so the previous one can't answer with the new row in it
-      const cached = valuePositions.get(previousRows)
-      if (cached && cached.length === previousRows.length && rows === appended) {
-        for (const entry of cached.byKey.values()) {
-          addPosition(entry.positions, entry.getValue(item), rows.length - 1)
-        }
-        cached.length = rows.length
-        valuePositions.delete(previousRows)
-        valuePositions.set(rows, cached)
+      // When the table only grew by this row, the rows by value carry over with it added
+      if (rows === appended) {
+        carryValueRows(previousRows, rows, [], [item])
       }
       return findMany({ ...args, where: undefined }, [item])[0]
     }
@@ -903,23 +919,47 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
 
       const deleted = []
       const match = matchFnc(args?.where)
-      ref.data = {
-        ...ref.data,
-        [prop]: ref.data[prop].filter((e) => {
+      const rows = ref.data[prop]
+      // A unique where only has the rows holding its value to match, which are then taken
+      // out of a copy of the table rather than filtering every row of it
+      const candidates = getCandidateRows(args?.where)
+      let remaining
+      if (candidates) {
+        const deletedIndexes = [...candidates]
+          .map((row) => rows.indexOf(row))
+          .filter((index) => index !== -1 && match(rows[index]))
+          .sort((a, b) => a - b)
+        remaining = rows.slice()
+        for (let i = deletedIndexes.length - 1; i >= 0; i--) {
+          remaining.splice(deletedIndexes[i], 1)
+        }
+        deleted.push(...deletedIndexes.map((index) => rows[index]))
+      } else {
+        remaining = rows.filter((e) => {
           const shouldDelete = match(e)
           if (shouldDelete) {
             deleted.push(e)
           }
           return !shouldDelete
-        }),
+        })
       }
+      ref.data = {
+        ...ref.data,
+        [prop]: remaining,
+      }
+      carryValueRows(rows, remaining, deleted, [])
+      // Taking rows out of a version without compound key fields leaves it without any
+      if (cleanRows.get(rows) === rows.length) {
+        cleanRows.set(remaining, remaining.length)
+      }
+
+      // Out of the index before the referential actions run, which may look this table up
+      deleted.forEach((item) => indexes.deleteItem(prop, item))
 
       // Handle referential actions for deleted records
       deleted.forEach((item) => {
 
         model.fields.forEach((field) => {
-
-          indexes.deleteItemByField(prop, field, item)
 
           const joinfield = getJoinField(field)
           if (!joinfield) return
@@ -1077,13 +1117,17 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
         indexes.updateItem(prop, updatedItem, e)
         return updatedItem
       }
-      // A unique where narrows the rows to match down to the ones holding its value. Copied
-      // and sorted, as nested writes may add to the list and rows are matched in table order
-      const candidates = rows && getCandidatePositions(args.where)
+      // A unique where narrows the rows to match down to the ones holding its value, matched
+      // in table order. Their indexes are taken first, as nested writes may add to the set
+      const candidates = rows && getCandidateRows(args.where)
       let newItems
       if (candidates) {
         newItems = rows.slice()
-        for (const index of [...candidates].sort((a, b) => a - b)) {
+        const candidateIndexes = [...candidates]
+          .map((row) => rows.indexOf(row))
+          .filter((index) => index !== -1)
+          .sort((a, b) => a - b)
+        for (const index of candidateIndexes) {
           if (match(rows[index])) {
             newItems[index] = updateRow(rows[index], index)
           }
@@ -1105,22 +1149,15 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
       removeCompoundKeyFields(rows, updatedIndexes.map((index) => newItems[index]))
       const updatedRows = ref.data[prop]
 
-      // When only the updated rows changed, the positions move to the new array, with the
-      // values those rows no longer hold moved to the ones they do
-      const cached = valuePositions.get(rows)
-      if (cached && cached.length === rows.length && updatedRows === newItems) {
-        for (const entry of cached.byKey.values()) {
-          for (const index of updatedIndexes) {
-            const before = entry.getValue(rows[index])
-            const after = entry.getValue(updatedRows[index])
-            if (before !== after) {
-              removePosition(entry.positions, before, index)
-              addPosition(entry.positions, after, index)
-            }
-          }
-        }
-        valuePositions.delete(rows)
-        valuePositions.set(updatedRows, cached)
+      // When only the updated rows changed, the rows by value carry over with each updated
+      // row swapped for its new version
+      if (updatedRows === newItems) {
+        carryValueRows(
+          rows,
+          updatedRows,
+          updatedIndexes.map((index) => rows[index]),
+          updatedIndexes.map((index) => updatedRows[index])
+        )
       }
 
       // removeMultiFieldIds keeps every row at its index, so the updated row is picked by
@@ -1380,18 +1417,15 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
         return createdItems
       },
       delete: (args) => {
-        const item = findOne(args)
-        if (!item) {
+        // Deleting finds the row as well, so it isn't looked up separately first
+        const deleted = deleteMany(args)
+        if (!deleted.length) {
           throwKnownError(prisma,
             "An operation failed because it depends on one or more records that were required but not found. Record to delete does not exist.",
             { meta: { cause: "No record was found for a delete.", modelName: model.name } }
           )
         }
-        const deleted = deleteMany(args)
-        if (deleted.length) {
-          return deleted[0]
-        }
-        return null
+        return deleted[0]
       },
       update,
       deleteMany: (args) => {

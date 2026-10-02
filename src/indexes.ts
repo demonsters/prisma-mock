@@ -6,9 +6,11 @@ import type { Prisma } from "@prisma/client"
  * instead of scanning all records.
  * 
  * @param isEnabled - Whether indexing is enabled. When false, all operations are no-ops.
+ * @param caseInsensitive - Whether string filters compare case insensitively, which an exact
+ *   lookup can't answer
  * @returns Object containing methods for managing indexes and performing indexed lookups
  */
-export default function createIndexes(isEnabled: boolean = true) {
+export default function createIndexes(isEnabled: boolean = true, caseInsensitive: boolean = false) {
 
   // Main data structures for storing indexed data
   // items: tableName -> fieldName -> fieldValue -> the items with that value, keyed by getItemKey
@@ -22,6 +24,15 @@ export default function createIndexes(isEnabled: boolean = true) {
 
   // idFieldNames: tableName -> array of field names that serve as unique identifiers
   let idFieldNames: Record<string, string[]> = {}
+
+  // rowCounts: tableName -> number of rows indexed. A lookup trusts the index, misses
+  // included, only while this equals the table's length
+  let rowCounts: Record<string, number> = {}
+
+  // The order items were first indexed in, which is the order of the table: rows are
+  // appended, keep their place when updated, and a rebuild indexes them in table order
+  let positions = new WeakMap<object, number>()
+  let nextPosition = 0
 
   /**
    * Adds a field to the indexing system if it meets the criteria for indexing.
@@ -98,22 +109,77 @@ export default function createIndexes(isEnabled: boolean = true) {
     if (entry.size === 0) entries.delete(value)
   }
 
-  const getEntryItems = (tableName: string, fieldName: string, value: any) => {
-    const entry = items[tableName]?.[fieldName]?.get(value)
-    return entry && [...entry.values()]
+  // A Map finds these the way the matcher's `!==` compares them, apart from NaN
+  const isIndexable = (value: any) =>
+    typeof value === "string" ||
+    typeof value === "boolean" ||
+    typeof value === "bigint" ||
+    (typeof value === "number" && !Number.isNaN(value))
+
+  // Strings compared case insensitively can match values the index holds in another case
+  const isExact = (value: any, filter: any) =>
+    typeof value !== "string" || !(caseInsensitive || filter?.mode === "insensitive")
+
+  /**
+   * The values a filter on a single field pins that field to, when an exact lookup of each
+   * finds every row it can match: a plain value, `equals` or `in`. Other operators next to
+   * them only narrow the rows down further, which the matcher does afterwards.
+   */
+  const getLookupValues = (filter: any): any[] | null => {
+    if (isIndexable(filter)) {
+      return [filter]
+    }
+    if (!filter || typeof filter !== "object" || filter instanceof Date || Array.isArray(filter)) {
+      return null
+    }
+    if ("equals" in filter) {
+      return isIndexable(filter.equals) && isExact(filter.equals, filter) ? [filter.equals] : null
+    }
+    if (Array.isArray(filter.in) && filter.in.every((value) => isIndexable(value) && isExact(value, filter))) {
+      return filter.in
+    }
+    return null
+  }
+
+  // The items indexed under any of the values, in table order
+  const getItems = (tableName: string, fieldName: string, values: any[]) => {
+    const entries = items[tableName]?.[fieldName]
+    const found = []
+    for (const value of new Set(values)) {
+      const entry = entries?.get(value)
+      if (entry) {
+        found.push(...entry.values())
+      }
+    }
+    return found.sort((a, b) => positions.get(a) - positions.get(b))
+  }
+
+  const rebuildTable = (tableName: string, rows: any[]) => {
+    items[tableName] = {}
+    rowCounts[tableName] = 0
+    for (const row of rows) {
+      updateItem(tableName, row, null)
+    }
   }
 
   /**
    * Performs an indexed lookup based on the where clause.
    * Recursively handles AND conditions and returns the first matching indexed result.
-   * 
+   * When the table's rows are passed and their number differs from what was indexed (rows
+   * pushed straight into the internal state), the table is indexed again first.
+   *
    * @param tableName - Name of the table to search
    * @param where - Prisma where clause object
-   * @returns Array of matching items or null if no indexed lookup is possible
+   * @param rows - The rows of the table, to check the index still covers all of them
+   * @returns Array of the items the where clause can match (empty when none can), or null
+   *   if no indexed lookup is possible
    */
-  const getIndexedItems = (tableName: string, where: any) => {
-    if (!isEnabled) {
+  const getIndexedItems = (tableName: string, where: any, rows?: any[]) => {
+    if (!isEnabled || !indexedFieldNames[tableName]) {
       return null
+    }
+    if (rows && rowCounts[tableName] !== rows.length) {
+      rebuildTable(tableName, rows)
     }
 
     for (const field in where) {
@@ -122,28 +188,19 @@ export default function createIndexes(isEnabled: boolean = true) {
         const subWhere = where.AND
         if (Array.isArray(subWhere)) {
           for (const subWhereItem of subWhere) {
-            const items = getIndexedItems(tableName, subWhereItem)
-            if (items) {
-              return items
+            const found = getIndexedItems(tableName, subWhereItem)
+            if (found) {
+              return found
             }
           }
         }
+        continue
       }
 
-      // Check if this field is indexed
-      if (indexedFieldNames[tableName]) {
-        // Handle object-based conditions (e.g., { equals: value }, { in: [values] })
-        if (typeof where[field] === "object") {
-          for (const key in where[field]) {
-            if (indexedFieldNames[tableName].includes(key)) {
-              return getEntryItems(tableName, field, where[field][key])
-            }
-          }
-        } else {
-          // Handle direct value conditions
-          if (indexedFieldNames[tableName].includes(field)) {
-            return getEntryItems(tableName, field, where[field])
-          }
+      if (indexedFieldNames[tableName].includes(field)) {
+        const values = getLookupValues(where[field])
+        if (values) {
+          return getItems(tableName, field, values)
         }
       }
     }
@@ -172,6 +229,13 @@ export default function createIndexes(isEnabled: boolean = true) {
       throw new Error(`No indexed fields for table ${tableName}`)
     }
 
+    // A new row counts towards the table. An update keeps the row's place in it, taken from
+    // the earlier version, or from the one found under the same key while indexing below
+    let position = oldItem ? positions.get(oldItem) : undefined
+    if (!oldItem) {
+      rowCounts[tableName] = (rowCounts[tableName] || 0) + 1
+    }
+
     // Update each indexed field
     for (const fieldName of indexedFieldNames[tableName]) {
       if (!items[tableName][fieldName]) {
@@ -184,21 +248,27 @@ export default function createIndexes(isEnabled: boolean = true) {
       // The earlier version of an updated item leaves the entry it was indexed under when its
       // value or id changed, so it isn't found under a value it no longer holds. Otherwise it
       // is replaced in place below, keeping its position
-      if (oldItem && oldItem[fieldName]) {
+      if (oldItem && oldItem[fieldName] != null) {
         const oldKey = getItemKey(tableName, fieldName, oldItem)
         if (oldItem[fieldName] !== item[fieldName] || oldKey !== key) {
           removeFromEntry(entries, oldItem[fieldName], oldKey)
         }
       }
 
-      // Items without a value for the field aren't indexed under it
-      if (!item[fieldName]) {
+      // Items without a value for the field aren't indexed under it. A where on null also
+      // matches rows where the field is missing, so those lookups scan the table
+      if (item[fieldName] == null) {
         continue
       }
 
       const field = fields[tableName][fieldName]
+      const isUnique = field && (field.isId || field.isUnique)
       const entry = entries.get(item[fieldName])
-      if (!entry || (field && (field.isId || field.isUnique))) {
+      const earlier = entry && (isUnique ? entry.values().next().value : entry.get(key))
+      if (earlier !== undefined) {
+        position ??= positions.get(earlier)
+      }
+      if (!entry || isUnique) {
         // A new value, or a unique one, which this item alone holds
         entries.set(item[fieldName], new Map([[key, item]]))
       } else {
@@ -206,29 +276,30 @@ export default function createIndexes(isEnabled: boolean = true) {
         entry.set(key, item)
       }
     }
+
+    // Rows that are new, or whose earlier version wasn't indexed, go last
+    positions.set(item, position ?? nextPosition++)
   }
 
   /**
    * Removes an item from the index when it's deleted.
-   * 
+   *
    * @param tableName - Name of the table
-   * @param field - The field being used for deletion
    * @param item - The item being deleted
    */
-  const deleteItemByField = (tableName: string, field: Prisma.DMMF.Field, item: any) => {
-    if (!isEnabled) {
+  const deleteItem = (tableName: string, item: any) => {
+    if (!isEnabled || !indexedFieldNames[tableName]) {
       return
     }
 
-    // Remove this item, and only this item, from the entry of its value
-    if (indexedFieldNames[tableName]) {
-      if (indexedFieldNames[tableName].includes(field.name)) {
-        const entries = items[tableName]?.[field.name]
-        if (entries) {
-          removeFromEntry(entries, item[field.name], getItemKey(tableName, field.name, item))
-        }
+    // Remove this item, and only this item, from the entry of each of its values
+    for (const fieldName of indexedFieldNames[tableName]) {
+      const entries = items[tableName]?.[fieldName]
+      if (entries && item[fieldName] != null) {
+        removeFromEntry(entries, item[fieldName], getItemKey(tableName, fieldName, item))
       }
     }
+    rowCounts[tableName] = (rowCounts[tableName] || 0) - 1
   }
 
   /**
@@ -242,10 +313,9 @@ export default function createIndexes(isEnabled: boolean = true) {
       return
     }
     items = {}
+    rowCounts = {}
     for (const tableName in indexedFieldNames) {
-      for (const item of data[tableName] || []) {
-        updateItem(tableName, item, null)
-      }
+      rebuildTable(tableName, data[tableName] || [])
     }
   }
 
@@ -253,7 +323,7 @@ export default function createIndexes(isEnabled: boolean = true) {
     addIndexFieldIfNeeded,
     getIndexedItems,
     updateItem,
-    deleteItemByField,
+    deleteItem,
     rebuild,
   }
 
