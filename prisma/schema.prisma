@@ -144,6 +144,20 @@ model Membership {
   @@id([organizationId, userId], name: "membershipId")
 }
 
+// No @id, rows are identified by a @unique field
+model Setting {
+  key   String @unique
+  value String
+}
+
+// @@id over a single field
+model Slug {
+  slug  String
+  title String
+
+  @@id([slug])
+}
+
 model Transaction {
   id        String @id @default(uuid())
   initiator String
