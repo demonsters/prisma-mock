@@ -73,6 +73,25 @@ test("create returning null", async () => {
   expect(globalPlaylist).not.toBeNull()
 })
 
+test("#132 @@unique([field]) findFirst with equals filter matches", async () => {
+  const prismaMock = await createPrismaClient({
+    account: [{ name: "a" }],
+  })
+  await prismaMock.stripe.create({
+    data: { customerId: "cus_132", accountId: 1 },
+  })
+  const row = await prismaMock.stripe.findFirst({
+    where: {
+      accountId: {
+        equals: 1,
+      },
+    },
+  })
+  expect(row).not.toBeNull()
+  expect(row.accountId).toBe(1)
+  expect(row.customerId).toBe("cus_132")
+})
+
 test("every in where", async () => {
   const prismaMock = await createPrismaClient()
   await prismaMock.user.create({

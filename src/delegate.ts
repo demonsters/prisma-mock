@@ -3,6 +3,7 @@ import createHandleDefault from "./defaults"
 import { throwKnownError, throwValidationError } from "./errors"
 import createIndexes from "./indexes"
 import { CreateArgs, Item } from "./types"
+import { getCompoundKeys } from "./utils/compoundKeys"
 import { createGetFieldRelationshipWhere, getCamelCase, isFieldDefault, removeMultiFieldIds } from "./utils/fieldHelpers"
 import getWhereOnIds from "./utils/getWhereOnIds"
 import createMatch from "./utils/queryMatching"
@@ -701,14 +702,12 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
 
       const d = nestedUpdate(args, true, null)
 
-      // Check compound @@unique constraint violations during creation
-      const compoundUniques = model.uniqueFields?.filter((uf) => uf.length > 1) || []
-      for (const fields of compoundUniques) {
+      // Check compound @@id and @@unique constraint violations during creation
+      for (const { name, fields } of getCompoundKeys(model)) {
         const hasAllValues = fields.every((f) => d[f] !== undefined && d[f] !== null)
         if (hasAllValues) {
-          const whereKey = fields.join("_")
           const whereClause = fields.reduce((acc, f) => ({ ...acc, [f]: d[f] }), {})
-          const existing = findOne({ where: { [whereKey]: whereClause } })
+          const existing = findOne({ where: { [name]: whereClause } })
           if (existing) {
             throwKnownError(prisma,
               `Unique constraint failed on the fields: (\`${fields.join("`, `")}\`)`,

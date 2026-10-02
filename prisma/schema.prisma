@@ -116,6 +116,34 @@ model Toy {
   ownerId Int
 }
 
+model Organization {
+  id          Int                @id @default(autoincrement())
+  name        String
+  members     OrganizationUser[]
+  memberships Membership[]
+}
+
+// Compound @@unique with a custom name
+model OrganizationUser {
+  id             Int          @id @default(autoincrement())
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  organizationId Int
+  userId         Int
+  role           String?
+
+  @@unique([organizationId, userId], name: "OrganizationUser_organizationId_userId_key")
+}
+
+// Composite @@id with a custom name
+model Membership {
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  organizationId Int
+  userId         Int
+  role           String?
+
+  @@id([organizationId, userId], name: "membershipId")
+}
+
 model Transaction {
   id        String @id @default(uuid())
   initiator String

@@ -3,6 +3,7 @@ import { deepEqual } from "./deepEqual"
 import { shallowCompare } from "./shallowCompare"
 import getNestedValue from "./getNestedValue"
 import { createGetFieldRelationshipWhere, getCamelCase, isDefinedWithValue } from "./fieldHelpers"
+import { getCompoundKeys } from "./compoundKeys"
 import { Where, Item } from "../types"
 
 
@@ -16,6 +17,9 @@ type Props = {
 }
 
 export default function createMatch({ prisma, getFieldRelationshipWhere, getDelegateForFieldName, model, datamodel, caseInsensitive }: Props) {
+
+  // Multi-field @@id / @@unique keys, matched by their where key (e.g. `userId_answerId`)
+  const compoundKeys = model ? getCompoundKeys(model) : []
 
   const matchItem = (child: any, item: any, where: any) => {
     let val = item[child]
@@ -124,20 +128,8 @@ export default function createMatch({ prisma, getFieldRelationshipWhere, getDele
           }
           return res.length > 0
         }
-        // @ts-ignore Backwards compatibility
-        const idFields = model.idFields || model.primaryKey?.fields
-        if (idFields?.length > 1) {
-          if (child === idFields.join("_")) {
-            return shallowCompare(item, filter)
-          }
-        }
-
-        if (model.uniqueFields?.length > 0) {
-          for (const uniqueField of model.uniqueFields) {
-            if (child === uniqueField.join("_")) {
-              return shallowCompare(item, filter)
-            }
-          }
+        if (compoundKeys.some((key) => key.name === child)) {
+          return shallowCompare(item, filter)
         }
         if (val === undefined) {
           return false
