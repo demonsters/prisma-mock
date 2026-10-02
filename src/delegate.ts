@@ -310,13 +310,50 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
      * written rows hold a compound key as a field, there is nothing to remove.
      */
     const removeCompoundKeyFields = (previousRows: any[], written: any[]) => {
-      const tableModel = datamodel.models.find((model) => getCamelCase(model.name) === prop)
-      const compoundKeys = getCompoundKeys(tableModel)
-      const holdsCompoundKey = (row: any) => compoundKeys.some(({ name }) => name in row)
       if (cleanRows.get(previousRows) !== previousRows.length || written.some(holdsCompoundKey)) {
-        ref.data = removeMultiFieldIds(tableModel, ref.data)
+        ref.data = removeMultiFieldIds(getTableModel(), ref.data)
       }
       cleanRows.set(ref.data[prop], ref.data[prop].length)
+    }
+
+    const getTableModel = () => datamodel.models.find((model) => getCamelCase(model.name) === prop)
+
+    const holdsCompoundKey = (row: any) =>
+      getCompoundKeys(getTableModel()).some(({ name }) => name in row)
+
+    // The rows array a running createMany published as this table's version, which create
+    // appends to in place instead of copying the table for every row. Once the createMany
+    // returns, it is a version like any other, which nothing changes again
+    let batchRows: any[] | null = null
+
+    /**
+     * Appends a row to the rows a running createMany owns, in place, and brings what is
+     * known about that array up to date instead of starting over: its rows by value, and
+     * whether it holds compound key fields.
+     */
+    const appendBatchRow = (row: any) => {
+      const rows = batchRows
+      const cached = valueRows.get(rows)
+      const rowsByValueKnown = cached?.length === rows.length
+      const clean = cleanRows.get(rows) === rows.length
+      rows.push(row)
+      // A new data object all the same, so what is cached for the data as a whole, like the
+      // related rows a matcher collected, sees the write
+      ref.data = { ...ref.data }
+      if (clean && !holdsCompoundKey(row)) {
+        cleanRows.set(rows, rows.length)
+      } else {
+        // When this rebuilds the table, the rest of the batch copies it again as create did
+        ref.data = removeMultiFieldIds(getTableModel(), ref.data)
+        cleanRows.set(ref.data[prop], ref.data[prop].length)
+      }
+      if (rowsByValueKnown && ref.data[prop] === rows) {
+        for (const entry of cached.byKey.values()) {
+          addRow(entry.rows, entry.getValue(row), row)
+        }
+        cached.length = rows.length
+      }
+      return ref.data[prop]
     }
 
     const nestedUpdate = (args, isCreating: boolean, item: any) => {
@@ -949,23 +986,27 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
       const previousRows = ref.data[prop] || []
       // A copy, so the caller's data object never doubles as the stored row
       const row = { ...d }
-      const appended = [...previousRows, row]
-      ref.data = {
-        ...ref.data,
-        [prop]: appended,
+      let rows
+      if (batchRows !== null && previousRows === batchRows) {
+        rows = appendBatchRow(row)
+      } else {
+        const appended = [...previousRows, row]
+        ref.data = {
+          ...ref.data,
+          [prop]: appended,
+        }
+        removeCompoundKeyFields(previousRows, [row])
+        rows = ref.data[prop]
+        // When the table only grew by this row, the rows by value carry over with it added
+        if (rows === appended) {
+          carryValueRows(previousRows, rows, [], [rows[rows.length - 1]])
+        }
       }
-      removeCompoundKeyFields(previousRows, [row])
 
       // The new row is the last one, removeMultiFieldIds keeps every row at its index.
       // The index gets the stored row, not the copy that select / include shape for the caller
-      const rows = ref.data[prop]
       const item = rows[rows.length - 1]
       indexes.updateItem(prop, item, null)
-
-      // When the table only grew by this row, the rows by value carry over with it added
-      if (rows === appended) {
-        carryValueRows(previousRows, rows, [], [item])
-      }
       return findMany({ ...args, where: undefined }, [item])[0]
     }
 
@@ -975,19 +1016,40 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
      */
     const createMany = (args) => {
       const skipDuplicates = args.skipDuplicates ?? false
-      return (Array.isArray(args.data) ? args.data : [args.data])
-        .map((data) => {
-          try {
-            return create({ ...args, data })
-          } catch (error) {
-            if (skipDuplicates && error["code"] === "P2002") {
-              return null
-            }
-            throw error
-          }
+      const rowsData = Array.isArray(args.data) ? args.data : [args.data]
+      const outerBatchRows = batchRows
+      if (rowsData.length > 1) {
+        // One copy of the table for the whole batch, published as its next version, which the
+        // creates below append to in place. The creates run synchronously, so nothing outside
+        // this call sees the array before it's complete
+        const previousRows = ref.data[prop] || []
+        batchRows = [...previousRows]
+        ref.data = {
+          ...ref.data,
+          [prop]: batchRows,
         }
-        )
-        .filter((item) => item !== null)
+        carryValueRows(previousRows, batchRows, [], [])
+        if (cleanRows.get(previousRows) === previousRows.length) {
+          cleanRows.set(batchRows, batchRows.length)
+        }
+      }
+      try {
+        return rowsData
+          .map((data) => {
+            try {
+              return create({ ...args, data })
+            } catch (error) {
+              if (skipDuplicates && error["code"] === "P2002") {
+                return null
+              }
+              throw error
+            }
+          }
+          )
+          .filter((item) => item !== null)
+      } finally {
+        batchRows = outerBatchRows
+      }
     }
 
     /**
