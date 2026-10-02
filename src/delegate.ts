@@ -698,8 +698,27 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
      * Finds a single record matching the given criteria
      * Returns null if no record is found
      */
+    // Whether the result is every match in table order, with nothing ordering, windowing or
+    // deduplicating it, so the first match is the first row of the result
+    const isPlainQuery = (args: any) =>
+      !args?.orderBy &&
+      !args?.distinct &&
+      args?.skip === undefined &&
+      args?.take === undefined &&
+      args?.cursor === undefined
+
     const findOne = (args: any) => {
       if (!ref.data[prop]) return null
+      if (isPlainQuery(args)) {
+        // The rest of the table needn't be matched or shaped once a row matches
+        const match = matchFnc(args?.where)
+        for (const row of getRowsToMatch(args?.where)) {
+          if (match(row)) {
+            return findMany({ ...args, where: undefined }, [row])[0]
+          }
+        }
+        return null
+      }
       const items = findMany(args)
       if (items.length === 0) {
         return null
@@ -724,11 +743,15 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
      * Finds multiple records matching the given criteria
      * Handles filtering, sorting, pagination, and includes
      */
+    // The rows a where clause can match: the ones the index holds for it, or the whole table
+    const getRowsToMatch = (where: any) =>
+      indexes.getIndexedItems(prop, where, ref.data[prop] || []) || ref.data[prop] || []
+
     const findMany = (args, candidates?: any[]) => {
       const match = matchFnc(args?.where)
       const inc = includes(args)
       // `candidates` limits the rows considered, for callers that already know them
-      let items = candidates || indexes.getIndexedItems(prop, args?.where, ref.data[prop] || []) || ref.data[prop] || []
+      let items = candidates || getRowsToMatch(args?.where)
 
       let res = []
       for (const item of items) {
@@ -1467,6 +1490,17 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
        * Count operation: returns the number of records matching the criteria
        */
       count(args) {
+        // Ordering doesn't change a count, and without a window there are no rows to shape
+        if (isPlainQuery({ ...args, orderBy: undefined })) {
+          const match = matchFnc(args?.where)
+          let count = 0
+          for (const row of getRowsToMatch(args?.where)) {
+            if (match(row)) {
+              count++
+            }
+          }
+          return count
+        }
         const res = findMany(args)
         return res.length
       },
