@@ -7,9 +7,9 @@ import createPrismaClient from "./createPrismaClient"
 // row a unique where points at looked up and read back by position.
 const NUM_ROWS = 3000
 
-// Generous enough to stay green on a loaded CI machine, but far below what the
-// previous implementation needed
-const THRESHOLD_MS = 300
+// CI runs this 4-6x slower than a laptop. The previous implementation needs seconds
+// there, and over a second locally.
+const THRESHOLD_MS = 1000
 
 describe("update performance", () => {
 
