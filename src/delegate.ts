@@ -6,6 +6,7 @@ import { CreateArgs, Item } from "./types"
 import { getCompoundKeys } from "./utils/compoundKeys"
 import { createGetFieldRelationshipWhere, getCamelCase, isFieldDefault, removeMultiFieldIds } from "./utils/fieldHelpers"
 import createMatch from "./utils/queryMatching"
+import { getLookupValues, isLookupValue } from "./utils/lookupValues"
 
 /**
  * Creates a delegate function that handles Prisma-like operations for a specific model
@@ -185,13 +186,6 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
      * Handles nested updates including relations, scalar operations, and default values
      * This is the core function that processes create/update data
      */
-    // A Set compares these the way the matcher's `!==` does, apart from NaN
-    const isHashable = (value: any) =>
-      typeof value === "string" ||
-      typeof value === "boolean" ||
-      typeof value === "bigint" ||
-      (typeof value === "number" && !Number.isNaN(value))
-
     // One string per combination of values, or undefined when a value has no exact JSON
     // form, which then never equals the value of the row being created
     const getCompoundValue = (row: any, fields: readonly string[]) => {
@@ -234,19 +228,50 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
     const getCompoundRows = (name: string, fields: readonly string[]) =>
       getValueRows(`compound:${name}`, (row) => getCompoundValue(row, fields))
 
+    // The fields rows can be looked up by, as the index does: ids, unique fields and foreign keys
+    let lookupFieldNames: Set<string> | null = null
+    const getLookupFieldNames = () => {
+      if (!lookupFieldNames) {
+        const tableModel = datamodel.models.find((model) => getCamelCase(model.name) === prop)
+        lookupFieldNames = new Set([
+          ...tableModel.fields.filter((field) => field.isId || field.isUnique).map((field) => field.name),
+          ...tableModel.fields.flatMap((field) => field.relationFromFields || []),
+        ])
+      }
+      return lookupFieldNames
+    }
+
     /**
-     * The only rows a where clause can match, when it pins a unique field or compound key to
-     * one value; null when it doesn't, and every row has to be matched. Top level keys are
-     * combined with AND, so a matching row always holds that value.
+     * The only rows a where clause can match, when it pins an id, unique or foreign key field
+     * to values (plainly, with equals or with in) or a compound key to one; null when it
+     * doesn't, and every row has to be matched. Top level keys and AND are combined with AND,
+     * so a matching row always holds one of those values.
      */
-    const getCandidateRows = (where: any) => {
+    const getCandidateRows = (where: any): Iterable<any> | null => {
       if (!where) return null
       const tableModel = datamodel.models.find((model) => getCamelCase(model.name) === prop)
       for (const key in where) {
         const value = where[key]
-        const field = tableModel.fields.find((field) => field.name === key)
-        if (field && (field.isId || field.isUnique) && isHashable(value)) {
-          return getFieldRows(key).get(value) || []
+        if (key === "AND") {
+          for (const subWhere of Array.isArray(value) ? value : [value]) {
+            const rows = getCandidateRows(subWhere)
+            if (rows) return rows
+          }
+          continue
+        }
+        const values = getLookupFieldNames().has(key) ? getLookupValues(value, caseInsensitive) : null
+        if (values) {
+          const rowsByValue = getFieldRows(key)
+          if (values.length === 1) {
+            return rowsByValue.get(values[0]) || []
+          }
+          const rows = new Set()
+          for (const value of values) {
+            for (const row of rowsByValue.get(value) || []) {
+              rows.add(row)
+            }
+          }
+          return rows
         }
         const compoundKey = getCompoundKeys(tableModel).find((compoundKey) => compoundKey.name === key)
         if (compoundKey && value && typeof value === "object") {
@@ -257,6 +282,26 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
         }
       }
       return null
+    }
+
+    /**
+     * The positions of candidate rows in the table, in table order. A few are found by
+     * reference; for many, one pass over the table is cheaper than looking each one up.
+     */
+    const getCandidateIndexes = (rows: any[], candidates: Iterable<any>) => {
+      const list = [...candidates]
+      if (list.length <= 16) {
+        return list
+          .map((row) => rows.indexOf(row))
+          .filter((index) => index !== -1)
+          .sort((a, b) => a - b)
+      }
+      const wanted = new Set(list)
+      const found = []
+      rows.forEach((row, index) => {
+        if (wanted.has(row)) found.push(index)
+      })
+      return found
     }
 
     /**
@@ -298,7 +343,7 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
 
           // Check for unique constraint violations during creation
           if (isCreating && (field.isUnique || field.isId)) {
-            const existing = isHashable(inputFieldData)
+            const existing = isLookupValue(inputFieldData)
               ? getFieldRows(field.name).has(inputFieldData)
               : findOne({ where: { [field.name]: inputFieldData } })
             if (existing) {
@@ -743,9 +788,23 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
      * Finds multiple records matching the given criteria
      * Handles filtering, sorting, pagination, and includes
      */
-    // The rows a where clause can match: the ones the index holds for it, or the whole table
-    const getRowsToMatch = (where: any) =>
-      indexes.getIndexedItems(prop, where, ref.data[prop] || []) || ref.data[prop] || []
+    /**
+     * The rows a where clause can match, in table order: the ones the index holds for it, the
+     * ones the lookup by value finds when the index can't answer (or is disabled), or the
+     * whole table
+     */
+    const getRowsToMatch = (where: any) => {
+      const rows = ref.data[prop] || []
+      const indexed = indexes.getIndexedItems(prop, where, rows)
+      if (indexed) {
+        return indexed
+      }
+      const candidates = getCandidateRows(where)
+      if (candidates) {
+        return getCandidateIndexes(rows, candidates).map((index) => rows[index])
+      }
+      return rows
+    }
 
     const findMany = (args, candidates?: any[]) => {
       const match = matchFnc(args?.where)
@@ -948,13 +1007,15 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
       const candidates = getCandidateRows(args?.where)
       let remaining
       if (candidates) {
-        const deletedIndexes = [...candidates]
-          .map((row) => rows.indexOf(row))
-          .filter((index) => index !== -1 && match(rows[index]))
-          .sort((a, b) => a - b)
-        remaining = rows.slice()
-        for (let i = deletedIndexes.length - 1; i >= 0; i--) {
-          remaining.splice(deletedIndexes[i], 1)
+        const deletedIndexes = getCandidateIndexes(rows, candidates).filter((index) => match(rows[index]))
+        if (deletedIndexes.length <= 16) {
+          remaining = rows.slice()
+          for (let i = deletedIndexes.length - 1; i >= 0; i--) {
+            remaining.splice(deletedIndexes[i], 1)
+          }
+        } else {
+          const deletedIndexSet = new Set(deletedIndexes)
+          remaining = rows.filter((_, index) => !deletedIndexSet.has(index))
         }
         deleted.push(...deletedIndexes.map((index) => rows[index]))
       } else {
@@ -1146,11 +1207,7 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
       let newItems
       if (candidates) {
         newItems = rows.slice()
-        const candidateIndexes = [...candidates]
-          .map((row) => rows.indexOf(row))
-          .filter((index) => index !== -1)
-          .sort((a, b) => a - b)
-        for (const index of candidateIndexes) {
+        for (const index of getCandidateIndexes(rows, candidates)) {
           if (match(rows[index])) {
             newItems[index] = updateRow(rows[index], index)
           }
