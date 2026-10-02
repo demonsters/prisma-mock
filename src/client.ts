@@ -16,17 +16,26 @@ import { getCamelCase, removeMultiFieldIds } from "./utils/fieldHelpers"
 // @returns A mock Prisma client with all model methods and access to internal state.
 function createPrismaMock<PClient extends PrismaClient, P extends typeof Prisma = typeof Prisma>(
   prisma: P,
-  options: MockPrismaOptions<PClient, P> = {
-    datamodel: prisma.dmmf?.datamodel,
-    caseInsensitive: false,
-    enableIndexes: true,
-    data: {}
-  }
+  passedOptions: Partial<MockPrismaOptions<PClient, P>> = {}
 ): PClient & {
   $getInternalState: () => Required<PrismaMockData<PClient>>
   $setInternalState: (state: Required<PrismaMockData<PClient>>) => void
   $clear: () => void
 } {
+
+  // Every option falls back to its default when it is left out or undefined, not only
+  // when no options are passed at all
+  const options: MockPrismaOptions<PClient, P> = {
+    datamodel: prisma.dmmf?.datamodel,
+    caseInsensitive: false,
+    enableIndexes: true,
+    data: {},
+  }
+  for (const [key, value] of Object.entries(passedOptions)) {
+    if (value !== undefined) {
+      options[key] = value
+    }
+  }
 
   let internalState = options.data ? deepCopy(options.data) : {}
 
