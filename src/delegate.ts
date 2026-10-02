@@ -383,8 +383,7 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
             if (inputFieldData.upsert) {
               const args = inputFieldData.upsert
 
-              const name = getCamelCase(field.type)
-              const delegate = Delegate(name, model)
+              const delegate = getDelegateForFieldName(field.type)
               const res = delegate.findOne(args)
               if (res) {
                 delegate.update({
@@ -483,7 +482,7 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
 
             // Handle update operations for relations
             const name = getCamelCase(field.type)
-            const delegate = Delegate(name, model)
+            const delegate = getDelegateForFieldName(field.type)
             if (inputFieldData.updateMany) {
               if (Array.isArray(inputFieldData.updateMany)) {
                 inputFieldData.updateMany.forEach((updateMany) => {
@@ -902,7 +901,7 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
 
           const joinfield = getJoinField(field)
           if (!joinfield) return
-          const delegate = Delegate(getCamelCase(field.type), model)
+          const delegate = getDelegateForFieldName(field.type)
           if (joinfield.relationOnDelete === "SetNull") {
             delegate.update({
               where: {
