@@ -67,8 +67,10 @@ function createPrismaMock<PClient extends PrismaClient, P extends typeof Prisma 
       }
       return res
     } else {
-      // Handle callback function (serial execution with rollback on error)
-      const snapshot = deepCopy(ref.data)
+      // Handle callback function (serial execution with rollback on error). Writes replace
+      // the data, its tables and its rows rather than change them, so the data as it is now
+      // is the state to roll back to, without a copy
+      const snapshot = ref.data
       try {
         // @ts-ignore
         return await actions(client)
