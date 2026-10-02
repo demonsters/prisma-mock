@@ -11,8 +11,8 @@ import type { Prisma } from "@prisma/client"
 export default function createIndexes(isEnabled: boolean = true) {
 
   // Main data structures for storing indexed data
-  // items: tableName -> fieldName -> fieldValue -> array of items with that value
-  let items: Record<string, Record<string, Map<any, any[]>>> = {}
+  // items: tableName -> fieldName -> fieldValue -> the items with that value, keyed by getItemKey
+  let items: Record<string, Record<string, Map<any, Map<any, any>>>> = {}
 
   // indexedFieldNames: tableName -> array of field names that are indexed
   let indexedFieldNames: Record<string, string[]> = {}
@@ -79,6 +79,23 @@ export default function createIndexes(isEnabled: boolean = true) {
   }
 
   /**
+   * The key an item is stored under in the entry of one of its field's values: its id
+   * fields other than that field, so a later version of the same row replaces it without
+   * scanning the entry. Items without such an id are told apart by identity.
+   */
+  const getItemKey = (tableName: string, fieldName: string, item: any) => {
+    const keyFieldNames = (idFieldNames[tableName] || []).filter((f) => f !== fieldName)
+    if (keyFieldNames.length === 0) return item
+    if (keyFieldNames.length === 1) return item[keyFieldNames[0]]
+    return JSON.stringify(keyFieldNames.map((f) => item[f]))
+  }
+
+  const getEntryItems = (tableName: string, fieldName: string, value: any) => {
+    const entry = items[tableName]?.[fieldName]?.get(value)
+    return entry && [...entry.values()]
+  }
+
+  /**
    * Performs an indexed lookup based on the where clause.
    * Recursively handles AND conditions and returns the first matching indexed result.
    * 
@@ -111,13 +128,13 @@ export default function createIndexes(isEnabled: boolean = true) {
         if (typeof where[field] === "object") {
           for (const key in where[field]) {
             if (indexedFieldNames[tableName].includes(key)) {
-              return items[tableName]?.[field]?.get(where[field][key])
+              return getEntryItems(tableName, field, where[field][key])
             }
           }
         } else {
           // Handle direct value conditions
           if (indexedFieldNames[tableName].includes(field)) {
-            return items[tableName]?.[field]?.get(where[field])
+            return getEntryItems(tableName, field, where[field])
           }
         }
       }
@@ -153,66 +170,25 @@ export default function createIndexes(isEnabled: boolean = true) {
         items[tableName][fieldName] = new Map()
       }
 
+      const entries = items[tableName][fieldName]
+
       // Handle case where item doesn't have the indexed field value
       if (!item[fieldName]) {
         // If updating and old item had this field, remove it from the old index
         if (oldItem && oldItem[fieldName]) {
-          const array = items[tableName][fieldName].get(oldItem[fieldName])
-          if (array) {
-            for (let i = 0; i < array.length; i++) {
-              const oldItem = array[i]
-              for (const thisIdFieldName of idFieldNames[tableName]) {
-                if (item[thisIdFieldName] === oldItem[thisIdFieldName]) {
-                  array.splice(i, 1)
-                  i--
-                  continue
-                }
-              }
-            }
-          }
+          entries.get(oldItem[fieldName])?.delete(getItemKey(tableName, fieldName, item))
         }
         continue
       }
 
-      // Add item to index
-      if (!items[tableName][fieldName].has(item[fieldName])) {
-        // Create new index entry
-        items[tableName][fieldName].set(item[fieldName], [item])
+      const field = fields[tableName][fieldName]
+      const entry = entries.get(item[fieldName])
+      if (!entry || (field && (field.isId || field.isUnique))) {
+        // A new value, or a unique one, which this item alone holds
+        entries.set(item[fieldName], new Map([[getItemKey(tableName, fieldName, item), item]]))
       } else {
-
-        const field = fields[tableName][fieldName]
-        const array = items[tableName][fieldName].get(item[fieldName])
-
-        // For unique fields, replace the entire array
-        if (field && (field.isId || field.isUnique)) {
-          items[tableName][fieldName].set(item[fieldName], [item])
-        } else {
-          // For non-unique fields, update existing item or add new one
-          if (array.length === 0) {
-            array.push(item)
-          } else {
-            // Filter out this field 
-            const thisIdFieldNames = (idFieldNames[tableName] || []).filter(f => f !== fieldName)
-            let hasFound = false
-
-            // Try to find and update existing item by ID
-            for (let i = 0; i < array.length; i++) {
-              const oldItem = array[i]
-              for (const thisIdFieldName of thisIdFieldNames) {
-                if (item[thisIdFieldName] === oldItem[thisIdFieldName]) {
-                  hasFound = true
-                  array[i] = item
-                  continue
-                }
-              }
-            }
-
-            // If no existing item found, add new one
-            if (!hasFound) {
-              array.push(item)
-            }
-          }
-        }
+        // For non-unique fields, replace the earlier version of this item or add it
+        entry.set(getItemKey(tableName, fieldName, item), item)
       }
     }
   }
