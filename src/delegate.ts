@@ -101,7 +101,7 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
    * @param prop - The model name in camelCase
    * @param model - The Prisma model definition
    */
-  const Delegate = (prop: string, model: Prisma.DMMF.Model) => {
+  const createModelDelegate = (prop: string, model: Prisma.DMMF.Model) => {
 
     const getDelegateForFieldName = (field: Prisma.DMMF.Field["type"]) => {
       const name = getCamelCase(field)
@@ -1568,5 +1568,18 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
       _createMany: createMany,
     }
   }
+  // One delegate per table. A delegate keeps no state of its own (that lives in ref and the
+  // caches above), so it can be reused, rather than built again for every row an include
+  // resolves a relation for
+  const delegates = new Map<string, any>()
+  const Delegate = (prop: string, model: Prisma.DMMF.Model) => {
+    let delegate = delegates.get(prop)
+    if (!delegate) {
+      delegate = createModelDelegate(prop, model)
+      delegates.set(prop, delegate)
+    }
+    return delegate
+  }
+
   return Delegate
 } 

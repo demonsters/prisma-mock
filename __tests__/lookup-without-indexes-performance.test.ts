@@ -6,9 +6,9 @@ import createPrismaClient from "./createPrismaClient"
 // They are now answered from the rows the delegate files by value.
 const NUM_ROWS = 5000
 
-// Generous enough to stay green on CI, which runs 4-6x slower than a laptop, and still
-// below what the previous implementation needed locally
-const THRESHOLD_MS = 300
+// CI has run the include ~20x slower than a laptop (488ms against ~25ms), more than the
+// 4-6x of the other tests. The previous implementation needs 2-3.3s even locally.
+const THRESHOLD_MS = 1000
 
 const seed = async () => {
   const client = await createPrismaClient({ user: [{ id: 1, uniqueField: "u1" }] }, { enableIndexes: false })
