@@ -25,14 +25,31 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
   // Store many-to-many relationship data separately from the main data store
   const manyToManyData: { [relationName: string]: Array<{ [type: string]: Item }> } = {}
 
-  // The values each unique field and compound key already holds, per version of a table.
-  // Writes replace a table's rows array rather than change it, and create carries the
-  // values forward to the array it appends to, so a create checks for a duplicate with
-  // a lookup instead of a scan.
-  const takenValues = new WeakMap<any[], {
+  // Where each value of a unique field and compound key sits in a table, per version of
+  // the table. Writes replace a table's rows array rather than change it, and create and
+  // update carry the positions forward to the array they produce, so checking for a
+  // duplicate or finding the row a unique where points at is a lookup instead of a scan.
+  const valuePositions = new WeakMap<any[], {
     length: number
-    byKey: Map<string, { values: Set<any>, getValue: (row: any) => any }>
+    byKey: Map<string, { positions: Map<any, number[]>, getValue: (row: any) => any }>
   }>()
+
+  const addPosition = (positions: Map<any, number[]>, value: any, index: number) => {
+    const list = positions.get(value)
+    if (list) {
+      list.push(index)
+    } else {
+      positions.set(value, [index])
+    }
+  }
+
+  const removePosition = (positions: Map<any, number[]>, value: any, index: number) => {
+    const list = positions.get(value)
+    if (!list) return
+    const at = list.indexOf(index)
+    if (at !== -1) list.splice(at, 1)
+    if (list.length === 0) positions.delete(value)
+  }
 
   // Create function to get relationship where clauses
   const getFieldRelationshipWhere = createGetFieldRelationshipWhere(datamodel, manyToManyData)
@@ -162,23 +179,56 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
     }
 
     /**
-     * The values a unique field or compound key already holds in this table, built once
-     * per version of the rows.
+     * Where each value of a unique field or compound key sits in this table, built once per
+     * version of the rows.
      */
-    const getTakenValues = (key: string, getValue: (row: any) => any) => {
+    const getValuePositions = (key: string, getValue: (row: any) => any) => {
       const rows = ref.data[prop] || []
-      let taken = takenValues.get(rows)
+      let cached = valuePositions.get(rows)
       // The length catches rows pushed straight into the internal state
-      if (!taken || taken.length !== rows.length) {
-        taken = { length: rows.length, byKey: new Map() }
-        takenValues.set(rows, taken)
+      if (!cached || cached.length !== rows.length) {
+        cached = { length: rows.length, byKey: new Map() }
+        valuePositions.set(rows, cached)
       }
-      let entry = taken.byKey.get(key)
+      let entry = cached.byKey.get(key)
       if (!entry) {
-        entry = { values: new Set(rows.map(getValue)), getValue }
-        taken.byKey.set(key, entry)
+        const positions = new Map()
+        rows.forEach((row, index) => addPosition(positions, getValue(row), index))
+        entry = { positions, getValue }
+        cached.byKey.set(key, entry)
       }
-      return entry.values
+      return entry.positions
+    }
+
+    const getFieldPositions = (field: string) =>
+      getValuePositions(`field:${field}`, (row) => row[field])
+
+    const getCompoundPositions = (name: string, fields: readonly string[]) =>
+      getValuePositions(`compound:${name}`, (row) => getCompoundValue(row, fields))
+
+    /**
+     * The positions of the only rows a where clause can match, when it pins a unique field
+     * or compound key to one value; null when it doesn't, and every row has to be matched.
+     * Top level keys are combined with AND, so a matching row always holds that value.
+     */
+    const getCandidatePositions = (where: any) => {
+      if (!where) return null
+      const tableModel = datamodel.models.find((model) => getCamelCase(model.name) === prop)
+      for (const key in where) {
+        const value = where[key]
+        const field = tableModel.fields.find((field) => field.name === key)
+        if (field && (field.isId || field.isUnique) && isHashable(value)) {
+          return getFieldPositions(key).get(value) || []
+        }
+        const compoundKey = getCompoundKeys(tableModel).find((compoundKey) => compoundKey.name === key)
+        if (compoundKey && value && typeof value === "object") {
+          const compoundValue = getCompoundValue(value, compoundKey.fields)
+          if (compoundValue !== undefined) {
+            return getCompoundPositions(compoundKey.name, compoundKey.fields).get(compoundValue) || []
+          }
+        }
+      }
+      return null
     }
 
     const nestedUpdate = (args, isCreating: boolean, item: any) => {
@@ -206,7 +256,7 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
           // Check for unique constraint violations during creation
           if (isCreating && (field.isUnique || field.isId)) {
             const existing = isHashable(inputFieldData)
-              ? getTakenValues(`field:${field.name}`, (row) => row[field.name]).has(inputFieldData)
+              ? getFieldPositions(field.name).has(inputFieldData)
               : findOne({ where: { [field.name]: inputFieldData } })
             if (existing) {
               throwKnownError(prisma,
@@ -760,7 +810,7 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
         if (hasAllValues) {
           const compoundValue = getCompoundValue(d, fields)
           const existing = compoundValue !== undefined
-            ? getTakenValues(`compound:${name}`, (row) => getCompoundValue(row, fields)).has(compoundValue)
+            ? getCompoundPositions(name, fields).has(compoundValue)
             : findOne({ where: { [name]: fields.reduce((acc, f) => ({ ...acc, [f]: d[f] }), {}) } })
           if (existing) {
             throwKnownError(prisma,
@@ -786,16 +836,16 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
       const item = rows[rows.length - 1]
       indexes.updateItem(prop, item, null)
 
-      // When the table only grew by this row, the values taken so far still hold. They move
-      // to the new array, so the previous one can't answer with the new row in it
-      const taken = takenValues.get(previousRows)
-      if (taken && taken.length === previousRows.length && rows === appended) {
-        for (const entry of taken.byKey.values()) {
-          entry.values.add(entry.getValue(item))
+      // When the table only grew by this row, the positions so far still hold. They move to
+      // the new array, so the previous one can't answer with the new row in it
+      const cached = valuePositions.get(previousRows)
+      if (cached && cached.length === previousRows.length && rows === appended) {
+        for (const entry of cached.byKey.values()) {
+          addPosition(entry.positions, entry.getValue(item), rows.length - 1)
         }
-        taken.length = rows.length
-        takenValues.delete(previousRows)
-        takenValues.set(rows, taken)
+        cached.length = rows.length
+        valuePositions.delete(previousRows)
+        valuePositions.set(rows, cached)
       }
       return findMany({ ...args, where: undefined }, [item])[0]
     }
@@ -989,21 +1039,37 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
      */
     const update = (args) => {
       let updatedItem
+      let updatedIndex = -1
       let hasMatch = false
+      const updatedIndexes = []
       const match = matchFnc(args.where)
-      const newItems = ref.data[prop]?.map((e) => {
-        if (match(e)) {
-          hasMatch = true
-          let data = nestedUpdate(args, false, e)
-          updatedItem = {
-            ...e,
-            ...data,
-          }
-          indexes.updateItem(prop, updatedItem, e)
-          return updatedItem
+      const rows = ref.data[prop]
+      const updateRow = (e, index) => {
+        hasMatch = true
+        updatedIndex = index
+        updatedIndexes.push(index)
+        let data = nestedUpdate(args, false, e)
+        updatedItem = {
+          ...e,
+          ...data,
         }
-        return e
-      })
+        indexes.updateItem(prop, updatedItem, e)
+        return updatedItem
+      }
+      // A unique where narrows the rows to match down to the ones holding its value. Copied
+      // and sorted, as nested writes may add to the list and rows are matched in table order
+      const candidates = rows && getCandidatePositions(args.where)
+      let newItems
+      if (candidates) {
+        newItems = rows.slice()
+        for (const index of [...candidates].sort((a, b) => a - b)) {
+          if (match(rows[index])) {
+            newItems[index] = updateRow(rows[index], index)
+          }
+        }
+      } else {
+        newItems = rows?.map((e, index) => (match(e) ? updateRow(e, index) : e))
+      }
       if (!hasMatch) {
         if (args.skipForeignKeysChecks) return
         throwKnownError(prisma,
@@ -1016,7 +1082,29 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
         [prop]: newItems,
       }
       ref.data = removeMultiFieldIds(model, ref.data)
-      return findOne({ ...args, where: updatedItem })
+      const updatedRows = ref.data[prop]
+
+      // When only the updated rows changed, the positions move to the new array, with the
+      // values those rows no longer hold moved to the ones they do
+      const cached = valuePositions.get(rows)
+      if (cached && cached.length === rows.length && updatedRows === newItems) {
+        for (const entry of cached.byKey.values()) {
+          for (const index of updatedIndexes) {
+            const before = entry.getValue(rows[index])
+            const after = entry.getValue(updatedRows[index])
+            if (before !== after) {
+              removePosition(entry.positions, before, index)
+              addPosition(entry.positions, after, index)
+            }
+          }
+        }
+        valuePositions.delete(rows)
+        valuePositions.set(updatedRows, cached)
+      }
+
+      // removeMultiFieldIds keeps every row at its index, so the updated row is picked by
+      // position rather than searched for with all of its fields as the where clause
+      return findMany({ ...args, where: undefined }, [updatedRows[updatedIndex]])[0]
     }
 
     /**
