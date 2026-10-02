@@ -7,9 +7,9 @@ import createPrismaClient from "./createPrismaClient"
 // 2.1s (Pet, @@unique), against under 50ms with the duplicates looked up in a Set.
 const NUM_ROWS = 3000
 
-// Generous enough to stay green on a loaded CI machine, but far below what the
-// previous implementation needed
-const THRESHOLD_MS = 300
+// CI runs this 4-6x slower than a laptop, where the @@unique case took up to ~335ms.
+// The previous implementation needs seconds on CI.
+const THRESHOLD_MS = 1000
 
 describe("createMany performance", () => {
 
