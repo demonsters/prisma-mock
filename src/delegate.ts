@@ -583,10 +583,11 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
      * Finds multiple records matching the given criteria
      * Handles filtering, sorting, pagination, and includes
      */
-    const findMany = (args) => {
+    const findMany = (args, candidates?: any[]) => {
       const match = matchFnc(args?.where)
       const inc = includes(args)
-      let items = indexes.getIndexedItems(prop, args?.where) || ref.data[prop] || []
+      // `candidates` limits the rows considered, for callers that already know them
+      let items = candidates || indexes.getIndexedItems(prop, args?.where) || ref.data[prop] || []
 
       let res = []
       for (const item of items) {
@@ -662,9 +663,9 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
      */
     const updateMany = (args) => {
       let nbUpdated = 0
-      const wheres = []
+      const updatedIndexes = []
       const match = matchFnc(args.where)
-      const newItems = ref.data[prop].map((e) => {
+      const newItems = ref.data[prop].map((e, index) => {
         if (match(e)) {
           let data = nestedUpdate(args, false, e)
           nbUpdated++
@@ -673,7 +674,7 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
             ...data,
           }
           indexes.updateItem(prop, newItem, e)
-          wheres.push(getWhereOnIds(model, newItem))
+          updatedIndexes.push(index)
           return newItem
         }
         return e
@@ -683,11 +684,12 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
         [prop]: newItems,
       }
       ref.data = removeMultiFieldIds(model, ref.data)
-      const data = findMany({
-        where: {
-          OR: wheres
-        }, include: args.include
-      })
+      // removeMultiFieldIds keeps every row at its index, so the updated rows are picked
+      // by position rather than searched for with one where clause per row
+      const data = findMany(
+        { include: args.include },
+        updatedIndexes.map((index) => ref.data[prop][index])
+      )
       return { data, nbUpdated }
     }
 
