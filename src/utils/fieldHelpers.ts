@@ -28,9 +28,12 @@ export const removeMultiFieldIds = (
   const c = getCamelCase(model.name)
 
   const removeId = (id: string) => {
+    // Rows only hold the key when it was written as a field, the table is left as is otherwise
+    if (!data[c].some((item) => id in item)) return
     data = {
       ...data,
       [c]: data[c].map((item) => {
+        if (!(id in item)) return item
         const { [id]: idVal, ...rest } = item
         return {
           ...rest,

@@ -25,6 +25,15 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
   // Store many-to-many relationship data separately from the main data store
   const manyToManyData: { [relationName: string]: Array<{ [type: string]: Item }> } = {}
 
+  // The values each unique field and compound key already holds, per version of a table.
+  // Writes replace a table's rows array rather than change it, and create carries the
+  // values forward to the array it appends to, so a create checks for a duplicate with
+  // a lookup instead of a scan.
+  const takenValues = new WeakMap<any[], {
+    length: number
+    byKey: Map<string, { values: Set<any>, getValue: (row: any) => any }>
+  }>()
+
   // Create function to get relationship where clauses
   const getFieldRelationshipWhere = createGetFieldRelationshipWhere(datamodel, manyToManyData)
 
@@ -133,6 +142,45 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
      * Handles nested updates including relations, scalar operations, and default values
      * This is the core function that processes create/update data
      */
+    // A Set compares these the way the matcher's `!==` does, apart from NaN
+    const isHashable = (value: any) =>
+      typeof value === "string" ||
+      typeof value === "boolean" ||
+      typeof value === "bigint" ||
+      (typeof value === "number" && !Number.isNaN(value))
+
+    // One string per combination of values, or undefined when a value has no exact JSON
+    // form, which then never equals the value of the row being created
+    const getCompoundValue = (row: any, fields: readonly string[]) => {
+      const values = fields.map((field) => row[field])
+      const encodable = values.every((value) =>
+        typeof value === "string" ||
+        typeof value === "boolean" ||
+        (typeof value === "number" && Number.isFinite(value))
+      )
+      return encodable ? JSON.stringify(values) : undefined
+    }
+
+    /**
+     * The values a unique field or compound key already holds in this table, built once
+     * per version of the rows.
+     */
+    const getTakenValues = (key: string, getValue: (row: any) => any) => {
+      const rows = ref.data[prop] || []
+      let taken = takenValues.get(rows)
+      // The length catches rows pushed straight into the internal state
+      if (!taken || taken.length !== rows.length) {
+        taken = { length: rows.length, byKey: new Map() }
+        takenValues.set(rows, taken)
+      }
+      let entry = taken.byKey.get(key)
+      if (!entry) {
+        entry = { values: new Set(rows.map(getValue)), getValue }
+        taken.byKey.set(key, entry)
+      }
+      return entry.values
+    }
+
     const nestedUpdate = (args, isCreating: boolean, item: any) => {
       let inputData = args.data
 
@@ -157,7 +205,9 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
 
           // Check for unique constraint violations during creation
           if (isCreating && (field.isUnique || field.isId)) {
-            const existing = findOne({ where: { [field.name]: inputFieldData } })
+            const existing = isHashable(inputFieldData)
+              ? getTakenValues(`field:${field.name}`, (row) => row[field.name]).has(inputFieldData)
+              : findOne({ where: { [field.name]: inputFieldData } })
             if (existing) {
               throwKnownError(prisma,
                 `Unique constraint failed on the fields: (\`${field.name}\`)`,
@@ -708,8 +758,10 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
       for (const { name, fields } of getCompoundKeys(model)) {
         const hasAllValues = fields.every((f) => d[f] !== undefined && d[f] !== null)
         if (hasAllValues) {
-          const whereClause = fields.reduce((acc, f) => ({ ...acc, [f]: d[f] }), {})
-          const existing = findOne({ where: { [name]: whereClause } })
+          const compoundValue = getCompoundValue(d, fields)
+          const existing = compoundValue !== undefined
+            ? getTakenValues(`compound:${name}`, (row) => getCompoundValue(row, fields)).has(compoundValue)
+            : findOne({ where: { [name]: fields.reduce((acc, f) => ({ ...acc, [f]: d[f] }), {}) } })
           if (existing) {
             throwKnownError(prisma,
               `Unique constraint failed on the fields: (\`${fields.join("`, `")}\`)`,
@@ -719,9 +771,12 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
         }
       }
 
+      const previousRows = ref.data[prop] || []
+      // A copy, so the caller's data object never doubles as the stored row
+      const appended = [...previousRows, { ...d }]
       ref.data = {
         ...ref.data,
-        [prop]: [...ref.data[prop] || [], d],
+        [prop]: appended,
       }
       ref.data = removeMultiFieldIds(model, ref.data)
 
@@ -730,6 +785,18 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
       const rows = ref.data[prop]
       const item = rows[rows.length - 1]
       indexes.updateItem(prop, item, null)
+
+      // When the table only grew by this row, the values taken so far still hold. They move
+      // to the new array, so the previous one can't answer with the new row in it
+      const taken = takenValues.get(previousRows)
+      if (taken && taken.length === previousRows.length && rows === appended) {
+        for (const entry of taken.byKey.values()) {
+          entry.values.add(entry.getValue(item))
+        }
+        taken.length = rows.length
+        takenValues.delete(previousRows)
+        takenValues.set(rows, taken)
+      }
       return findMany({ ...args, where: undefined }, [item])[0]
     }
 
