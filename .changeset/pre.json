@@ -5,6 +5,7 @@
     "prisma-mock": "1.1.1"
   },
   "changesets": [
-    "great-eels-hammer"
+    "great-eels-hammer",
+    "tidy-keys-rest"
   ]
 }
