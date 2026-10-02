@@ -5,7 +5,6 @@ import createIndexes from "./indexes"
 import { CreateArgs, Item } from "./types"
 import { getCompoundKeys } from "./utils/compoundKeys"
 import { createGetFieldRelationshipWhere, getCamelCase, isFieldDefault, removeMultiFieldIds } from "./utils/fieldHelpers"
-import getWhereOnIds from "./utils/getWhereOnIds"
 import createMatch from "./utils/queryMatching"
 
 /**
@@ -726,11 +725,12 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
       }
       ref.data = removeMultiFieldIds(model, ref.data)
 
-      // Create where clause from unique identifier fields for index update
-      let where = getWhereOnIds(model, d)
-      const item = findOne({ where, ...args })
+      // The new row is the last one, removeMultiFieldIds keeps every row at its index.
+      // The index gets the stored row, not the copy that select / include shape for the caller
+      const rows = ref.data[prop]
+      const item = rows[rows.length - 1]
       indexes.updateItem(prop, item, null)
-      return item
+      return findMany({ ...args, where: undefined }, [item])[0]
     }
 
     /**
