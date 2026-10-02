@@ -134,4 +134,58 @@ describe("nested where performance", () => {
     expect(expected.length).toBeLessThan(NUM_TOYS)
     expect(res).toEqual(expected)
   })
+
+  // updateMany and deleteMany share one matcher across every row they visit, so
+  // the cached related rows must select exactly what the shallow queries do
+  const answeredFirst = {
+    owner: {
+      owner: {
+        account: {
+          users: {
+            some: { answers: { some: { answer: { title: "answer-1" } } } },
+          },
+        },
+      },
+    },
+  }
+
+  const getAnsweredFirstToyIds = async (client) => {
+    const accounts = await client.account.findMany({
+      where: { users: { some: { answers: { some: { answer: { title: "answer-1" } } } } } },
+    })
+    const users = await client.user.findMany({ where: { accountId: { in: accounts.map((account) => account.id) } } })
+    const pets = await client.pet.findMany({ where: { ownerId: { in: users.map((user) => user.id) } } })
+    const toys = await client.toy.findMany({
+      where: { ownerId: { in: pets.map((pet) => pet.id) } },
+      orderBy: { id: "asc" },
+    })
+    return toys.map((toy) => toy.id)
+  }
+
+  test("updateMany changes the same rows as the equivalent shallow queries", async () => {
+    const client = await seed({ enableIndexes: false })
+    const expected = await getAnsweredFirstToyIds(client)
+
+    const { count } = await client.toy.updateMany({ where: answeredFirst, data: { name: "matched" } })
+
+    const updated = await client.toy.findMany({ where: { name: "matched" }, orderBy: { id: "asc" } })
+    expect(expected.length).toBeGreaterThan(0)
+    expect(expected.length).toBeLessThan(NUM_TOYS)
+    expect(count).toBe(expected.length)
+    expect(updated.map((toy) => toy.id)).toEqual(expected)
+  })
+
+  test("deleteMany removes the same rows as the equivalent shallow queries", async () => {
+    const client = await seed({ enableIndexes: false })
+    const expected = await getAnsweredFirstToyIds(client)
+
+    const { count } = await client.toy.deleteMany({ where: answeredFirst })
+
+    const remaining = await client.toy.findMany({ orderBy: { id: "asc" } })
+    expect(expected.length).toBeGreaterThan(0)
+    expect(expected.length).toBeLessThan(NUM_TOYS)
+    expect(count).toBe(expected.length)
+    expect(remaining.length).toBe(NUM_TOYS - expected.length)
+    expect(remaining.filter((toy) => expected.includes(toy.id))).toEqual([])
+  })
 })
