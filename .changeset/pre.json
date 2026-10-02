@@ -4,5 +4,7 @@
   "initialVersions": {
     "prisma-mock": "1.1.1"
   },
-  "changesets": []
+  "changesets": [
+    "great-eels-hammer"
+  ]
 }
