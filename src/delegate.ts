@@ -663,8 +663,9 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
     const updateMany = (args) => {
       let nbUpdated = 0
       const wheres = []
+      const match = matchFnc(args.where)
       const newItems = ref.data[prop].map((e) => {
-        if (matchFnc(args.where)(e)) {
+        if (match(e)) {
           let data = nestedUpdate(args, false, e)
           nbUpdated++
           const newItem = {
@@ -761,10 +762,11 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
       })
 
       const deleted = []
+      const match = matchFnc(args?.where)
       ref.data = {
         ...ref.data,
         [prop]: ref.data[prop].filter((e) => {
-          const shouldDelete = matchFnc(args?.where)(e)
+          const shouldDelete = match(e)
           if (shouldDelete) {
             deleted.push(e)
           }
