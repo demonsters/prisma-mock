@@ -119,3 +119,74 @@ describe("Unique constraints", () => {
     }
   })
 })
+
+// A create looks duplicates up in the values the table held after the previous write. These
+// change the table in other ways first, so the lookup has to reflect the current rows
+describe("Unique constraints after other writes", () => {
+  test("a value freed by update can be used again, and the new value is taken", async () => {
+    const client = await createPrismaClient()
+    await client.user.create({ data: { id: 1, uniqueField: "a" } })
+    await client.user.update({ where: { id: 1 }, data: { uniqueField: "b" } })
+
+    await client.user.create({ data: { id: 2, uniqueField: "a" } })
+    await expect(client.user.create({ data: { id: 3, uniqueField: "b" } })).rejects.toMatchObject({ code: "P2002" })
+  })
+
+  test("a value freed by delete can be used again", async () => {
+    const client = await createPrismaClient()
+    await client.user.create({ data: { id: 1, uniqueField: "a" } })
+    await client.user.delete({ where: { id: 1 } })
+
+    await client.user.create({ data: { id: 1, uniqueField: "a" } })
+    expect(await client.user.count()).toBe(1)
+  })
+
+  test("a value from a rolled back transaction can be used again", async () => {
+    const client = await createPrismaClient()
+    await client.user.create({ data: { id: 1, uniqueField: "a" } })
+    await expect(
+      client.$transaction(async (tx) => {
+        await tx.user.create({ data: { id: 2, uniqueField: "b" } })
+        throw new Error("rollback")
+      })
+    ).rejects.toThrow("rollback")
+
+    await client.user.create({ data: { id: 2, uniqueField: "b" } })
+    expect(await client.user.count()).toBe(2)
+  })
+
+  test("@@unique - a combination freed by update can be used again", async () => {
+    const client = await createPrismaClient({ user: [{ id: 1, uniqueField: "u1" }] })
+    await client.pet.create({ data: { id: 1, name: "Rex", ownerId: 1 } })
+    await client.pet.update({ where: { id: 1 }, data: { name: "Max" } })
+
+    await client.pet.create({ data: { id: 2, name: "Rex", ownerId: 1 } })
+    await expect(client.pet.create({ data: { id: 3, name: "Max", ownerId: 1 } })).rejects.toMatchObject({ code: "P2002" })
+  })
+})
+
+describe("Unique constraints after changing the mock's internal state", () => {
+  // Should not run for postgresql
+  if (process.env.PROVIDER === "postgresql") {
+    test("skip", () => { })
+    return
+  }
+
+  test("a value created before $clear can be used again", async () => {
+    // Passed as initial data, so $clear brings back the very rows array the first create appended to
+    const client = await createPrismaClient(undefined, { data: { user: [] } })
+    await client.user.create({ data: { id: 1, uniqueField: "a" } })
+    client.$clear()
+
+    await client.user.create({ data: { id: 1, uniqueField: "a" } })
+    expect(await client.user.count()).toBe(1)
+  })
+
+  test("a row pushed into the internal state is taken into account", async () => {
+    const client = await createPrismaClient()
+    await client.user.create({ data: { id: 1, uniqueField: "a" } })
+    client.$getInternalState().user.push({ id: 2, uniqueField: "b" })
+
+    await expect(client.user.create({ data: { id: 3, uniqueField: "b" } })).rejects.toMatchObject({ code: "P2002" })
+  })
+})
