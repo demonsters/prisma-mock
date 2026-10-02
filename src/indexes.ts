@@ -1,4 +1,5 @@
 import type { Prisma } from "@prisma/client"
+import { getLookupValues } from "./utils/lookupValues"
 
 /**
  * Creates an indexing system for Prisma mock data to improve query performance.
@@ -109,38 +110,6 @@ export default function createIndexes(isEnabled: boolean = true, caseInsensitive
     if (entry.size === 0) entries.delete(value)
   }
 
-  // A Map finds these the way the matcher's `!==` compares them, apart from NaN
-  const isIndexable = (value: any) =>
-    typeof value === "string" ||
-    typeof value === "boolean" ||
-    typeof value === "bigint" ||
-    (typeof value === "number" && !Number.isNaN(value))
-
-  // Strings compared case insensitively can match values the index holds in another case
-  const isExact = (value: any, filter: any) =>
-    typeof value !== "string" || !(caseInsensitive || filter?.mode === "insensitive")
-
-  /**
-   * The values a filter on a single field pins that field to, when an exact lookup of each
-   * finds every row it can match: a plain value, `equals` or `in`. Other operators next to
-   * them only narrow the rows down further, which the matcher does afterwards.
-   */
-  const getLookupValues = (filter: any): any[] | null => {
-    if (isIndexable(filter)) {
-      return [filter]
-    }
-    if (!filter || typeof filter !== "object" || filter instanceof Date || Array.isArray(filter)) {
-      return null
-    }
-    if ("equals" in filter) {
-      return isIndexable(filter.equals) && isExact(filter.equals, filter) ? [filter.equals] : null
-    }
-    if (Array.isArray(filter.in) && filter.in.every((value) => isIndexable(value) && isExact(value, filter))) {
-      return filter.in
-    }
-    return null
-  }
-
   // The items indexed under any of the values, in table order
   const getItems = (tableName: string, fieldName: string, values: any[]) => {
     const entries = items[tableName]?.[fieldName]
@@ -198,7 +167,7 @@ export default function createIndexes(isEnabled: boolean = true, caseInsensitive
       }
 
       if (indexedFieldNames[tableName].includes(field)) {
-        const values = getLookupValues(where[field])
+        const values = getLookupValues(where[field], caseInsensitive)
         if (values) {
           return getItems(tableName, field, values)
         }
