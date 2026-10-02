@@ -90,6 +90,14 @@ export default function createIndexes(isEnabled: boolean = true) {
     return JSON.stringify(keyFieldNames.map((f) => item[f]))
   }
 
+  const removeFromEntry = (entries: Map<any, Map<any, any>>, value: any, key: any) => {
+    const entry = entries.get(value)
+    if (!entry) return
+    entry.delete(key)
+    // Without an entry, a lookup of the value falls back to scanning the table
+    if (entry.size === 0) entries.delete(value)
+  }
+
   const getEntryItems = (tableName: string, fieldName: string, value: any) => {
     const entry = items[tableName]?.[fieldName]?.get(value)
     return entry && [...entry.values()]
@@ -171,13 +179,20 @@ export default function createIndexes(isEnabled: boolean = true) {
       }
 
       const entries = items[tableName][fieldName]
+      const key = getItemKey(tableName, fieldName, item)
 
-      // Handle case where item doesn't have the indexed field value
-      if (!item[fieldName]) {
-        // If updating and old item had this field, remove it from the old index
-        if (oldItem && oldItem[fieldName]) {
-          entries.get(oldItem[fieldName])?.delete(getItemKey(tableName, fieldName, item))
+      // The earlier version of an updated item leaves the entry it was indexed under when its
+      // value or id changed, so it isn't found under a value it no longer holds. Otherwise it
+      // is replaced in place below, keeping its position
+      if (oldItem && oldItem[fieldName]) {
+        const oldKey = getItemKey(tableName, fieldName, oldItem)
+        if (oldItem[fieldName] !== item[fieldName] || oldKey !== key) {
+          removeFromEntry(entries, oldItem[fieldName], oldKey)
         }
+      }
+
+      // Items without a value for the field aren't indexed under it
+      if (!item[fieldName]) {
         continue
       }
 
@@ -185,10 +200,10 @@ export default function createIndexes(isEnabled: boolean = true) {
       const entry = entries.get(item[fieldName])
       if (!entry || (field && (field.isId || field.isUnique))) {
         // A new value, or a unique one, which this item alone holds
-        entries.set(item[fieldName], new Map([[getItemKey(tableName, fieldName, item), item]]))
+        entries.set(item[fieldName], new Map([[key, item]]))
       } else {
         // For non-unique fields, replace the earlier version of this item or add it
-        entry.set(getItemKey(tableName, fieldName, item), item)
+        entry.set(key, item)
       }
     }
   }
@@ -205,10 +220,31 @@ export default function createIndexes(isEnabled: boolean = true) {
       return
     }
 
-    // Remove from index if this field is indexed
+    // Remove this item, and only this item, from the entry of its value
     if (indexedFieldNames[tableName]) {
       if (indexedFieldNames[tableName].includes(field.name)) {
-        items[tableName]?.[field.name]?.delete(item[field.name])
+        const entries = items[tableName]?.[field.name]
+        if (entries) {
+          removeFromEntry(entries, item[field.name], getItemKey(tableName, field.name, item))
+        }
+      }
+    }
+  }
+
+  /**
+   * Indexes every table again, for when the data is replaced as a whole and the items
+   * indexed so far no longer describe it.
+   *
+   * @param data - The new data, by table name
+   */
+  const rebuild = (data: Record<string, any[]>) => {
+    if (!isEnabled) {
+      return
+    }
+    items = {}
+    for (const tableName in indexedFieldNames) {
+      for (const item of data[tableName] || []) {
+        updateItem(tableName, item, null)
       }
     }
   }
@@ -217,7 +253,8 @@ export default function createIndexes(isEnabled: boolean = true) {
     addIndexFieldIfNeeded,
     getIndexedItems,
     updateItem,
-    deleteItemByField
+    deleteItemByField,
+    rebuild,
   }
 
 }
