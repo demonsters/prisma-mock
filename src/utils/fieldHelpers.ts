@@ -1,5 +1,6 @@
 import type { Prisma } from "@prisma/client"
 import { Item } from "../types"
+import { getCompoundKeys } from "./compoundKeys"
 
 export function isFieldDefault(
   f:
@@ -25,11 +26,8 @@ export const removeMultiFieldIds = (
   /// [tableName][field][value] = Array
 
   const c = getCamelCase(model.name)
-  // @ts-ignore
-  const idFields = model.idFields || model.primaryKey?.fields
 
-  const removeId = (ids: readonly string[]) => {
-    const id = ids.join("_")
+  const removeId = (id: string) => {
     data = {
       ...data,
       [c]: data[c].map((item) => {
@@ -42,16 +40,8 @@ export const removeMultiFieldIds = (
     }
   }
 
-  if (idFields?.length > 1) {
-    removeId(idFields)
-  }
-
-  if (model.uniqueFields?.length > 0) {
-    for (const uniqueField of model.uniqueFields) {
-      if (uniqueField.length > 1) {
-        removeId(uniqueField)
-      }
-    }
+  for (const compoundKey of getCompoundKeys(model)) {
+    removeId(compoundKey.name)
   }
   return data
 }
