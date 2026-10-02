@@ -34,6 +34,11 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
     byKey: Map<string, { positions: Map<any, number[]>, getValue: (row: any) => any }>
   }>()
 
+  // Versions of a table known to hold no compound key as a field, with their length.
+  // removeMultiFieldIds checks every row, while after a write to such a version only the
+  // rows it wrote can hold one
+  const cleanRows = new WeakMap<any[], number>()
+
   const addPosition = (positions: Map<any, number[]>, value: any, index: number) => {
     const list = positions.get(value)
     if (list) {
@@ -229,6 +234,21 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
         }
       }
       return null
+    }
+
+    /**
+     * removeMultiFieldIds after a write that produced the current rows from `previousRows`,
+     * changing only the `written` rows. When the previous version was clean and none of the
+     * written rows hold a compound key as a field, there is nothing to remove.
+     */
+    const removeCompoundKeyFields = (previousRows: any[], written: any[]) => {
+      const tableModel = datamodel.models.find((model) => getCamelCase(model.name) === prop)
+      const compoundKeys = getCompoundKeys(tableModel)
+      const holdsCompoundKey = (row: any) => compoundKeys.some(({ name }) => name in row)
+      if (cleanRows.get(previousRows) !== previousRows.length || written.some(holdsCompoundKey)) {
+        ref.data = removeMultiFieldIds(tableModel, ref.data)
+      }
+      cleanRows.set(ref.data[prop], ref.data[prop].length)
     }
 
     const nestedUpdate = (args, isCreating: boolean, item: any) => {
@@ -763,7 +783,8 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
       let nbUpdated = 0
       const updatedIndexes = []
       const match = matchFnc(args.where)
-      const newItems = ref.data[prop].map((e, index) => {
+      const rows = ref.data[prop]
+      const newItems = rows.map((e, index) => {
         if (match(e)) {
           let data = nestedUpdate(args, false, e)
           nbUpdated++
@@ -781,7 +802,7 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
         ...ref.data,
         [prop]: newItems,
       }
-      ref.data = removeMultiFieldIds(model, ref.data)
+      removeCompoundKeyFields(rows, updatedIndexes.map((index) => newItems[index]))
       // removeMultiFieldIds keeps every row at its index, so the updated rows are picked
       // by position rather than searched for with one where clause per row
       const data = findMany(
@@ -822,12 +843,13 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
 
       const previousRows = ref.data[prop] || []
       // A copy, so the caller's data object never doubles as the stored row
-      const appended = [...previousRows, { ...d }]
+      const row = { ...d }
+      const appended = [...previousRows, row]
       ref.data = {
         ...ref.data,
         [prop]: appended,
       }
-      ref.data = removeMultiFieldIds(model, ref.data)
+      removeCompoundKeyFields(previousRows, [row])
 
       // The new row is the last one, removeMultiFieldIds keeps every row at its index.
       // The index gets the stored row, not the copy that select / include shape for the caller
@@ -1080,7 +1102,7 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
         ...ref.data,
         [prop]: newItems,
       }
-      ref.data = removeMultiFieldIds(model, ref.data)
+      removeCompoundKeyFields(rows, updatedIndexes.map((index) => newItems[index]))
       const updatedRows = ref.data[prop]
 
       // When only the updated rows changed, the positions move to the new array, with the

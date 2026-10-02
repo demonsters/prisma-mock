@@ -9,6 +9,26 @@ describe("PrismaClient $getInternalState", () => {
     return
   }
 
+  // A write only checks the rows it wrote for a compound key held as a field, once the table
+  // is known to hold none. A row pushed straight into the internal state changes the length,
+  // so the next write checks every row again
+  test("a pushed row holding a compound key as a field is flattened by the next create", async () => {
+    const client = await createPrismaClient({
+      user: [{ id: 1, uniqueField: "u1" }],
+      answers: [{ id: 1, title: "a" }, { id: 2, title: "b" }, { id: 3, title: "c" }],
+    })
+    await client.userAnswers.create({ data: { userId: 1, answerId: 1, value: "created" } })
+    client.$getInternalState().userAnswers.push({ userId_answerId: { userId: 1, answerId: 2 }, value: "pushed" })
+
+    await client.userAnswers.create({ data: { userId: 1, answerId: 3, value: "created" } })
+
+    expect(client.$getInternalState().userAnswers).toEqual([
+      { userId: 1, answerId: 1, value: "created" },
+      { userId: 1, answerId: 2, value: "pushed" },
+      { userId: 1, answerId: 3, value: "created" },
+    ])
+  })
+
   const data = {
     user: [
       {

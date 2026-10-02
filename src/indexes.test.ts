@@ -226,3 +226,31 @@ Array [
 `)
 
 })
+test("Updating one of many items that share a value only replaces that item", () => {
+  const indexes = createIndexes()
+
+  indexes.addIndexFieldIfNeeded("User", { name: "id", isId: true })
+  indexes.addIndexFieldIfNeeded("User", { name: "account", relationFromFields: ["accountId"] })
+
+  for (const id of [1, 2, 3]) {
+    indexes.updateItem("User", { id, name: `user ${id}`, accountId: 1 })
+  }
+  indexes.updateItem("User", { id: 2, name: "renamed", accountId: 1 }, { id: 2, name: "user 2", accountId: 1 })
+
+  expect(indexes.getIndexedItems("User", { accountId: 1 }).map((item) => item.name)).toEqual(["user 1", "renamed", "user 3"])
+})
+
+test("Items sharing part of a compound id are told apart by all of it", () => {
+  const indexes = createIndexes()
+
+  indexes.addIndexFieldIfNeeded("Membership", { name: "organizationId" }, true)
+  indexes.addIndexFieldIfNeeded("Membership", { name: "userId" }, true)
+  indexes.addIndexFieldIfNeeded("Membership", { name: "team", relationFromFields: ["teamId"] })
+
+  indexes.updateItem("Membership", { organizationId: 1, userId: 1, teamId: 1, role: "a" })
+  indexes.updateItem("Membership", { organizationId: 1, userId: 2, teamId: 1, role: "b" })
+  indexes.updateItem("Membership", { organizationId: 2, userId: 1, teamId: 1, role: "c" })
+  indexes.updateItem("Membership", { organizationId: 1, userId: 2, teamId: 1, role: "renamed" })
+
+  expect(indexes.getIndexedItems("Membership", { teamId: 1 }).map((item) => item.role)).toEqual(["a", "renamed", "c"])
+})
