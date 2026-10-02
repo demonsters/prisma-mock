@@ -52,7 +52,7 @@ function createPrismaMock<PClient extends PrismaClient, P extends typeof Prisma 
   }
 
   // Create indexes if enabled in options
-  const indexes = createIndexes(!!options.enableIndexes)
+  const indexes = createIndexes(!!options.enableIndexes, !!options.caseInsensitive)
 
   // Determine if case-insensitive matching should be used
   const caseInsensitive = options.caseInsensitive || false

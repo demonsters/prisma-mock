@@ -705,7 +705,7 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
       const match = matchFnc(args?.where)
       const inc = includes(args)
       // `candidates` limits the rows considered, for callers that already know them
-      let items = candidates || indexes.getIndexedItems(prop, args?.where) || ref.data[prop] || []
+      let items = candidates || indexes.getIndexedItems(prop, args?.where, ref.data[prop] || []) || ref.data[prop] || []
 
       let res = []
       for (const item of items) {
@@ -914,12 +914,13 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
         }),
       }
 
+      // Out of the index before the referential actions run, which may look this table up
+      deleted.forEach((item) => indexes.deleteItem(prop, item))
+
       // Handle referential actions for deleted records
       deleted.forEach((item) => {
 
         model.fields.forEach((field) => {
-
-          indexes.deleteItemByField(prop, field, item)
 
           const joinfield = getJoinField(field)
           if (!joinfield) return
