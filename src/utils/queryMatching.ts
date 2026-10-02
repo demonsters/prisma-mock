@@ -87,6 +87,9 @@ export default function createMatch({
   caseInsensitive,
   ref,
 }: Props) {
+  // Multi-field @@id / @@unique keys, matched by their where key (e.g. `userId_answerId`)
+  const compoundKeys = model ? getCompoundKeys(model) : []
+
   /**
    * Returns the rows of the related model matching `childWhere`, evaluating it at
    * most once per matcher. `childWhere` is the part of a relation filter that is
@@ -311,7 +314,7 @@ export default function createMatch({
           // `some` and the implicit to-one filter only need to know if anything matched
           return hasLinked(rows, joinWhere, matchFallback)
         }
-        if (getCompoundKeys(model).some((key) => key.name === child)) {
+        if (compoundKeys.some((key) => key.name === child)) {
           return shallowCompare(item, filter)
         }
         if (val === undefined) {
