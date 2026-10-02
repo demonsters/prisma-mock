@@ -75,6 +75,7 @@ function createPrismaMock<PClient extends PrismaClient, P extends typeof Prisma 
       } catch (error) {
         // Rollback data on error
         ref.data = snapshot
+        indexes.rebuild(ref.data)
         throw error
       }
     }
@@ -149,9 +150,11 @@ function createPrismaMock<PClient extends PrismaClient, P extends typeof Prisma 
   client['$setInternalState'] = (state: Required<PrismaMockData<PClient>>) => {
     internalState = deepCopy(state)
     ref.data = internalState
+    indexes.rebuild(ref.data)
   }
   client['$clear'] = () => {
     ref.data = internalState
+    indexes.rebuild(ref.data)
   }
 
   // @ts-ignore
