@@ -27,6 +27,28 @@ describe("Referential actions", () => {
 
     })
 
+    test("SetNull on every row referring to the deleted one", async () => {
+
+      const client = await createPrismaClient({
+        account: [
+          { id: 1, name: "A" },
+          { id: 2, name: "B" },
+        ],
+        user: [
+          { id: 1, accountId: 1, uniqueField: "u1" },
+          { id: 2, accountId: 2, uniqueField: "u2" },
+          { id: 3, accountId: 1, uniqueField: "u3" },
+        ],
+      })
+      await client.account.delete({
+        where: { id: 1 }
+      })
+
+      const users = await client.user.findMany({ orderBy: { id: "asc" } })
+      expect(users.map((user) => user.accountId)).toEqual([null, 2, null])
+
+    })
+
     test("Cascade", async () => {
 
       const client = await createPrismaClient({

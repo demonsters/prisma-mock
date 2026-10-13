@@ -201,7 +201,7 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
                   field.relationName === otherField.relationName
               )
               const delegate = getDelegateForFieldName(field.type)
-              const items = inputFieldData.set.map(where => delegate.findUnique({
+              const items = inputFieldData.set.map(where => delegate.findOne({
                 where
               })).filter(Boolean)
 
@@ -274,7 +274,7 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
 
                   const otherTargetKey = otherField.relationToFields[0]
                   if ((!targetKey && !keyToGet) && otherTargetKey) {
-                    delegate.update({
+                    delegate._update({
                       where: connect,
                       data: {
                         [getCamelCase(otherField.name)]: {
@@ -304,7 +304,7 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
               const delegate = getDelegateForFieldName(field.type)
               const res = delegate.findOne(args)
               if (res) {
-                delegate.update({
+                delegate._update({
                   where: args.where,
                   data: args.update,
                 })
@@ -413,7 +413,7 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
             if (inputFieldData.update) {
               if (Array.isArray(inputFieldData.update)) {
                 inputFieldData.update.forEach((update) => {
-                  delegate.update(update)
+                  delegate._update(update)
                 })
               } else {
                 const item = findOne(args)
@@ -423,7 +423,7 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
                   })
                   const where = getFieldRelationshipWhere(item, field, otherModel)
                   const delegate = Delegate(name, otherModel)
-                  delegate.update({
+                  delegate._update({
                     data: inputFieldData.update.data,
                     where: where ? {
                       AND: [
@@ -435,7 +435,7 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
                 } else {
                   const where = getFieldRelationshipWhere(item, field, model)
                   if (where) {
-                    delegate.update({
+                    delegate._update({
                       data: inputFieldData.update,
                       where,
                     })
@@ -474,7 +474,7 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
                 }
               } else {
                 const joinfield = getJoinField(field)
-                delegate.update({
+                delegate._update({
                   data: {
                     [joinfield.relationFromFields[0]]: null,
                   },
@@ -911,7 +911,7 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
           if (!joinfield) return
           const delegate = getDelegateForFieldName(field.type)
           if (joinfield.relationOnDelete === "SetNull") {
-            delegate.update({
+            delegate._update({
               where: {
                 [joinfield.relationFromFields[0]]:
                   item[joinfield.relationToFields[0]],
@@ -1127,7 +1127,9 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
 
     /**
      * Throws a validation error, as Prisma does, when a where clause that has to point at one
-     * row holds none of the model's unique keys
+     * row holds none of the model's unique keys. Only the public findUnique, update, upsert
+     * and delete check; the mock's own writes look rows up by foreign key through the
+     * unchecked ones
      */
     const checkWhereUnique = (where: any) => {
       const hasUniqueKey = !!where && uniqueKeyNames.some((name) => where[name] !== undefined && where[name] !== null)
@@ -1375,8 +1377,14 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
       aggregate,
       groupBy,
       findOne,
-      findUnique: findOne,
-      findUniqueOrThrow: findOrThrow,
+      findUnique: (args) => {
+        checkWhereUnique(args?.where)
+        return findOne(args)
+      },
+      findUniqueOrThrow: (args) => {
+        checkWhereUnique(args?.where)
+        return findOrThrow(args)
+      },
       findMany,
       findFirst: findOne,
       findFirstOrThrow: findOrThrow,
@@ -1393,7 +1401,10 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
         checkWhereUnique(args?.where)
         return deleteOne(args)
       },
-      update,
+      update: (args) => {
+        checkWhereUnique(args?.where)
+        return update(args)
+      },
       deleteMany: (args) => {
         const deleted = deleteMany(args)
         return { count: deleted.length }
@@ -1411,6 +1422,7 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
        * Upsert operation: update if exists, create if not
        */
       upsert(args) {
+        checkWhereUnique(args?.where)
         const res = findOne(args)
         if (res) {
           return update({
@@ -1452,6 +1464,7 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
       _sortFunc: sortFunc,
       _findMany: findMany,
       _createMany: createMany,
+      _update: update,
       _delete: deleteOne,
       _deleteMany: deleteMany,
     }
