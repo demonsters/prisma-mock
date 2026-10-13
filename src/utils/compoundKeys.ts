@@ -48,3 +48,21 @@ export const getCompoundKeys = (model: Prisma.DMMF.Model): CompoundKey[] => {
     ...getCompoundUniqueKeys(model),
   ]
 }
+
+/**
+ * Returns the keys a WhereUniqueInput selects a row by: the @id and @unique fields, the
+ * fields of a single-field @@id / @@unique, and the names of the compound ones
+ */
+export const getUniqueKeyNames = (model: Prisma.DMMF.Model): string[] => {
+  // @ts-ignore Backwards compatibility
+  const idFields: readonly string[] = model.idFields || model.primaryKey?.fields || []
+  const uniques: readonly { fields: readonly string[] }[] = model.uniqueIndexes
+    ?? model.uniqueFields?.map((fields) => ({ fields }))
+    ?? []
+  return [...new Set([
+    ...model.fields.filter((field) => field.isId || field.isUnique).map((field) => field.name),
+    ...(idFields.length === 1 ? idFields : []),
+    ...uniques.filter((unique) => unique.fields.length === 1).map((unique) => unique.fields[0]),
+    ...getCompoundKeys(model).map((compoundKey) => compoundKey.name),
+  ])]
+}

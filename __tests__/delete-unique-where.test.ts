@@ -1,5 +1,6 @@
 // @ts-nocheck
 
+import { Prisma } from "@prisma/client"
 import createPrismaClient from "./createPrismaClient"
 
 // delete and deleteMany find the rows a unique where points at through a lookup of the rows
@@ -62,5 +63,101 @@ describe("delete by a unique where", () => {
 
     expect(await userIds(client)).toEqual([2])
     await expect(client.user.delete({ where: { uniqueField: "c" } })).rejects.toMatchObject({ code: "P2025" })
+  })
+})
+
+// delete takes a WhereUniqueInput, so Prisma rejects a where without an @id, @unique or
+// compound key before it deletes anything
+describe("delete without a unique where", () => {
+  const data = {
+    user: [
+      { id: 1, name: "Anna", uniqueField: "a" },
+      { id: 2, name: "Anna", uniqueField: "b" },
+      { id: 3, name: "Anna", uniqueField: "c" },
+    ],
+    pet: [
+      { id: 1, name: "Rex", ownerId: 1 },
+      { id: 2, name: "Tom", ownerId: 1 },
+      { id: 3, name: "Max", ownerId: 2 },
+    ],
+  }
+
+  const petIds = async (client) =>
+    (await client.pet.findMany({ orderBy: { id: "asc" } })).map((pet) => pet.id)
+
+  test("rejects a field that isn't unique", async () => {
+    const client = await createPrismaClient(data)
+
+    await expect(client.pet.delete({ where: { name: "Rex" } })).rejects.toBeInstanceOf(Prisma.PrismaClientValidationError)
+    expect(await petIds(client)).toEqual([1, 2, 3])
+  })
+
+  test("rejects a foreign key", async () => {
+    const client = await createPrismaClient(data)
+
+    await expect(client.pet.delete({ where: { ownerId: 1 } })).rejects.toBeInstanceOf(Prisma.PrismaClientValidationError)
+    expect(await petIds(client)).toEqual([1, 2, 3])
+  })
+
+  test("rejects an empty where", async () => {
+    const client = await createPrismaClient(data)
+
+    await expect(client.pet.delete({ where: {} })).rejects.toBeInstanceOf(Prisma.PrismaClientValidationError)
+    expect(await petIds(client)).toEqual([1, 2, 3])
+  })
+
+  test("rejects a unique key that is undefined", async () => {
+    const client = await createPrismaClient(data)
+
+    await expect(client.pet.delete({ where: { id: undefined, ownerId: 1 } })).rejects.toBeInstanceOf(Prisma.PrismaClientValidationError)
+    expect(await petIds(client)).toEqual([1, 2, 3])
+  })
+
+  test("rejects a unique key that is only inside AND", async () => {
+    const client = await createPrismaClient(data)
+
+    await expect(client.pet.delete({ where: { AND: [{ id: 1 }] } })).rejects.toBeInstanceOf(Prisma.PrismaClientValidationError)
+    expect(await petIds(client)).toEqual([1, 2, 3])
+  })
+
+  test("accepts a unique field", async () => {
+    const client = await createPrismaClient(data)
+
+    await client.user.delete({ where: { uniqueField: "c" } })
+
+    expect((await client.user.findMany({ orderBy: { id: "asc" } })).map((user) => user.id)).toEqual([1, 2])
+  })
+
+  test("accepts a compound key", async () => {
+    const client = await createPrismaClient(data)
+
+    const deleted = await client.pet.delete({ where: { name_ownerId: { name: "Tom", ownerId: 1 } } })
+
+    expect(deleted).toMatchObject({ id: 2 })
+    expect(await petIds(client)).toEqual([1, 3])
+  })
+
+  test("accepts a unique key with other filters next to it", async () => {
+    const client = await createPrismaClient(data)
+
+    await expect(client.pet.delete({ where: { id: 1, ownerId: 2 } })).rejects.toMatchObject({ code: "P2025" })
+    const deleted = await client.pet.delete({ where: { id: 1, ownerId: 1, name: { startsWith: "R" } } })
+
+    expect(deleted).toMatchObject({ id: 1 })
+    expect(await petIds(client)).toEqual([2, 3])
+  })
+
+  test("accepts the field of a single-field @@id or @@unique", async () => {
+    const client = await createPrismaClient({
+      account: [{ id: 1 }, { id: 2 }],
+      stripe: [{ id: 1, accountId: 1, customerId: "c1" }, { id: 2, accountId: 2, customerId: "c2" }],
+      slug: [{ slug: "a", title: "A" }, { slug: "b", title: "B" }],
+    })
+
+    await client.stripe.delete({ where: { accountId: 2 } })
+    await client.slug.delete({ where: { slug: "a" } })
+
+    expect((await client.stripe.findMany()).map((stripe) => stripe.id)).toEqual([1])
+    expect((await client.slug.findMany()).map((slug) => slug.slug)).toEqual(["b"])
   })
 })

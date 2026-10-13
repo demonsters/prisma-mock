@@ -88,15 +88,24 @@ model Document {
 }
 
 model Post {
-  id        Int      @id @default(autoincrement())
+  id        Int       @id @default(autoincrement())
   title     String
-  published Boolean  @default(false)
-  author    User?    @relation(fields: [authorId], references: [id])
+  published Boolean   @default(false)
+  author    User?     @relation(fields: [authorId], references: [id])
   authorId  Int?
-  updated   DateTime @updatedAt
-  created   DateTime @default(now())
+  updated   DateTime  @updatedAt
+  created   DateTime  @default(now())
+  comments  Comment[]
 
   // @@unique([created, authorId])
+}
+
+// A post can have many comments, all deleted with it
+model Comment {
+  id     Int    @id @default(autoincrement())
+  text   String
+  post   Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
+  postId Int
 }
 
 model Pet {

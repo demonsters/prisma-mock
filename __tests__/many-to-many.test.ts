@@ -462,3 +462,48 @@ Array [
 `)
 
 })
+// The links of a many-to-many relation are undone with the rest of a write that fails
+describe("many-to-many links of a failed write", () => {
+  const seed = () => createPrismaClient({
+    user: [{ id: 1, uniqueField: "a" }, { id: 2, uniqueField: "b" }],
+    document: [{ id: "d1", name: "Doc" }],
+  })
+
+  const participantIds = async (client) =>
+    (await client.document.findUnique({ where: { id: "d1" }, include: { participants: true } })).participants.map((user) => user.id)
+
+  test("are undone when the operation adding them fails", async () => {
+    const client = await seed()
+
+    await expect(client.document.update({
+      where: { id: "d1" },
+      data: { participants: { connect: { id: 1 }, delete: { id: 2 } } },
+    })).rejects.toMatchObject({ code: "P2017" })
+
+    expect(await participantIds(client)).toEqual([])
+    expect(await client.user.count({ where: { documents: { some: { id: "d1" } } } })).toEqual(0)
+  })
+
+  test("are undone when the transaction adding them fails", async () => {
+    const client = await seed()
+
+    await expect(client.$transaction(async (tx) => {
+      await tx.document.update({ where: { id: "d1" }, data: { participants: { connect: [{ id: 1 }, { id: 2 }] } } })
+      throw new Error("rollback")
+    })).rejects.toThrow("rollback")
+
+    expect(await participantIds(client)).toEqual([])
+  })
+
+  test("added before a failed operation stay", async () => {
+    const client = await seed()
+    await client.document.update({ where: { id: "d1" }, data: { participants: { connect: { id: 1 } } } })
+
+    await expect(client.document.update({
+      where: { id: "d1" },
+      data: { participants: { connect: { id: 2 }, delete: { id: 99 } } },
+    })).rejects.toMatchObject({ code: "P2017" })
+
+    expect(await participantIds(client)).toEqual([1])
+  })
+})

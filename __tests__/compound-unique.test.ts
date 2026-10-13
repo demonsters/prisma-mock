@@ -126,11 +126,7 @@ describe("PrismaClient @@unique() with a custom name", () => {
         },
       },
     })
-    if (process.env.PROVIDER === "postgresql") {
-      await expect(query).rejects.toThrow(PrismaClientValidationError)
-    } else {
-      await expect(query).resolves.toBeNull()
-    }
+    await expect(query).rejects.toThrow(PrismaClientValidationError)
   })
 
   test("update", async () => {

@@ -4,7 +4,7 @@ import { throwKnownError, throwValidationError } from "./errors"
 import createIndexes from "./indexes"
 import { CreateArgs, Item } from "./types"
 import { createCaches, getCompoundValue } from "./caches"
-import { getCompoundKeys } from "./utils/compoundKeys"
+import { getCompoundKeys, getUniqueKeyNames } from "./utils/compoundKeys"
 import { createGetFieldRelationshipWhere, getCamelCase, isFieldDefault } from "./utils/fieldHelpers"
 import createMatch from "./utils/queryMatching"
 import { isLookupValue } from "./utils/lookupValues"
@@ -24,7 +24,8 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
   // Initialize default value handler
   const handleDefaults = createHandleDefault()
 
-  // Store many-to-many relationship data separately from the main data store
+  // Store many-to-many relationship data separately from the main data store. Writes replace
+  // a relation's array rather than change it, so a shallow copy keeps the links as they are
   const manyToManyData: { [relationName: string]: Array<{ [type: string]: Item }> } = {}
 
   // Create function to get relationship where clauses
@@ -201,7 +202,7 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
                   field.relationName === otherField.relationName
               )
               const delegate = getDelegateForFieldName(field.type)
-              const items = inputFieldData.set.map(where => delegate.findUnique({
+              const items = inputFieldData.set.map(where => delegate.findOne({
                 where
               })).filter(Boolean)
 
@@ -211,8 +212,7 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
 
               // Update many-to-many data store
               const idField = model?.fields.find((f) => f.isId)?.name
-              let a = manyToManyData[field.relationName] = manyToManyData[field.relationName] || []
-              a = a.filter(i => i[otherField.type][idField] !== item[idField])
+              let a = (manyToManyData[field.relationName] || []).filter(i => i[otherField.type][idField] !== item[idField])
               items.forEach((createdItem) => {
                 a.push({
                   [field.type]: createdItem,
@@ -274,7 +274,7 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
 
                   const otherTargetKey = otherField.relationToFields[0]
                   if ((!targetKey && !keyToGet) && otherTargetKey) {
-                    delegate.update({
+                    delegate._update({
                       where: connect,
                       data: {
                         [getCamelCase(otherField.name)]: {
@@ -285,13 +285,15 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
                       }
                     })
                   } else {
-                    const a = manyToManyData[field.relationName] = manyToManyData[field.relationName] || []
-                    a.push({
-                      [field.type]: delegate.findOne({
-                        where: connect
-                      }),
-                      [otherField.type]: item || newData
-                    })
+                    manyToManyData[field.relationName] = [
+                      ...(manyToManyData[field.relationName] || []),
+                      {
+                        [field.type]: delegate.findOne({
+                          where: connect
+                        }),
+                        [otherField.type]: item || newData
+                      },
+                    ]
                   }
                 }
               })
@@ -304,7 +306,7 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
               const delegate = getDelegateForFieldName(field.type)
               const res = delegate.findOne(args)
               if (res) {
-                delegate.update({
+                delegate._update({
                   where: args.where,
                   data: args.update,
                 })
@@ -386,13 +388,13 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
                 const targetKey = joinfield.relationFromFields[0]
 
                 if (!targetKey) {
-                  const a = manyToManyData[field.relationName] = manyToManyData[field.relationName] || []
-                  createdItems.forEach((createdItem) => {
-                    a.push({
+                  manyToManyData[field.relationName] = [
+                    ...(manyToManyData[field.relationName] || []),
+                    ...createdItems.map((createdItem) => ({
                       [field.type]: createdItem,
                       [joinfield.type]: item || inputData
-                    })
-                  })
+                    })),
+                  ]
                 }
 
               }
@@ -401,29 +403,50 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
             // Handle update operations for relations
             const name = getCamelCase(field.type)
             const delegate = getDelegateForFieldName(field.type)
+
+            // Nested writes on an existing row only reach the rows related to it. null when
+            // no row can be (a many-to-many relation without any)
+            const relationWhere = item ? getFieldRelationshipWhere(item, field, model) : undefined
+            const scopeWhere = (where) => {
+              if (!item) return where
+              if (!relationWhere) return null
+              return where === undefined || where === true ? relationWhere : { AND: [where, relationWhere] }
+            }
+            const otherModel = datamodel.models.find((model) => {
+              return model.name === field.type
+            })
+            const otherField = otherModel.fields.find(
+              (otherField) =>
+                field.relationName === otherField.relationName && otherField !== field
+            )
+
             if (inputFieldData.updateMany) {
-              if (Array.isArray(inputFieldData.updateMany)) {
-                inputFieldData.updateMany.forEach((updateMany) => {
-                  delegate.updateMany(updateMany)
-                })
-              } else {
-                delegate.updateMany(inputFieldData.updateMany)
-              }
+              const updateManys = Array.isArray(inputFieldData.updateMany) ? inputFieldData.updateMany : [inputFieldData.updateMany]
+              updateManys.forEach((updateMany) => {
+                const where = scopeWhere(updateMany.where ?? {})
+                if (where) {
+                  delegate.updateMany({ ...updateMany, where })
+                }
+              })
             }
             if (inputFieldData.update) {
               if (Array.isArray(inputFieldData.update)) {
                 inputFieldData.update.forEach((update) => {
-                  delegate.update(update)
+                  const where = scopeWhere(update.where)
+                  if (!where) {
+                    throwKnownError(prisma,
+                      `An operation failed because it depends on one or more records that were required but not found. No '${field.type}' record was found for a nested update on relation '${field.relationName}'.`,
+                      { meta: { modelName: model.name } }
+                    )
+                  }
+                  delegate._update({ ...update, where })
                 })
               } else {
                 const item = findOne(args)
                 if (field.isList) {
-                  const otherModel = datamodel.models.find((model) => {
-                    return model.name === field.type
-                  })
                   const where = getFieldRelationshipWhere(item, field, otherModel)
                   const delegate = Delegate(name, otherModel)
-                  delegate.update({
+                  delegate._update({
                     data: inputFieldData.update.data,
                     where: where ? {
                       AND: [
@@ -435,7 +458,7 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
                 } else {
                   const where = getFieldRelationshipWhere(item, field, model)
                   if (where) {
-                    delegate.update({
+                    delegate._update({
                       data: inputFieldData.update,
                       where,
                     })
@@ -446,21 +469,49 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
 
             // Handle delete operations for relations
             if (inputFieldData.deleteMany) {
-              if (Array.isArray(inputFieldData.deleteMany)) {
-                inputFieldData.deleteMany.forEach((where) => {
-                  delegate.deleteMany({ where })
-                })
-              } else {
-                delegate.deleteMany({ where: inputFieldData.deleteMany })
-              }
+              const wheres = Array.isArray(inputFieldData.deleteMany) ? inputFieldData.deleteMany : [inputFieldData.deleteMany]
+              wheres.forEach((where) => {
+                const scoped = scopeWhere(where)
+                if (scoped) {
+                  delegate.deleteMany({ where: scoped })
+                }
+              })
             }
             if (inputFieldData.delete) {
-              if (Array.isArray(inputFieldData.delete)) {
-                inputFieldData.delete.forEach((where) => {
-                  delegate.delete({ where })
-                })
+              if (field.isList) {
+                // Each where is unique, and has to point at a row related to this one. All of
+                // them are checked before any is deleted, as Prisma refuses the whole write
+                const wheres = Array.isArray(inputFieldData.delete) ? inputFieldData.delete : [inputFieldData.delete]
+                wheres.forEach((where) => delegate._checkWhereUnique(where))
+                const scoped = wheres.map(scopeWhere)
+                if (scoped.some((where) => !where || !delegate.findOne({ where }))) {
+                  throwKnownError(prisma,
+                    `The records for relation \`${field.relationName}\` between the \`${model.name}\` and \`${field.type}\` models are not connected.`,
+                    { code: "P2017", meta: { modelName: model.name, relation_name: field.relationName, parent_name: model.name, child_name: field.type } }
+                  )
+                }
+                scoped.forEach((where) => delegate._delete({ where }))
               } else {
-                delegate.delete({ where: inputFieldData.delete })
+                // A to-one relation is deleted with `true`, or a filter the related row has to match
+                const where = scopeWhere(inputFieldData.delete)
+                const deleted = where ? delegate._deleteMany({ where }) : []
+                if (!deleted.length) {
+                  const relationType = otherField?.isList ? "one-to-many" : "one-to-one"
+                  const cause = `No '${field.type}' record was found for a nested delete on ${relationType} relation '${field.relationName}'.`
+                  throwKnownError(prisma,
+                    `An operation failed because it depends on one or more records that were required but not found. ${cause}`,
+                    { meta: { modelName: model.name, cause } }
+                  )
+                }
+                // The row this one pointed at is gone, so the foreign key it holds no longer
+                // points anywhere, as the database's referential action leaves it
+                const foreignKey = model.fields.find((f) => f.name === field.relationFromFields[0])
+                if (foreignKey && !foreignKey.isRequired) {
+                  inputData = {
+                    ...inputData,
+                    [foreignKey.name]: null,
+                  }
+                }
               }
             }
 
@@ -473,7 +524,7 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
                 }
               } else {
                 const joinfield = getJoinField(field)
-                delegate.update({
+                delegate._update({
                   data: {
                     [joinfield.relationFromFields[0]]: null,
                   },
@@ -715,29 +766,51 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
      * Returns the updated data and count of updated records
      */
     const updateMany = (args) => {
-      let nbUpdated = 0
       const updatedIndexes = []
       const match = matchFnc(args.where)
       const rows = ref.data[prop]
-      const newItems = rows.map((e, index) => {
-        if (match(e)) {
-          let data = nestedUpdate(args, false, e)
-          nbUpdated++
-          const newItem = {
-            ...e,
-            ...data,
-          }
-          indexes.updateItem(prop, newItem, e)
-          updatedIndexes.push(index)
-          return newItem
+      const updateRow = (e, index) => {
+        let data = nestedUpdate(args, false, e)
+        const newItem = {
+          ...e,
+          ...data,
         }
-        return e
-      })
+        indexes.updateItem(prop, newItem, e)
+        updatedIndexes.push(index)
+        return newItem
+      }
+      // As in update, a where pinning a key narrows the rows to match down to the ones
+      // holding its values, matched in table order. Their indexes are taken first, as nested
+      // writes may add to the set
+      const candidates = getCandidateRows(args.where)
+      let newItems
+      if (candidates) {
+        newItems = rows.slice()
+        for (const index of getCandidateIndexes(rows, candidates)) {
+          if (match(rows[index])) {
+            newItems[index] = updateRow(rows[index], index)
+          }
+        }
+      } else {
+        newItems = rows.map((e, index) => (match(e) ? updateRow(e, index) : e))
+      }
+      const nbUpdated = updatedIndexes.length
       ref.data = {
         ...ref.data,
         [prop]: newItems,
       }
       removeCompoundKeyFields(rows, updatedIndexes.map((index) => newItems[index]))
+
+      // When only the updated rows changed, the rows by value carry over with each updated
+      // row swapped for its new version, rather than being filed again by the next lookup
+      if (ref.data[prop] === newItems) {
+        carryValueRows(
+          rows,
+          newItems,
+          updatedIndexes.map((index) => rows[index]),
+          updatedIndexes.map((index) => newItems[index])
+        )
+      }
       // removeMultiFieldIds keeps every row at its index, so the updated rows are picked
       // by position rather than searched for with one where clause per row
       const data = findMany(
@@ -888,7 +961,7 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
           if (!joinfield) return
           const delegate = getDelegateForFieldName(field.type)
           if (joinfield.relationOnDelete === "SetNull") {
-            delegate.update({
+            delegate._update({
               where: {
                 [joinfield.relationFromFields[0]]:
                   item[joinfield.relationToFields[0]],
@@ -899,14 +972,13 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
               skipForeignKeysChecks: true,
             })
           } else if (joinfield.relationOnDelete === "Cascade") {
-            try {
-              delegate.delete({
-                where: {
-                  [joinfield.relationFromFields[0]]:
-                    item[joinfield.relationToFields[0]],
-                },
-              })
-            } catch (e) { }
+            // Every row referring to the deleted one, which a foreign key doesn't make unique
+            delegate._deleteMany({
+              where: {
+                [joinfield.relationFromFields[0]]:
+                  item[joinfield.relationToFields[0]],
+              },
+            })
           }
         })
       })
@@ -1082,6 +1154,81 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
       // removeMultiFieldIds keeps every row at its index, so the updated row is picked by
       // position rather than searched for with all of its fields as the where clause
       return findMany({ ...args, where: undefined }, [updatedRows[updatedIndex]])[0]
+    }
+
+    /**
+     * Deletes the first record matching the given criteria, without checking that they are
+     * unique. Throws an error if no record is found
+     */
+    const deleteOne = (args) => {
+      // Deleting finds the row as well, so it isn't looked up separately first
+      const deleted = deleteMany(args)
+      if (!deleted.length) {
+        throwKnownError(prisma,
+          "An operation failed because it depends on one or more records that were required but not found. Record to delete does not exist.",
+          { meta: { cause: "No record was found for a delete.", modelName: model.name } }
+        )
+      }
+      return deleted[0]
+    }
+
+    // The keys a WhereUniqueInput of this model selects a row by
+    const uniqueKeyNames = getUniqueKeyNames(model)
+
+    /**
+     * Throws a validation error, as Prisma does, when a where clause that has to point at one
+     * row holds none of the model's unique keys. Only the public findUnique, update, upsert
+     * and delete check; the mock's own writes look rows up by foreign key through the
+     * unchecked ones
+     */
+    const checkWhereUnique = (where: any) => {
+      checkCompoundKeys(where, true)
+      const hasUniqueKey = !!where && uniqueKeyNames.some((name) => where[name] !== undefined && where[name] !== null)
+      if (!hasUniqueKey) {
+        throwValidationError(prisma,
+          `Argument \`where\` of type ${model.name}WhereUniqueInput needs at least one of ${uniqueKeyNames.map((name) => `\`${name}\``).join(" or ")} arguments.`
+        )
+      }
+    }
+
+    // The names compound keys are selected by in a WhereUniqueInput
+    const compoundKeyNames = getCompoundKeys(model).map((compoundKey) => compoundKey.name)
+
+    /**
+     * Throws a validation error, as Prisma does, when a where clause uses a compound key by
+     * its name anywhere but the top level of a WhereUniqueInput (`isUnique`): at the top of
+     * any other where, inside AND, OR or NOT, or in a relation filter of another model
+     */
+    const checkCompoundKeys = (where: any, isUnique = false) => {
+      if (!where || typeof where !== "object") return
+      if (!isUnique) {
+        for (const name of compoundKeyNames) {
+          if (where[name] !== undefined) {
+            throwValidationError(prisma,
+              `Unknown argument \`${name}\`. A compound key can only be used at the top level of a WhereUniqueInput.`
+            )
+          }
+        }
+      }
+      for (const operator of ["AND", "OR", "NOT"]) {
+        const subWhere = where[operator]
+        for (const item of Array.isArray(subWhere) ? subWhere : [subWhere]) {
+          checkCompoundKeys(item)
+        }
+      }
+      for (const field of model.fields) {
+        const filter = where[field.name]
+        if (field.kind !== "object" || !filter || typeof filter !== "object") continue
+        const delegate = getDelegateForFieldName(field.type)
+        const relationFilters = ["some", "every", "none", "is", "isNot"].filter((key) => key in filter)
+        if (relationFilters.length === 0) {
+          // A to-one relation can be filtered by the related model's where directly
+          delegate._checkCompoundKeys(filter)
+        }
+        for (const key of relationFilters) {
+          delegate._checkCompoundKeys(filter[key])
+        }
+      }
     }
 
     /**
@@ -1318,14 +1465,35 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
 
     // Return the delegate object with all CRUD operations
     return {
-      aggregate,
-      groupBy,
+      aggregate: (args) => {
+        checkCompoundKeys(args?.where)
+        return aggregate(args)
+      },
+      groupBy: (args) => {
+        checkCompoundKeys(args?.where)
+        return groupBy(args)
+      },
       findOne,
-      findUnique: findOne,
-      findUniqueOrThrow: findOrThrow,
-      findMany,
-      findFirst: findOne,
-      findFirstOrThrow: findOrThrow,
+      findUnique: (args) => {
+        checkWhereUnique(args?.where)
+        return findOne(args)
+      },
+      findUniqueOrThrow: (args) => {
+        checkWhereUnique(args?.where)
+        return findOrThrow(args)
+      },
+      findMany: (args) => {
+        checkCompoundKeys(args?.where)
+        return findMany(args)
+      },
+      findFirst: (args) => {
+        checkCompoundKeys(args?.where)
+        return findOne(args)
+      },
+      findFirstOrThrow: (args) => {
+        checkCompoundKeys(args?.where)
+        return findOrThrow(args)
+      },
       create,
       createMany: (args) => {
         const createdItems = createMany(args)
@@ -1336,27 +1504,26 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
         return createdItems
       },
       delete: (args) => {
-        // Deleting finds the row as well, so it isn't looked up separately first
-        const deleted = deleteMany(args)
-        if (!deleted.length) {
-          throwKnownError(prisma,
-            "An operation failed because it depends on one or more records that were required but not found. Record to delete does not exist.",
-            { meta: { cause: "No record was found for a delete.", modelName: model.name } }
-          )
-        }
-        return deleted[0]
+        checkWhereUnique(args?.where)
+        return deleteOne(args)
       },
-      update,
+      update: (args) => {
+        checkWhereUnique(args?.where)
+        return update(args)
+      },
       deleteMany: (args) => {
+        checkCompoundKeys(args?.where)
         const deleted = deleteMany(args)
         return { count: deleted.length }
       },
       updateMany: (args) => {
+        checkCompoundKeys(args?.where)
         const { nbUpdated } = updateMany(args)
         return { count: nbUpdated }
       },
       updateManyAndReturn: (args) => {
-        const { data, nbUpdated } = updateMany(args)
+        checkCompoundKeys(args?.where)
+        const { data } = updateMany(args)
         return data
       },
 
@@ -1364,6 +1531,7 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
        * Upsert operation: update if exists, create if not
        */
       upsert(args) {
+        checkWhereUnique(args?.where)
         const res = findOne(args)
         if (res) {
           return update({
@@ -1386,6 +1554,7 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
        * Count operation: returns the number of records matching the criteria
        */
       count(args) {
+        checkCompoundKeys(args?.where)
         // Ordering doesn't change a count, and without a window there are no rows to shape
         if (isPlainQuery({ ...args, orderBy: undefined })) {
           const match = matchFnc(args?.where)
@@ -1405,6 +1574,11 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
       _sortFunc: sortFunc,
       _findMany: findMany,
       _createMany: createMany,
+      _update: update,
+      _delete: deleteOne,
+      _checkCompoundKeys: checkCompoundKeys,
+      _checkWhereUnique: checkWhereUnique,
+      _deleteMany: deleteMany,
     }
   }
   // One delegate per table. A delegate keeps no state of its own (that lives in ref and the
@@ -1420,5 +1594,15 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
     return delegate
   }
 
-  return Delegate
+  // The many-to-many links as they are now, and putting back ones taken earlier, for rolling
+  // back an operation or transaction that fails
+  const getManyToManyLinks = () => ({ ...manyToManyData })
+  const setManyToManyLinks = (links: typeof manyToManyData) => {
+    for (const relationName of Object.keys(manyToManyData)) {
+      delete manyToManyData[relationName]
+    }
+    Object.assign(manyToManyData, links)
+  }
+
+  return Object.assign(Delegate, { getManyToManyLinks, setManyToManyLinks })
 } 
