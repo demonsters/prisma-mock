@@ -14,10 +14,8 @@ const NUM_USERS = 12
 const NUM_ACCOUNTS = 5
 const NUM_ANSWERS = 4
 
-// The blow-up is only visible without the index lookups, which happen to short
-// circuit a foreign key join but do nothing for the nested filter itself.
-const seed = async (options) => {
-  const client = await createPrismaClient({}, options)
+const seed = async () => {
+  const client = await createPrismaClient({})
   await client.account.createMany({
     data: Array.from({ length: NUM_ACCOUNTS }, (_, i) => ({ id: i + 1, name: `account-${i + 1}` })),
   })
@@ -72,7 +70,7 @@ const THRESHOLD_MS = 500
 describe("nested where performance", () => {
 
   test("stays fast when the filter nests six relations deep", async () => {
-    const client = await seed({ enableIndexes: false })
+    const client = await seed()
     const timings = []
 
     for (const [label, where] of depths) {
@@ -88,20 +86,8 @@ describe("nested where performance", () => {
     console.log(timings.join("\n"))
   })
 
-  test("stays fast with indexes enabled", async () => {
-    const client = await seed({ enableIndexes: true })
-    const [, deepest] = depths[depths.length - 1]
-
-    const start = performance.now()
-    const res = await client.toy.findMany({ where: deepest })
-    const duration = performance.now() - start
-
-    expect(res.length).toBe(NUM_TOYS)
-    expect(duration).toBeLessThan(THRESHOLD_MS)
-  })
-
   test("returns the same rows as the equivalent shallow queries", async () => {
-    const client = await seed({ enableIndexes: false })
+    const client = await seed()
 
     // Only user-1 answered answer-1, and only pet-1/pet-13 belong to user-1
     const res = await client.toy.findMany({
@@ -133,5 +119,59 @@ describe("nested where performance", () => {
     expect(expected.length).toBeGreaterThan(0)
     expect(expected.length).toBeLessThan(NUM_TOYS)
     expect(res).toEqual(expected)
+  })
+
+  // updateMany and deleteMany share one matcher across every row they visit, so
+  // the cached related rows must select exactly what the shallow queries do
+  const answeredFirst = {
+    owner: {
+      owner: {
+        account: {
+          users: {
+            some: { answers: { some: { answer: { title: "answer-1" } } } },
+          },
+        },
+      },
+    },
+  }
+
+  const getAnsweredFirstToyIds = async (client) => {
+    const accounts = await client.account.findMany({
+      where: { users: { some: { answers: { some: { answer: { title: "answer-1" } } } } } },
+    })
+    const users = await client.user.findMany({ where: { accountId: { in: accounts.map((account) => account.id) } } })
+    const pets = await client.pet.findMany({ where: { ownerId: { in: users.map((user) => user.id) } } })
+    const toys = await client.toy.findMany({
+      where: { ownerId: { in: pets.map((pet) => pet.id) } },
+      orderBy: { id: "asc" },
+    })
+    return toys.map((toy) => toy.id)
+  }
+
+  test("updateMany changes the same rows as the equivalent shallow queries", async () => {
+    const client = await seed()
+    const expected = await getAnsweredFirstToyIds(client)
+
+    const { count } = await client.toy.updateMany({ where: answeredFirst, data: { name: "matched" } })
+
+    const updated = await client.toy.findMany({ where: { name: "matched" }, orderBy: { id: "asc" } })
+    expect(expected.length).toBeGreaterThan(0)
+    expect(expected.length).toBeLessThan(NUM_TOYS)
+    expect(count).toBe(expected.length)
+    expect(updated.map((toy) => toy.id)).toEqual(expected)
+  })
+
+  test("deleteMany removes the same rows as the equivalent shallow queries", async () => {
+    const client = await seed()
+    const expected = await getAnsweredFirstToyIds(client)
+
+    const { count } = await client.toy.deleteMany({ where: answeredFirst })
+
+    const remaining = await client.toy.findMany({ orderBy: { id: "asc" } })
+    expect(expected.length).toBeGreaterThan(0)
+    expect(expected.length).toBeLessThan(NUM_TOYS)
+    expect(count).toBe(expected.length)
+    expect(remaining.length).toBe(NUM_TOYS - expected.length)
+    expect(remaining.filter((toy) => expected.includes(toy.id))).toEqual([])
   })
 })

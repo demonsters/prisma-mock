@@ -137,6 +137,59 @@ Array [
   })
 
 
+  test("updateManyAndReturn on a compound @@id returns only the updated rows", async () => {
+    const client = await createPrismaClient({
+      user: [
+        { id: 1, name: "Henk", uniqueField: "1" },
+        { id: 2, name: "Piet", uniqueField: "2" },
+      ],
+      answers: [
+        { id: 1, title: "first" },
+        { id: 2, title: "second" },
+      ],
+      userAnswers: [
+        { userId: 1, answerId: 1, value: "open" },
+        { userId: 1, answerId: 2, value: "closed" },
+        { userId: 2, answerId: 1, value: "open" },
+        { userId: 2, answerId: 2, value: "closed" },
+      ],
+    })
+    const rows = await client.userAnswers.updateManyAndReturn({
+      where: { value: "open" },
+      data: { value: "answered" },
+    })
+    rows.sort((a, b) => a.userId - b.userId || a.answerId - b.answerId)
+    expect(rows).toEqual([
+      { userId: 1, answerId: 1, value: "answered" },
+      { userId: 2, answerId: 1, value: "answered" },
+    ])
+  })
+
+  test("updateManyAndReturn includes relations of the updated rows", async () => {
+    const client = await createPrismaClient({
+      user: [{ id: 1, name: "Henk", uniqueField: "1" }],
+      pet: [
+        { id: 1, name: "Rex", ownerId: 1 },
+        { id: 2, name: "Tom", ownerId: 1 },
+      ],
+      toy: [
+        { id: 1, name: "ball", ownerId: 1 },
+        { id: 2, name: "rope", ownerId: 2 },
+        { id: 3, name: "bone", ownerId: 1 },
+      ],
+    })
+    const toys = await client.toy.updateManyAndReturn({
+      where: { ownerId: 1 },
+      data: { name: "chewed" },
+      include: { owner: true },
+    })
+    toys.sort((a, b) => a.id - b.id)
+    expect(toys).toEqual([
+      { id: 1, name: "chewed", ownerId: 1, owner: { id: 1, name: "Rex", ownerId: 1 } },
+      { id: 3, name: "chewed", ownerId: 1, owner: { id: 1, name: "Rex", ownerId: 1 } },
+    ])
+  })
+
   test("updateManyAndReturn update where values", async () => {
     const client = await createPrismaClient(data)
     const users = await client.user.updateManyAndReturn({

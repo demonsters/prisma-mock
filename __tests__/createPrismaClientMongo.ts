@@ -5,7 +5,6 @@ import createPrismaMock from "../src/client"
 
 export default async function createPrismaClientMongo(data?: any, options?: any) {
   const client = createPrismaMock<PrismaClient>(Prisma, {
-    enableIndexes: true,
     datamodel: Prisma.dmmf?.datamodel,
     ...options,
   })

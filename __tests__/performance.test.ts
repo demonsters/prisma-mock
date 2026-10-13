@@ -2,9 +2,7 @@ import createPrismaClient from "./createPrismaClient"
 
 
 test("performance test", async () => {
-  const client = await createPrismaClient(undefined, {
-    enableIndexes: true,
-  })
+  const client = await createPrismaClient()
   performance.mark("start-create")
   for (let i = 0; i < 50; i++) {
     await client.user.create({

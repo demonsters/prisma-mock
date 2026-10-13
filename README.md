@@ -116,7 +116,6 @@ createPrismaMock<P extends PrismaClient = PrismaClient>(
     datamodel?: Prisma.DMMF.Datamodel
     mockClient?: DeepMockApi
     caseInsensitive?: boolean
-    enableIndexes?: boolean
   }
 ): P & { 
   $getInternalState: () => Required<PrismaMockData<P>>
@@ -135,7 +134,7 @@ createPrismaMock<P extends PrismaClient = PrismaClient>(
 - **`datamodel`** (optional): The Prisma datamodel, typically `Prisma.dmmf.datamodel` (default).
 - **`mockClient`** (optional): A `jest-mock-extended` or `vitest-mock-extended` instance. If not provided, a plain object is used instead.
 - **`caseInsensitive`** (boolean, default: `false`): If true, all string comparisons are case insensitive
-- **`enableIndexes`** (boolean, default: `true`) If true, enables indexing for better query performance on primary keys, unique fields, and foreign keys
+- **`enableIndexes`** (deprecated): Has no effect. Lookups by primary key, unique field, compound key or foreign key are always answered without scanning the table.
 
 ### Return Value
 
@@ -155,7 +154,6 @@ createPrismaMock<PClient extends PrismaClient, P extends typeof Prisma = typeof 
     datamodel?: P["dmmf"]["datamodel"]
     mockClient?: DeepMockApi
     caseInsensitive?: boolean
-    enableIndexes?: boolean
   }
 ): PClient & { 
   $getInternalState: () => Required<PrismaMockData<PClient>>
@@ -181,7 +179,7 @@ const client = createPrismaMock(
   { user: [{ id: 1, name: "John" }] }, // data
   Prisma.dmmf.datamodel, // datamodel (optional)
   mockDeep(), // mockClient (optional)
-  { enableIndexes: true } // options (optional)
+  { caseInsensitive: true } // options (optional)
 )
 ```
 
@@ -376,15 +374,16 @@ The following features are planned but not yet implemented:
 
 ## Performance Features
 
-### Indexing
+### Lookups by key
 
-Indexing is enabled by default for better query performance. Indexes are automatically created for:
+A `where` that pins one of these to a value (plainly, with `equals` or with `in`) is answered from the rows holding that value, instead of matching every row of the table:
 
 - Primary key fields
 - Unique fields
+- Compound keys (`@@id` / `@@unique`)
 - Foreign key fields
 
-This can significantly improve query performance for large datasets.
+This needs no configuration. The `enableIndexes` option that used to switch indexing on or off no longer has any effect.
 
 ## Error Handling
 
