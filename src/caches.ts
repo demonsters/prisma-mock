@@ -3,20 +3,37 @@ import { getCompoundKeys } from "./utils/compoundKeys"
 import { getCamelCase, removeMultiFieldIds } from "./utils/fieldHelpers"
 import { getLookupValues } from "./utils/lookupValues"
 
-const addRow = (rowsByValue: Map<any, Set<any>>, value: any, row: any) => {
+// The rows holding each value: the row itself while one row holds it, as for every value of
+// an id or unique field, and a Set once more do. A Set per row would take several times the
+// memory of the rows themselves. Rows are plain objects, so they are never a Set
+type RowsByValue = Map<any, any>
+
+const addRow = (rowsByValue: RowsByValue, value: any, row: any) => {
   const rows = rowsByValue.get(value)
-  if (rows) {
+  if (rows === undefined) {
+    rowsByValue.set(value, row)
+  } else if (rows instanceof Set) {
     rows.add(row)
-  } else {
-    rowsByValue.set(value, new Set([row]))
+  } else if (rows !== row) {
+    rowsByValue.set(value, new Set([rows, row]))
   }
 }
 
-const removeRow = (rowsByValue: Map<any, Set<any>>, value: any, row: any) => {
+const removeRow = (rowsByValue: RowsByValue, value: any, row: any) => {
   const rows = rowsByValue.get(value)
-  if (!rows) return
-  rows.delete(row)
-  if (rows.size === 0) rowsByValue.delete(value)
+  if (rows instanceof Set) {
+    rows.delete(row)
+    if (rows.size === 1) rowsByValue.set(value, rows.values().next().value)
+  } else if (rows === row) {
+    rowsByValue.delete(value)
+  }
+}
+
+// The rows holding a value, to iterate over
+export const getRows = (rowsByValue: RowsByValue, value: any): Iterable<any> => {
+  const rows = rowsByValue.get(value)
+  if (rows === undefined) return []
+  return rows instanceof Set ? rows : [rows]
 }
 
 // One string per combination of values, or undefined when a value has no exact JSON
@@ -50,7 +67,7 @@ export const createCaches = <P extends typeof Prisma>({ ref, prop, datamodel, ca
   // than positions, so a delete doesn't shift what every later row is filed under.
   const valueRows = new WeakMap<any[], {
     length: number
-    byKey: Map<string, { rows: Map<any, Set<any>>, getValue: (row: any) => any }>
+    byKey: Map<string, { rows: RowsByValue, getValue: (row: any) => any }>
   }>()
 
   // Versions of a table known to hold no compound key as a field, with their length.
@@ -108,7 +125,7 @@ export const createCaches = <P extends typeof Prisma>({ ref, prop, datamodel, ca
     }
     let entry = cached.byKey.get(key)
     if (!entry) {
-      const rowsByValue = new Map()
+      const rowsByValue: RowsByValue = new Map()
       for (const row of rows) {
         addRow(rowsByValue, getValue(row), row)
       }
@@ -159,11 +176,11 @@ export const createCaches = <P extends typeof Prisma>({ ref, prop, datamodel, ca
       if (values) {
         const rowsByValue = getFieldRows(key)
         if (values.length === 1) {
-          return rowsByValue.get(values[0]) || []
+          return getRows(rowsByValue, values[0])
         }
         const rows = new Set()
         for (const value of values) {
-          for (const row of rowsByValue.get(value) || []) {
+          for (const row of getRows(rowsByValue, value)) {
             rows.add(row)
           }
         }
@@ -173,7 +190,7 @@ export const createCaches = <P extends typeof Prisma>({ ref, prop, datamodel, ca
       if (compoundKey && value && typeof value === "object") {
         const compoundValue = getCompoundValue(value, compoundKey.fields)
         if (compoundValue !== undefined) {
-          return getCompoundRows(compoundKey.name, compoundKey.fields).get(compoundValue) || []
+          return getRows(getCompoundRows(compoundKey.name, compoundKey.fields), compoundValue)
         }
       }
     }
