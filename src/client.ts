@@ -1,5 +1,5 @@
 import type { Prisma, PrismaClient } from "@prisma/client"
-import { createDelegate } from "./delegate"
+import { createDelegate, delegateMethodNames } from "./delegate"
 import { MockPrismaOptions, PrismaMockData } from "./types"
 import { deepCopy } from "./utils/deepCopy"
 import { getCamelCase, removeMultiFieldIds } from "./utils/fieldHelpers"
@@ -132,25 +132,18 @@ function createPrismaMock<PClient extends PrismaClient, P extends typeof Prisma 
     // Remove multi-field IDs from the data structure
     ref.data = removeMultiFieldIds(model, ref.data)
 
-    // Create delegate functions for this model
-    const objs = Delegate(c, model)
-
-    // Bind delegate functions to the client
-    Object.keys(objs).forEach((fncName) => {
-      // Skip private methods (those starting with underscore)
-      if (fncName.indexOf("_") === 0) return
-
-      // Initialize model namespace if it doesn't exist
-      if (!client[c]) client[c] = {}
-
-      // Bind the delegate function to the client
+    // Bind the delegate functions to the client. The delegate is built the first time one of
+    // them runs: it holds a closure per operation and the caches of its table, and a test
+    // usually touches only a few of the models
+    if (!client[c]) client[c] = {}
+    delegateMethodNames.forEach((fncName) => {
       if (options.mockClient) {
         client[c][fncName].mockImplementation(async (...params) => {
-          return runQuery(() => objs[fncName](...params))
+          return runQuery(() => Delegate(c, model)[fncName](...params))
         })
       } else {
         client[c][fncName] = async (...params) => {
-          return runQuery(() => objs[fncName](...params))
+          return runQuery(() => Delegate(c, model)[fncName](...params))
         }
       }
     })

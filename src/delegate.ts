@@ -8,6 +8,29 @@ import { createGetFieldRelationshipWhere, getCamelCase, isFieldDefault } from ".
 import createMatch from "./utils/queryMatching"
 import { isLookupValue } from "./utils/lookupValues"
 
+// The operations a model's delegate offers on the client, so the client can bind them without
+// building the delegate. Those starting with an underscore are internal
+export const delegateMethodNames = [
+  "aggregate",
+  "groupBy",
+  "findOne",
+  "findUnique",
+  "findUniqueOrThrow",
+  "findMany",
+  "findFirst",
+  "findFirstOrThrow",
+  "create",
+  "createMany",
+  "createManyAndReturn",
+  "delete",
+  "update",
+  "deleteMany",
+  "updateMany",
+  "updateManyAndReturn",
+  "upsert",
+  "count",
+] as const
+
 /**
  * Creates a delegate function that handles Prisma-like operations for a specific model
  * This is the main factory function that generates model-specific CRUD operations
