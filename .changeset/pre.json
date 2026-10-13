@@ -5,7 +5,27 @@
     "prisma-mock": "1.1.1"
   },
   "changesets": [
+    "brave-rows-share",
+    "bright-rows-reach",
+    "calm-rows-move",
     "great-eels-hammer",
-    "tidy-keys-rest"
+    "kept-links-rollback",
+    "kind-flags-stay",
+    "light-first-count",
+    "plain-rows-stay",
+    "quick-rows-delete",
+    "quick-rows-update",
+    "quick-sets-check",
+    "retired-indexes",
+    "scoped-nested-writes",
+    "sharp-misses-answer",
+    "steady-batch-rows",
+    "strict-compound-keys",
+    "strict-rows-delete",
+    "strict-rows-find",
+    "swift-keys-index",
+    "swift-rows-return",
+    "tidy-keys-rest",
+    "true-pets-nest"
   ]
 }
