@@ -1,7 +1,6 @@
 import type { Prisma } from "@prisma/client"
 import createHandleDefault from "./defaults"
 import { throwKnownError, throwValidationError } from "./errors"
-import createIndexes from "./indexes"
 import { CreateArgs, Item } from "./types"
 import { createCaches, getCompoundValue } from "./caches"
 import { getCompoundKeys, getUniqueKeyNames } from "./utils/compoundKeys"
@@ -13,12 +12,11 @@ import { isLookupValue } from "./utils/lookupValues"
  * Creates a delegate function that handles Prisma-like operations for a specific model
  * This is the main factory function that generates model-specific CRUD operations
  */
-export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel = prisma.dmmf.datamodel, caseInsensitive, indexes }: {
+export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel = prisma.dmmf.datamodel, caseInsensitive }: {
   ref: any, // Reference to the mock data store
   prisma: P, // Prisma datamodel definition
   datamodel: P["dmmf"]["datamodel"], // Prisma datamodel definition
   caseInsensitive: boolean, // Whether string comparisons should be case insensitive
-  indexes: ReturnType<typeof createIndexes>, // Index management for performance
 }) => {
 
   // Initialize default value handler
@@ -670,16 +668,11 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
      * Handles filtering, sorting, pagination, and includes
      */
     /**
-     * The rows a where clause can match, in table order: the ones the index holds for it, the
-     * ones the lookup by value finds when the index can't answer (or is disabled), or the
-     * whole table
+     * The rows a where clause can match, in table order: the ones holding the values it pins
+     * a key to, or the whole table
      */
     const getRowsToMatch = (where: any) => {
       const rows = ref.data[prop] || []
-      const indexed = indexes.getIndexedItems(prop, where, rows)
-      if (indexed) {
-        return indexed
-      }
       const candidates = getCandidateRows(where)
       if (candidates) {
         return getCandidateIndexes(rows, candidates).map((index) => rows[index])
@@ -775,7 +768,6 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
           ...e,
           ...data,
         }
-        indexes.updateItem(prop, newItem, e)
         updatedIndexes.push(index)
         return newItem
       }
@@ -822,7 +814,7 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
 
     /**
      * Creates a new record with the given data
-     * Handles default values, unique constraints, and indexes
+     * Handles default values and unique constraints
      */
     const create = (args: CreateArgs) => {
       // Get field schema for default values
@@ -869,10 +861,8 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
         }
       }
 
-      // The new row is the last one, removeMultiFieldIds keeps every row at its index.
-      // The index gets the stored row, not the copy that select / include shape for the caller
+      // The new row is the last one, removeMultiFieldIds keeps every row at its index
       const item = rows[rows.length - 1]
-      indexes.updateItem(prop, item, null)
       return findMany({ ...args, where: undefined }, [item])[0]
     }
 
@@ -948,9 +938,6 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
       carryValueRows(rows, remaining, deleted, [])
       // Taking rows out of a version without compound key fields leaves it without any
       carryCleanRows(rows, remaining)
-
-      // Out of the index before the referential actions run, which may look this table up
-      deleted.forEach((item) => indexes.deleteItem(prop, item))
 
       // Handle referential actions for deleted records
       deleted.forEach((item) => {
@@ -1109,7 +1096,6 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
           ...e,
           ...data,
         }
-        indexes.updateItem(prop, updatedItem, e)
         return updatedItem
       }
       // A unique where narrows the rows to match down to the ones holding its value, matched

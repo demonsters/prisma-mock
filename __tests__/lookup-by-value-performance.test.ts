@@ -2,8 +2,8 @@
 import createPrismaClient from "./createPrismaClient"
 
 // A lookup that finds nothing, or that filters with equals or in, used to scan the whole
-// table even with indexes enabled: 5000 of them over 5000 rows took 3-4s locally. Answered
-// from the index they take 4-9ms.
+// table: 5000 of them over 5000 rows took 3-4s locally. Answered from the rows the delegate
+// files by value they take a few ms.
 const NUM_ROWS = 5000
 
 // Generous enough to stay green on CI, which runs 4-6x slower than a laptop, and still
@@ -24,7 +24,7 @@ const time = async (fn) => {
   return performance.now() - start
 }
 
-describe("index lookup performance", () => {
+describe("lookup by value performance", () => {
 
   test("lookups that find nothing stay fast", async () => {
     const client = await seed()

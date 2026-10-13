@@ -7,9 +7,8 @@ import createPrismaClient from "./createPrismaClient"
 // rows are picked by position.
 const NUM_TOYS = 3000
 
-// CI runs this 4-6x slower than a laptop, and with indexes enabled every row written
-// also rescans the index entry it shares with the 2999 others, which costs up to
-// ~300ms there. The previous implementation needs seconds on CI.
+// CI runs this 4-6x slower than a laptop. The previous implementation needs seconds
+// there.
 const THRESHOLD_MS = 1000
 
 const seed = async () => {

@@ -14,10 +14,8 @@ const NUM_USERS = 12
 const NUM_ACCOUNTS = 5
 const NUM_ANSWERS = 4
 
-// The blow-up is only visible without the index lookups, which happen to short
-// circuit a foreign key join but do nothing for the nested filter itself.
-const seed = async (options) => {
-  const client = await createPrismaClient({}, options)
+const seed = async () => {
+  const client = await createPrismaClient({})
   await client.account.createMany({
     data: Array.from({ length: NUM_ACCOUNTS }, (_, i) => ({ id: i + 1, name: `account-${i + 1}` })),
   })
@@ -72,7 +70,7 @@ const THRESHOLD_MS = 500
 describe("nested where performance", () => {
 
   test("stays fast when the filter nests six relations deep", async () => {
-    const client = await seed({ enableIndexes: false })
+    const client = await seed()
     const timings = []
 
     for (const [label, where] of depths) {
@@ -88,20 +86,8 @@ describe("nested where performance", () => {
     console.log(timings.join("\n"))
   })
 
-  test("stays fast with indexes enabled", async () => {
-    const client = await seed({ enableIndexes: true })
-    const [, deepest] = depths[depths.length - 1]
-
-    const start = performance.now()
-    const res = await client.toy.findMany({ where: deepest })
-    const duration = performance.now() - start
-
-    expect(res.length).toBe(NUM_TOYS)
-    expect(duration).toBeLessThan(THRESHOLD_MS)
-  })
-
   test("returns the same rows as the equivalent shallow queries", async () => {
-    const client = await seed({ enableIndexes: false })
+    const client = await seed()
 
     // Only user-1 answered answer-1, and only pet-1/pet-13 belong to user-1
     const res = await client.toy.findMany({
@@ -163,7 +149,7 @@ describe("nested where performance", () => {
   }
 
   test("updateMany changes the same rows as the equivalent shallow queries", async () => {
-    const client = await seed({ enableIndexes: false })
+    const client = await seed()
     const expected = await getAnsweredFirstToyIds(client)
 
     const { count } = await client.toy.updateMany({ where: answeredFirst, data: { name: "matched" } })
@@ -176,7 +162,7 @@ describe("nested where performance", () => {
   })
 
   test("deleteMany removes the same rows as the equivalent shallow queries", async () => {
-    const client = await seed({ enableIndexes: false })
+    const client = await seed()
     const expected = await getAnsweredFirstToyIds(client)
 
     const { count } = await client.toy.deleteMany({ where: answeredFirst })

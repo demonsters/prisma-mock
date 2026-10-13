@@ -5,7 +5,7 @@ import createPrismaClient from "./createPrismaClient"
 // updateMany and updateManyAndReturn only match the rows holding the values a where pins an
 // id, unique field or foreign key to. These check they change the same rows as
 // matching the whole table would, and that later lookups by the old and new values agree
-describe.each([true, false])("updateMany by a key (enableIndexes: %s)", (enableIndexes) => {
+describe("updateMany by a key", () => {
   const data = {
     user: [
       { id: 1, name: "Anna", uniqueField: "a" },
@@ -31,7 +31,7 @@ describe.each([true, false])("updateMany by a key (enableIndexes: %s)", (enableI
     (await client.toy.findMany({ orderBy: { id: "asc" } })).map(({ id, name, ownerId }) => ({ id, name, ownerId }))
 
   test("by a unique field", async () => {
-    const client = await createPrismaClient(data, { enableIndexes })
+    const client = await createPrismaClient(data)
 
     expect(await client.user.updateMany({ where: { uniqueField: "b" }, data: { name: "Bob" } })).toEqual({ count: 1 })
     const returned = await client.user.updateManyAndReturn({ where: { uniqueField: "a" }, data: { name: "Ann" } })
@@ -41,7 +41,7 @@ describe.each([true, false])("updateMany by a key (enableIndexes: %s)", (enableI
   })
 
   test("by a foreign key", async () => {
-    const client = await createPrismaClient(data, { enableIndexes })
+    const client = await createPrismaClient(data)
 
     expect(await client.toy.updateMany({ where: { ownerId: 1 }, data: { name: "new" } })).toEqual({ count: 3 })
     const returned = await client.toy.updateManyAndReturn({ where: { ownerId: 3 }, data: { name: "newer" } })
@@ -51,7 +51,7 @@ describe.each([true, false])("updateMany by a key (enableIndexes: %s)", (enableI
   })
 
   test("by in on a key", async () => {
-    const client = await createPrismaClient(data, { enableIndexes })
+    const client = await createPrismaClient(data)
 
     expect(await client.toy.updateMany({ where: { id: { in: [5, 1, 99] } }, data: { name: "new" } })).toEqual({ count: 2 })
     const returned = await client.toy.updateManyAndReturn({ where: { ownerId: { in: [2, 3] } }, data: { name: "newer" } })
@@ -61,7 +61,7 @@ describe.each([true, false])("updateMany by a key (enableIndexes: %s)", (enableI
   })
 
   test("by a key and another filter that leaves some of its rows out", async () => {
-    const client = await createPrismaClient(data, { enableIndexes })
+    const client = await createPrismaClient(data)
 
     expect(await client.toy.updateMany({ where: { ownerId: 1, name: { not: "rope" } }, data: { name: "new" } })).toEqual({ count: 2 })
     const returned = await client.toy.updateManyAndReturn({ where: { AND: [{ ownerId: 1 }, { name: "rope" }] }, data: { name: "newer" } })
@@ -71,7 +71,7 @@ describe.each([true, false])("updateMany by a key (enableIndexes: %s)", (enableI
   })
 
   test("by a where that matches nothing", async () => {
-    const client = await createPrismaClient(data, { enableIndexes })
+    const client = await createPrismaClient(data)
     const before = await toys(client)
 
     expect(await client.toy.updateMany({ where: { ownerId: 99 }, data: { name: "new" } })).toEqual({ count: 0 })
@@ -82,7 +82,7 @@ describe.each([true, false])("updateMany by a key (enableIndexes: %s)", (enableI
   })
 
   test("moving rows to another foreign key value", async () => {
-    const client = await createPrismaClient(data, { enableIndexes })
+    const client = await createPrismaClient(data)
 
     expect(await client.toy.updateMany({ where: { ownerId: 1 }, data: { ownerId: 2 } })).toEqual({ count: 3 })
 
@@ -98,7 +98,7 @@ describe.each([true, false])("updateMany by a key (enableIndexes: %s)", (enableI
   })
 
   test("changing the unique field it looked the row up by", async () => {
-    const client = await createPrismaClient(data, { enableIndexes })
+    const client = await createPrismaClient(data)
 
     expect(await client.user.updateMany({ where: { uniqueField: "b" }, data: { uniqueField: "c" } })).toEqual({ count: 1 })
 
@@ -114,7 +114,7 @@ describe.each([true, false])("updateMany by a key (enableIndexes: %s)", (enableI
   })
 
   test("changing the id it looked the rows up by", async () => {
-    const client = await createPrismaClient(data, { enableIndexes })
+    const client = await createPrismaClient(data)
 
     expect(await client.toy.updateMany({ where: { id: { in: [4] } }, data: { id: 14 } })).toEqual({ count: 1 })
 
@@ -125,7 +125,7 @@ describe.each([true, false])("updateMany by a key (enableIndexes: %s)", (enableI
 })
 
 // What only the mock does, or only it does in a given order
-describe.each([true, false])("updateMany by a key, mock only (enableIndexes: %s)", (enableIndexes) => {
+describe("updateMany by a key, mock only", () => {
   // Should not run for postgresql
   if (process.env.PROVIDER === "postgresql") {
     test("skip", () => { })
@@ -136,7 +136,7 @@ describe.each([true, false])("updateMany by a key, mock only (enableIndexes: %s)
     const client = await createPrismaClient({
       user: [{ id: 1, uniqueField: "a" }, { id: 2, uniqueField: "b" }],
       pet: [{ id: 1, name: "Rex", ownerId: 1 }, { id: 2, name: "Tom", ownerId: 1 }, { id: 3, name: "Rex", ownerId: 2 }],
-    }, { enableIndexes })
+    })
     // Rows not in id order, so table order and id order differ
     await client.toy.createMany({
       data: [

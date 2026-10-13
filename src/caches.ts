@@ -124,7 +124,7 @@ export const createCaches = <P extends typeof Prisma>({ ref, prop, datamodel, ca
   const getCompoundRows = (name: string, fields: readonly string[]) =>
     getValueRows(`compound:${name}`, (row) => getCompoundValue(row, fields))
 
-  // The fields rows can be looked up by, as the index does: ids, unique fields and foreign keys
+  // The fields rows can be looked up by: ids, unique fields and foreign keys
   let lookupFieldNames: Set<string> | null = null
   const getLookupFieldNames = () => {
     if (!lookupFieldNames) {

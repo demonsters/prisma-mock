@@ -5,12 +5,12 @@ import createPrismaClient from "./createPrismaClient"
 // createMany appends its rows to one copy of the table made for the whole batch, updating
 // what the delegate knows about the table as it goes. These check the rows of a batch are
 // found, checked for duplicates and rolled back like rows created one at a time
-describe.each([true, false])("createMany (enableIndexes: %s)", (enableIndexes) => {
+describe("createMany", () => {
   const owner = { user: [{ id: 1, uniqueField: "u1" }] }
   const ids = (rows) => rows.map((row) => row.id).sort((a, b) => a - b)
 
   test("rows created in one batch are found by id, unique field, compound key and foreign key", async () => {
-    const client = await createPrismaClient(owner, { enableIndexes })
+    const client = await createPrismaClient(owner)
     await client.pet.createMany({
       data: [
         { id: 1, name: "Rex", ownerId: 1 },
@@ -26,7 +26,7 @@ describe.each([true, false])("createMany (enableIndexes: %s)", (enableIndexes) =
   })
 
   test("a duplicate within the batch throws", async () => {
-    const client = await createPrismaClient(owner, { enableIndexes })
+    const client = await createPrismaClient(owner)
     await expect(
       client.pet.createMany({ data: [{ id: 1, name: "Rex", ownerId: 1 }, { id: 2, name: "Rex", ownerId: 1 }] })
     ).rejects.toMatchObject({ code: "P2002" })
@@ -36,7 +36,7 @@ describe.each([true, false])("createMany (enableIndexes: %s)", (enableIndexes) =
   })
 
   test("skipDuplicates skips duplicates within the batch and against existing rows", async () => {
-    const client = await createPrismaClient({ ...owner, pet: [{ id: 1, name: "Rex", ownerId: 1 }] }, { enableIndexes })
+    const client = await createPrismaClient({ ...owner, pet: [{ id: 1, name: "Rex", ownerId: 1 }] })
 
     const { count } = await client.pet.createMany({
       data: [
@@ -52,7 +52,7 @@ describe.each([true, false])("createMany (enableIndexes: %s)", (enableIndexes) =
   })
 
   test("later writes see the rows of the batch", async () => {
-    const client = await createPrismaClient(owner, { enableIndexes })
+    const client = await createPrismaClient(owner)
     await client.pet.createMany({ data: [{ id: 1, name: "Rex", ownerId: 1 }, { id: 2, name: "Tom", ownerId: 1 }] })
 
     await expect(client.pet.create({ data: { id: 3, name: "Tom", ownerId: 1 } })).rejects.toMatchObject({ code: "P2002" })
@@ -63,7 +63,7 @@ describe.each([true, false])("createMany (enableIndexes: %s)", (enableIndexes) =
   })
 
   test("createManyAndReturn returns the rows of the batch", async () => {
-    const client = await createPrismaClient(owner, { enableIndexes })
+    const client = await createPrismaClient(owner)
     const pets = await client.pet.createManyAndReturn({
       data: [{ id: 1, name: "Rex", ownerId: 1 }, { id: 2, name: "Tom", ownerId: 1 }],
       select: { id: true, name: true },
@@ -72,7 +72,7 @@ describe.each([true, false])("createMany (enableIndexes: %s)", (enableIndexes) =
   })
 
   test("a rolled back batch leaves nothing behind", async () => {
-    const client = await createPrismaClient(owner, { enableIndexes })
+    const client = await createPrismaClient(owner)
     await expect(
       client.$transaction(async (tx) => {
         await tx.pet.createMany({ data: [{ id: 1, name: "Rex", ownerId: 1 }, { id: 2, name: "Tom", ownerId: 1 }] })
@@ -87,7 +87,7 @@ describe.each([true, false])("createMany (enableIndexes: %s)", (enableIndexes) =
   })
 
   test("a nested createMany", async () => {
-    const client = await createPrismaClient(owner, { enableIndexes })
+    const client = await createPrismaClient(owner)
     await client.user.create({
       data: { id: 2, uniqueField: "u2", pets: { createMany: { data: [{ id: 1, name: "Rex" }, { id: 2, name: "Tom" }] } } },
     })

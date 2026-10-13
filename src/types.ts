@@ -33,6 +33,7 @@ export type MockPrismaOptions<PClient extends { [key: string]: any }, P extends 
   datamodel: P["dmmf"]["datamodel"],
   mockClient?: DeepMockApi
   caseInsensitive?: boolean
+  /** @deprecated Has no effect. Lookups by id, unique field, compound key or foreign key are always answered without matching every row */
   enableIndexes?: boolean
   data?: PrismaMockData<PClient>
 } 

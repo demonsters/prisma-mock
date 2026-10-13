@@ -11,7 +11,7 @@ const NUM_ROWS = 5000
 const THRESHOLD_MS = 1000
 
 const seed = async () => {
-  const client = await createPrismaClient({ user: [{ id: 1, uniqueField: "u1" }] }, { enableIndexes: false })
+  const client = await createPrismaClient({ user: [{ id: 1, uniqueField: "u1" }] })
   await client.pet.createMany({
     data: Array.from({ length: NUM_ROWS }, (_, i) => ({ id: i + 1, name: `pet-${i + 1}`, ownerId: 1 })),
   })
@@ -27,7 +27,7 @@ const time = async (fn) => {
   return performance.now() - start
 }
 
-describe("lookups without indexes", () => {
+describe("lookup by key performance", () => {
 
   test("findUnique by id stays fast", async () => {
     const client = await seed()
