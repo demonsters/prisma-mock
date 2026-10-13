@@ -12,6 +12,7 @@
     "kept-links-rollback",
     "kind-flags-stay",
     "light-first-count",
+    "light-rows-kept",
     "plain-rows-stay",
     "quick-rows-delete",
     "quick-rows-update",
