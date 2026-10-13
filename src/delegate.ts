@@ -401,26 +401,47 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
             // Handle update operations for relations
             const name = getCamelCase(field.type)
             const delegate = getDelegateForFieldName(field.type)
+
+            // Nested writes on an existing row only reach the rows related to it. null when
+            // no row can be (a many-to-many relation without any)
+            const relationWhere = item ? getFieldRelationshipWhere(item, field, model) : undefined
+            const scopeWhere = (where) => {
+              if (!item) return where
+              if (!relationWhere) return null
+              return where === undefined || where === true ? relationWhere : { AND: [where, relationWhere] }
+            }
+            const otherModel = datamodel.models.find((model) => {
+              return model.name === field.type
+            })
+            const otherField = otherModel.fields.find(
+              (otherField) =>
+                field.relationName === otherField.relationName && otherField !== field
+            )
+
             if (inputFieldData.updateMany) {
-              if (Array.isArray(inputFieldData.updateMany)) {
-                inputFieldData.updateMany.forEach((updateMany) => {
-                  delegate.updateMany(updateMany)
-                })
-              } else {
-                delegate.updateMany(inputFieldData.updateMany)
-              }
+              const updateManys = Array.isArray(inputFieldData.updateMany) ? inputFieldData.updateMany : [inputFieldData.updateMany]
+              updateManys.forEach((updateMany) => {
+                const where = scopeWhere(updateMany.where ?? {})
+                if (where) {
+                  delegate.updateMany({ ...updateMany, where })
+                }
+              })
             }
             if (inputFieldData.update) {
               if (Array.isArray(inputFieldData.update)) {
                 inputFieldData.update.forEach((update) => {
-                  delegate._update(update)
+                  const where = scopeWhere(update.where)
+                  if (!where) {
+                    throwKnownError(prisma,
+                      `An operation failed because it depends on one or more records that were required but not found. No '${field.type}' record was found for a nested update on relation '${field.relationName}'.`,
+                      { meta: { modelName: model.name } }
+                    )
+                  }
+                  delegate._update({ ...update, where })
                 })
               } else {
                 const item = findOne(args)
                 if (field.isList) {
-                  const otherModel = datamodel.models.find((model) => {
-                    return model.name === field.type
-                  })
                   const where = getFieldRelationshipWhere(item, field, otherModel)
                   const delegate = Delegate(name, otherModel)
                   delegate._update({
@@ -446,22 +467,49 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
 
             // Handle delete operations for relations
             if (inputFieldData.deleteMany) {
-              if (Array.isArray(inputFieldData.deleteMany)) {
-                inputFieldData.deleteMany.forEach((where) => {
-                  delegate.deleteMany({ where })
-                })
-              } else {
-                delegate.deleteMany({ where: inputFieldData.deleteMany })
-              }
+              const wheres = Array.isArray(inputFieldData.deleteMany) ? inputFieldData.deleteMany : [inputFieldData.deleteMany]
+              wheres.forEach((where) => {
+                const scoped = scopeWhere(where)
+                if (scoped) {
+                  delegate.deleteMany({ where: scoped })
+                }
+              })
             }
             if (inputFieldData.delete) {
-              if (Array.isArray(inputFieldData.delete)) {
-                inputFieldData.delete.forEach((where) => {
-                  delegate._delete({ where })
-                })
+              if (field.isList) {
+                // Each where is unique, and has to point at a row related to this one. All of
+                // them are checked before any is deleted, as Prisma refuses the whole write
+                const wheres = Array.isArray(inputFieldData.delete) ? inputFieldData.delete : [inputFieldData.delete]
+                wheres.forEach((where) => delegate._checkWhereUnique(where))
+                const scoped = wheres.map(scopeWhere)
+                if (scoped.some((where) => !where || !delegate.findOne({ where }))) {
+                  throwKnownError(prisma,
+                    `The records for relation \`${field.relationName}\` between the \`${model.name}\` and \`${field.type}\` models are not connected.`,
+                    { code: "P2017", meta: { modelName: model.name, relation_name: field.relationName, parent_name: model.name, child_name: field.type } }
+                  )
+                }
+                scoped.forEach((where) => delegate._delete({ where }))
               } else {
-                // A to-one relation is deleted with `true` or a filter, neither of them unique
-                delegate._delete({ where: inputFieldData.delete })
+                // A to-one relation is deleted with `true`, or a filter the related row has to match
+                const where = scopeWhere(inputFieldData.delete)
+                const deleted = where ? delegate._deleteMany({ where }) : []
+                if (!deleted.length) {
+                  const relationType = otherField?.isList ? "one-to-many" : "one-to-one"
+                  const cause = `No '${field.type}' record was found for a nested delete on ${relationType} relation '${field.relationName}'.`
+                  throwKnownError(prisma,
+                    `An operation failed because it depends on one or more records that were required but not found. ${cause}`,
+                    { meta: { modelName: model.name, cause } }
+                  )
+                }
+                // The row this one pointed at is gone, so the foreign key it holds no longer
+                // points anywhere, as the database's referential action leaves it
+                const foreignKey = model.fields.find((f) => f.name === field.relationFromFields[0])
+                if (foreignKey && !foreignKey.isRequired) {
+                  inputData = {
+                    ...inputData,
+                    [foreignKey.name]: null,
+                  }
+                }
               }
             }
 
@@ -1527,6 +1575,7 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
       _update: update,
       _delete: deleteOne,
       _checkCompoundKeys: checkCompoundKeys,
+      _checkWhereUnique: checkWhereUnique,
       _deleteMany: deleteMany,
     }
   }

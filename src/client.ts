@@ -90,6 +90,23 @@ function createPrismaMock<PClient extends PrismaClient, P extends typeof Prisma 
     throw new Error("$use is not yet implemented in prisma-mock")
   })
 
+  // Runs one operation of the client. When it fails, the data goes back to what it was
+  // before, as Prisma rolls back every write of a query that fails, nested ones included.
+  // Writes replace the data rather than change it, so that is the data as it was, as for
+  // $transaction
+  const runQuery = (fnc: () => any) => {
+    const snapshot = ref.data
+    try {
+      return fnc()
+    } catch (error) {
+      if (ref.data !== snapshot) {
+        ref.data = snapshot
+        indexes.rebuild(ref.data)
+      }
+      throw error
+    }
+  }
+
   // Create delegate functions for model operations
   const Delegate = createDelegate({ ref, prisma, datamodel: options.datamodel, caseInsensitive, indexes })
 
@@ -136,11 +153,11 @@ function createPrismaMock<PClient extends PrismaClient, P extends typeof Prisma 
       // Bind the delegate function to the client
       if (options.mockClient) {
         client[c][fncName].mockImplementation(async (...params) => {
-          return objs[fncName](...params)
+          return runQuery(() => objs[fncName](...params))
         })
       } else {
         client[c][fncName] = async (...params) => {
-          return objs[fncName](...params)
+          return runQuery(() => objs[fncName](...params))
         }
       }
     })
