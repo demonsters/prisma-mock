@@ -4,7 +4,7 @@ import { throwKnownError, throwValidationError } from "./errors"
 import createIndexes from "./indexes"
 import { CreateArgs, Item } from "./types"
 import { createCaches, getCompoundValue } from "./caches"
-import { getCompoundKeys } from "./utils/compoundKeys"
+import { getCompoundKeys, getUniqueKeyNames } from "./utils/compoundKeys"
 import { createGetFieldRelationshipWhere, getCamelCase, isFieldDefault } from "./utils/fieldHelpers"
 import createMatch from "./utils/queryMatching"
 import { isLookupValue } from "./utils/lookupValues"
@@ -457,10 +457,11 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
             if (inputFieldData.delete) {
               if (Array.isArray(inputFieldData.delete)) {
                 inputFieldData.delete.forEach((where) => {
-                  delegate.delete({ where })
+                  delegate._delete({ where })
                 })
               } else {
-                delegate.delete({ where: inputFieldData.delete })
+                // A to-one relation is deleted with `true` or a filter, neither of them unique
+                delegate._delete({ where: inputFieldData.delete })
               }
             }
 
@@ -899,14 +900,13 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
               skipForeignKeysChecks: true,
             })
           } else if (joinfield.relationOnDelete === "Cascade") {
-            try {
-              delegate.delete({
-                where: {
-                  [joinfield.relationFromFields[0]]:
-                    item[joinfield.relationToFields[0]],
-                },
-              })
-            } catch (e) { }
+            // Every row referring to the deleted one, which a foreign key doesn't make unique
+            delegate._deleteMany({
+              where: {
+                [joinfield.relationFromFields[0]]:
+                  item[joinfield.relationToFields[0]],
+              },
+            })
           }
         })
       })
@@ -1082,6 +1082,38 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
       // removeMultiFieldIds keeps every row at its index, so the updated row is picked by
       // position rather than searched for with all of its fields as the where clause
       return findMany({ ...args, where: undefined }, [updatedRows[updatedIndex]])[0]
+    }
+
+    /**
+     * Deletes the first record matching the given criteria, without checking that they are
+     * unique. Throws an error if no record is found
+     */
+    const deleteOne = (args) => {
+      // Deleting finds the row as well, so it isn't looked up separately first
+      const deleted = deleteMany(args)
+      if (!deleted.length) {
+        throwKnownError(prisma,
+          "An operation failed because it depends on one or more records that were required but not found. Record to delete does not exist.",
+          { meta: { cause: "No record was found for a delete.", modelName: model.name } }
+        )
+      }
+      return deleted[0]
+    }
+
+    // The keys a WhereUniqueInput of this model selects a row by
+    const uniqueKeyNames = getUniqueKeyNames(model)
+
+    /**
+     * Throws a validation error, as Prisma does, when a where clause that has to point at one
+     * row holds none of the model's unique keys
+     */
+    const checkWhereUnique = (where: any) => {
+      const hasUniqueKey = !!where && uniqueKeyNames.some((name) => where[name] !== undefined && where[name] !== null)
+      if (!hasUniqueKey) {
+        throwValidationError(prisma,
+          `Argument \`where\` of type ${model.name}WhereUniqueInput needs at least one of ${uniqueKeyNames.map((name) => `\`${name}\``).join(" or ")} arguments.`
+        )
+      }
     }
 
     /**
@@ -1336,15 +1368,8 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
         return createdItems
       },
       delete: (args) => {
-        // Deleting finds the row as well, so it isn't looked up separately first
-        const deleted = deleteMany(args)
-        if (!deleted.length) {
-          throwKnownError(prisma,
-            "An operation failed because it depends on one or more records that were required but not found. Record to delete does not exist.",
-            { meta: { cause: "No record was found for a delete.", modelName: model.name } }
-          )
-        }
-        return deleted[0]
+        checkWhereUnique(args?.where)
+        return deleteOne(args)
       },
       update,
       deleteMany: (args) => {
@@ -1405,6 +1430,8 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
       _sortFunc: sortFunc,
       _findMany: findMany,
       _createMany: createMany,
+      _delete: deleteOne,
+      _deleteMany: deleteMany,
     }
   }
   // One delegate per table. A delegate keeps no state of its own (that lives in ref and the
