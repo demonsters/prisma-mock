@@ -24,7 +24,8 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
   // Initialize default value handler
   const handleDefaults = createHandleDefault()
 
-  // Store many-to-many relationship data separately from the main data store
+  // Store many-to-many relationship data separately from the main data store. Writes replace
+  // a relation's array rather than change it, so a shallow copy keeps the links as they are
   const manyToManyData: { [relationName: string]: Array<{ [type: string]: Item }> } = {}
 
   // Create function to get relationship where clauses
@@ -211,8 +212,7 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
 
               // Update many-to-many data store
               const idField = model?.fields.find((f) => f.isId)?.name
-              let a = manyToManyData[field.relationName] = manyToManyData[field.relationName] || []
-              a = a.filter(i => i[otherField.type][idField] !== item[idField])
+              let a = (manyToManyData[field.relationName] || []).filter(i => i[otherField.type][idField] !== item[idField])
               items.forEach((createdItem) => {
                 a.push({
                   [field.type]: createdItem,
@@ -285,13 +285,15 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
                       }
                     })
                   } else {
-                    const a = manyToManyData[field.relationName] = manyToManyData[field.relationName] || []
-                    a.push({
-                      [field.type]: delegate.findOne({
-                        where: connect
-                      }),
-                      [otherField.type]: item || newData
-                    })
+                    manyToManyData[field.relationName] = [
+                      ...(manyToManyData[field.relationName] || []),
+                      {
+                        [field.type]: delegate.findOne({
+                          where: connect
+                        }),
+                        [otherField.type]: item || newData
+                      },
+                    ]
                   }
                 }
               })
@@ -386,13 +388,13 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
                 const targetKey = joinfield.relationFromFields[0]
 
                 if (!targetKey) {
-                  const a = manyToManyData[field.relationName] = manyToManyData[field.relationName] || []
-                  createdItems.forEach((createdItem) => {
-                    a.push({
+                  manyToManyData[field.relationName] = [
+                    ...(manyToManyData[field.relationName] || []),
+                    ...createdItems.map((createdItem) => ({
                       [field.type]: createdItem,
                       [joinfield.type]: item || inputData
-                    })
-                  })
+                    })),
+                  ]
                 }
 
               }
@@ -1592,5 +1594,15 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
     return delegate
   }
 
-  return Delegate
+  // The many-to-many links as they are now, and putting back ones taken earlier, for rolling
+  // back an operation or transaction that fails
+  const getManyToManyLinks = () => ({ ...manyToManyData })
+  const setManyToManyLinks = (links: typeof manyToManyData) => {
+    for (const relationName of Object.keys(manyToManyData)) {
+      delete manyToManyData[relationName]
+    }
+    Object.assign(manyToManyData, links)
+  }
+
+  return Object.assign(Delegate, { getManyToManyLinks, setManyToManyLinks })
 } 

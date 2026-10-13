@@ -71,12 +71,14 @@ function createPrismaMock<PClient extends PrismaClient, P extends typeof Prisma 
       // the data, its tables and its rows rather than change them, so the data as it is now
       // is the state to roll back to, without a copy
       const snapshot = ref.data
+      const links = Delegate.getManyToManyLinks()
       try {
         // @ts-ignore
         return await actions(client)
       } catch (error) {
         // Rollback data on error
         ref.data = snapshot
+        Delegate.setManyToManyLinks(links)
         indexes.rebuild(ref.data)
         throw error
       }
@@ -93,12 +95,14 @@ function createPrismaMock<PClient extends PrismaClient, P extends typeof Prisma 
   // Runs one operation of the client. When it fails, the data goes back to what it was
   // before, as Prisma rolls back every write of a query that fails, nested ones included.
   // Writes replace the data rather than change it, so that is the data as it was, as for
-  // $transaction
+  // $transaction, and the many-to-many links with it
   const runQuery = (fnc: () => any) => {
     const snapshot = ref.data
+    const links = Delegate.getManyToManyLinks()
     try {
       return fnc()
     } catch (error) {
+      Delegate.setManyToManyLinks(links)
       if (ref.data !== snapshot) {
         ref.data = snapshot
         indexes.rebuild(ref.data)
