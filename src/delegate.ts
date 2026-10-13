@@ -716,29 +716,51 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
      * Returns the updated data and count of updated records
      */
     const updateMany = (args) => {
-      let nbUpdated = 0
       const updatedIndexes = []
       const match = matchFnc(args.where)
       const rows = ref.data[prop]
-      const newItems = rows.map((e, index) => {
-        if (match(e)) {
-          let data = nestedUpdate(args, false, e)
-          nbUpdated++
-          const newItem = {
-            ...e,
-            ...data,
-          }
-          indexes.updateItem(prop, newItem, e)
-          updatedIndexes.push(index)
-          return newItem
+      const updateRow = (e, index) => {
+        let data = nestedUpdate(args, false, e)
+        const newItem = {
+          ...e,
+          ...data,
         }
-        return e
-      })
+        indexes.updateItem(prop, newItem, e)
+        updatedIndexes.push(index)
+        return newItem
+      }
+      // As in update, a where pinning a key narrows the rows to match down to the ones
+      // holding its values, matched in table order. Their indexes are taken first, as nested
+      // writes may add to the set
+      const candidates = getCandidateRows(args.where)
+      let newItems
+      if (candidates) {
+        newItems = rows.slice()
+        for (const index of getCandidateIndexes(rows, candidates)) {
+          if (match(rows[index])) {
+            newItems[index] = updateRow(rows[index], index)
+          }
+        }
+      } else {
+        newItems = rows.map((e, index) => (match(e) ? updateRow(e, index) : e))
+      }
+      const nbUpdated = updatedIndexes.length
       ref.data = {
         ...ref.data,
         [prop]: newItems,
       }
       removeCompoundKeyFields(rows, updatedIndexes.map((index) => newItems[index]))
+
+      // When only the updated rows changed, the rows by value carry over with each updated
+      // row swapped for its new version, rather than being filed again by the next lookup
+      if (ref.data[prop] === newItems) {
+        carryValueRows(
+          rows,
+          newItems,
+          updatedIndexes.map((index) => rows[index]),
+          updatedIndexes.map((index) => newItems[index])
+        )
+      }
       // removeMultiFieldIds keeps every row at its index, so the updated rows are picked
       // by position rather than searched for with one where clause per row
       const data = findMany(
