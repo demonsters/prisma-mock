@@ -114,20 +114,22 @@ function createPrismaMock<PClient extends PrismaClient, P extends typeof Prisma 
   // Create delegate functions for model operations
   const Delegate = createDelegate({ ref, prisma, datamodel: options.datamodel, caseInsensitive })
 
+  // An empty table for each model the data leaves out, added in one copy of the data rather
+  // than one per model
+  const missingTables = options.datamodel.models.filter((model) => model && !ref.data[getCamelCase(model.name)])
+  if (missingTables.length > 0) {
+    ref.data = { ...(ref.data || {}) }
+    for (const model of missingTables) {
+      ref.data[getCamelCase(model.name)] = []
+    }
+  }
+
   // Initialize each model in the datamodel
   options.datamodel.models.forEach((model) => {
     if (!model) return
 
     // Convert model name to camelCase for consistency
     const c = getCamelCase(model.name)
-
-    // Initialize empty array for model if it doesn't exist
-    if (!ref.data[c]) {
-      ref.data = {
-        ...(ref.data || {}),
-        [c]: [],
-      }
-    }
 
     // Remove multi-field IDs from the data structure
     ref.data = removeMultiFieldIds(model, ref.data)
