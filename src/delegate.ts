@@ -1132,11 +1132,52 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
      * unchecked ones
      */
     const checkWhereUnique = (where: any) => {
+      checkCompoundKeys(where, true)
       const hasUniqueKey = !!where && uniqueKeyNames.some((name) => where[name] !== undefined && where[name] !== null)
       if (!hasUniqueKey) {
         throwValidationError(prisma,
           `Argument \`where\` of type ${model.name}WhereUniqueInput needs at least one of ${uniqueKeyNames.map((name) => `\`${name}\``).join(" or ")} arguments.`
         )
+      }
+    }
+
+    // The names compound keys are selected by in a WhereUniqueInput
+    const compoundKeyNames = getCompoundKeys(model).map((compoundKey) => compoundKey.name)
+
+    /**
+     * Throws a validation error, as Prisma does, when a where clause uses a compound key by
+     * its name anywhere but the top level of a WhereUniqueInput (`isUnique`): at the top of
+     * any other where, inside AND, OR or NOT, or in a relation filter of another model
+     */
+    const checkCompoundKeys = (where: any, isUnique = false) => {
+      if (!where || typeof where !== "object") return
+      if (!isUnique) {
+        for (const name of compoundKeyNames) {
+          if (where[name] !== undefined) {
+            throwValidationError(prisma,
+              `Unknown argument \`${name}\`. A compound key can only be used at the top level of a WhereUniqueInput.`
+            )
+          }
+        }
+      }
+      for (const operator of ["AND", "OR", "NOT"]) {
+        const subWhere = where[operator]
+        for (const item of Array.isArray(subWhere) ? subWhere : [subWhere]) {
+          checkCompoundKeys(item)
+        }
+      }
+      for (const field of model.fields) {
+        const filter = where[field.name]
+        if (field.kind !== "object" || !filter || typeof filter !== "object") continue
+        const delegate = getDelegateForFieldName(field.type)
+        const relationFilters = ["some", "every", "none", "is", "isNot"].filter((key) => key in filter)
+        if (relationFilters.length === 0) {
+          // A to-one relation can be filtered by the related model's where directly
+          delegate._checkCompoundKeys(filter)
+        }
+        for (const key of relationFilters) {
+          delegate._checkCompoundKeys(filter[key])
+        }
       }
     }
 
@@ -1374,8 +1415,14 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
 
     // Return the delegate object with all CRUD operations
     return {
-      aggregate,
-      groupBy,
+      aggregate: (args) => {
+        checkCompoundKeys(args?.where)
+        return aggregate(args)
+      },
+      groupBy: (args) => {
+        checkCompoundKeys(args?.where)
+        return groupBy(args)
+      },
       findOne,
       findUnique: (args) => {
         checkWhereUnique(args?.where)
@@ -1385,9 +1432,18 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
         checkWhereUnique(args?.where)
         return findOrThrow(args)
       },
-      findMany,
-      findFirst: findOne,
-      findFirstOrThrow: findOrThrow,
+      findMany: (args) => {
+        checkCompoundKeys(args?.where)
+        return findMany(args)
+      },
+      findFirst: (args) => {
+        checkCompoundKeys(args?.where)
+        return findOne(args)
+      },
+      findFirstOrThrow: (args) => {
+        checkCompoundKeys(args?.where)
+        return findOrThrow(args)
+      },
       create,
       createMany: (args) => {
         const createdItems = createMany(args)
@@ -1406,15 +1462,18 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
         return update(args)
       },
       deleteMany: (args) => {
+        checkCompoundKeys(args?.where)
         const deleted = deleteMany(args)
         return { count: deleted.length }
       },
       updateMany: (args) => {
+        checkCompoundKeys(args?.where)
         const { nbUpdated } = updateMany(args)
         return { count: nbUpdated }
       },
       updateManyAndReturn: (args) => {
-        const { data, nbUpdated } = updateMany(args)
+        checkCompoundKeys(args?.where)
+        const { data } = updateMany(args)
         return data
       },
 
@@ -1445,6 +1504,7 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
        * Count operation: returns the number of records matching the criteria
        */
       count(args) {
+        checkCompoundKeys(args?.where)
         // Ordering doesn't change a count, and without a window there are no rows to shape
         if (isPlainQuery({ ...args, orderBy: undefined })) {
           const match = matchFnc(args?.where)
@@ -1466,6 +1526,7 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
       _createMany: createMany,
       _update: update,
       _delete: deleteOne,
+      _checkCompoundKeys: checkCompoundKeys,
       _deleteMany: deleteMany,
     }
   }

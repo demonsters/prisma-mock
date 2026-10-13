@@ -3,7 +3,7 @@
 import createPrismaClient from "./createPrismaClient"
 
 // updateMany and updateManyAndReturn only match the rows holding the values a where pins an
-// id, unique field, foreign key or compound key to. These check they change the same rows as
+// id, unique field or foreign key to. These check they change the same rows as
 // matching the whole table would, and that later lookups by the old and new values agree
 describe.each([true, false])("updateMany by a key (enableIndexes: %s)", (enableIndexes) => {
   const data = {
@@ -172,25 +172,6 @@ describe.each([true, false])("updateMany by a key, mock only (enableIndexes: %s)
     expect(returned.map((toy) => toy.id)).toEqual(expected)
     expect(await client.toy.count({ where: { ownerId: 2 } })).toEqual(0)
     expect((await client.toy.findMany({ where: { ownerId: 3 } })).map((toy) => toy.id)).toEqual(expected)
-  })
-
-  // Prisma doesn't take a compound key in the where of updateMany, the mock does
-  test("by a compound key, also when the update changes it", async () => {
-    const client = await seed()
-
-    expect(await client.pet.updateMany({ where: { name_ownerId: { name: "Rex", ownerId: 2 } }, data: { name: "Max" } })).toEqual({ count: 1 })
-    expect(await client.pet.updateMany({ where: { name_ownerId: { name: "Rex", ownerId: 2 } }, data: { name: "Max" } })).toEqual({ count: 0 })
-
-    expect(await client.pet.findUnique({ where: { name_ownerId: { name: "Rex", ownerId: 2 } } })).toEqual(null)
-    expect(await client.pet.findUnique({ where: { name_ownerId: { name: "Max", ownerId: 2 } } })).toMatchObject({ id: 3 })
-    expect(await client.pet.findUnique({ where: { name_ownerId: { name: "Rex", ownerId: 1 } } })).toMatchObject({ id: 1 })
-
-    const returned = await client.pet.updateManyAndReturn({ where: { name_ownerId: { name: "Max", ownerId: 2 } }, data: { ownerId: 1 } })
-
-    expect(returned).toMatchObject([{ id: 3, name: "Max", ownerId: 1 }])
-    expect(await client.pet.findUnique({ where: { name_ownerId: { name: "Max", ownerId: 2 } } })).toEqual(null)
-    expect(await client.pet.findUnique({ where: { name_ownerId: { name: "Max", ownerId: 1 } } })).toMatchObject({ id: 3 })
-    expect(await client.pet.count({ where: { ownerId: 2 } })).toEqual(0)
   })
 
   test("a duplicate created after it moved a unique value is caught", async () => {
