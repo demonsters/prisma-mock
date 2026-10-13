@@ -7,9 +7,8 @@ import createPrismaClient from "./createPrismaClient"
 // rows are picked by position.
 const NUM_TOYS = 3000
 
-// CI runs this 4-6x slower than a laptop, and with indexes enabled every row written
-// also rescans the index entry it shares with the 2999 others, which costs up to
-// ~300ms there. The previous implementation needs seconds on CI.
+// CI runs this 4-6x slower than a laptop. The previous implementation needs seconds
+// there.
 const THRESHOLD_MS = 1000
 
 const seed = async () => {
@@ -53,7 +52,6 @@ describe("updateMany performance", () => {
 const NUM_PETS = 500
 const TOYS_PER_PET = 10
 
-const median = (values) => [...values].sort((a, b) => a - b)[Math.floor(values.length / 2)]
 
 const seedOwners = async (numPets, toysPerPet) => {
   const client = await createPrismaClient({})
@@ -67,15 +65,18 @@ const seedOwners = async (numPets, toysPerPet) => {
   return client
 }
 
+// The fastest of five runs on fresh data. A run of a few ms can be doubled by a GC pause or a
+// busy CI machine, which only ever adds time, while a cost that grows with the table is
+// there in every run
 const timeRuns = async (seed, run) => {
   const times = []
-  for (let i = 0; i < 3; i++) {
+  for (let i = 0; i < 5; i++) {
     const client = await seed()
     const start = performance.now()
     await run(client)
     times.push(performance.now() - start)
   }
-  return median(times)
+  return Math.min(...times)
 }
 
 const updateEveryPet = (where) => async (client) => {

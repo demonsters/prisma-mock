@@ -6,7 +6,7 @@ import createPrismaClient from "./createPrismaClient"
 // A nested write on an existing row only reaches the rows related to it. Prisma refuses a
 // nested delete of a row that isn't, and then leaves everything as it was, the write to the
 // parent and the rest of the nested writes included
-describe.each([true, false])("nested writes only reach related rows (enableIndexes: %s)", (enableIndexes) => {
+describe("nested writes only reach related rows", () => {
   const data = {
     account: [{ id: 1, name: "A" }, { id: 2, name: "B" }, { id: 3, name: "C" }],
     user: [
@@ -36,7 +36,7 @@ describe.each([true, false])("nested writes only reach related rows (enableIndex
 
   describe("delete on a list", () => {
     test("deletes a related row", async () => {
-      const client = await createPrismaClient(data, { enableIndexes })
+      const client = await createPrismaClient(data)
 
       await updateUser(client, 1, { delete: [{ id: 1 }, { id: 3 }] })
 
@@ -51,7 +51,7 @@ describe.each([true, false])("nested writes only reach related rows (enableIndex
       ["another one's row by a compound key", { name_ownerId: { name: "Max", ownerId: 2 } }],
       ["a related row next to one that isn't", [{ id: 1 }, { id: 2 }]],
     ])("refuses %s and changes nothing", async (_, where) => {
-      const client = await createPrismaClient(data, { enableIndexes })
+      const client = await createPrismaClient(data)
       const before = await state(client)
 
       await expect(updateUser(client, 1, { delete: where })).rejects.toMatchObject({ code: "P2017" })
@@ -60,7 +60,7 @@ describe.each([true, false])("nested writes only reach related rows (enableIndex
     })
 
     test("refuses a where that isn't unique", async () => {
-      const client = await createPrismaClient(data, { enableIndexes })
+      const client = await createPrismaClient(data)
       const before = await state(client)
 
       await expect(updateUser(client, 1, { delete: { ownerId: 1 } })).rejects.toBeInstanceOf(Prisma.PrismaClientValidationError)
@@ -69,7 +69,7 @@ describe.each([true, false])("nested writes only reach related rows (enableIndex
     })
 
     test("undoes the nested writes before the one refused", async () => {
-      const client = await createPrismaClient(data, { enableIndexes })
+      const client = await createPrismaClient(data)
       const before = await state(client)
 
       await expect(
@@ -84,7 +84,7 @@ describe.each([true, false])("nested writes only reach related rows (enableIndex
 
   describe("deleteMany and updateMany on a list", () => {
     test("deleteMany leaves the rows of another one", async () => {
-      const client = await createPrismaClient(data, { enableIndexes })
+      const client = await createPrismaClient(data)
 
       await updateUser(client, 1, { deleteMany: { name: "Max" } })
       expect((await state(client)).pets).toEqual([[1, "Rex", 1], [2, "Max", 2], [3, "Tom", 1]])
@@ -97,7 +97,7 @@ describe.each([true, false])("nested writes only reach related rows (enableIndex
     })
 
     test("updateMany leaves the rows of another one", async () => {
-      const client = await createPrismaClient(data, { enableIndexes })
+      const client = await createPrismaClient(data)
 
       await updateUser(client, 1, { updateMany: { where: { name: "Max" }, data: { name: "H" } } })
       expect((await state(client)).pets).toEqual([[1, "Rex", 1], [2, "Max", 2], [3, "Tom", 1]])
@@ -107,7 +107,7 @@ describe.each([true, false])("nested writes only reach related rows (enableIndex
     })
 
     test("update leaves the rows of another one", async () => {
-      const client = await createPrismaClient(data, { enableIndexes })
+      const client = await createPrismaClient(data)
       const before = await state(client)
 
       await expect(updateUser(client, 1, { update: [{ where: { id: 2 }, data: { name: "H" } }] })).rejects.toMatchObject({ code: "P2025" })
@@ -120,7 +120,7 @@ describe.each([true, false])("nested writes only reach related rows (enableIndex
 
   describe("delete on a to-one relation", () => {
     test("held by this row: deletes the related row and clears the foreign key", async () => {
-      const client = await createPrismaClient(data, { enableIndexes })
+      const client = await createPrismaClient(data)
 
       await client.user.update({ where: { id: 1 }, data: { name: "x", account: { delete: true } } })
 
@@ -132,7 +132,7 @@ describe.each([true, false])("nested writes only reach related rows (enableIndex
     })
 
     test("held by this row: by a filter the related row matches", async () => {
-      const client = await createPrismaClient(data, { enableIndexes })
+      const client = await createPrismaClient(data)
 
       await client.user.update({ where: { id: 1 }, data: { account: { delete: { name: "A" } } } })
 
@@ -140,7 +140,7 @@ describe.each([true, false])("nested writes only reach related rows (enableIndex
     })
 
     test("held by the related row: deletes it", async () => {
-      const client = await createPrismaClient(data, { enableIndexes })
+      const client = await createPrismaClient(data)
 
       await client.account.update({ where: { id: 1 }, data: { name: "x", stripe: { delete: true } } })
 
@@ -155,7 +155,7 @@ describe.each([true, false])("nested writes only reach related rows (enableIndex
       ["nothing is related, held by the related row", (client) => client.account.update({ where: { id: 3 }, data: { name: "x", stripe: { delete: true } } })],
       ["the related row doesn't match, held by the related row", (client) => client.account.update({ where: { id: 1 }, data: { name: "x", stripe: { delete: { customerId: "c2" } } } })],
     ])("refuses when %s, and changes nothing", async (_, operation) => {
-      const client = await createPrismaClient(data, { enableIndexes })
+      const client = await createPrismaClient(data)
       const before = await state(client)
 
       await expect(operation(client)).rejects.toMatchObject({ code: "P2025" })
@@ -164,7 +164,7 @@ describe.each([true, false])("nested writes only reach related rows (enableIndex
     })
 
     test("false deletes nothing", async () => {
-      const client = await createPrismaClient(data, { enableIndexes })
+      const client = await createPrismaClient(data)
       const before = await state(client)
 
       await client.account.update({ where: { id: 1 }, data: { stripe: { delete: false } } })

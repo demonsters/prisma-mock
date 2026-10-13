@@ -5,7 +5,7 @@ import createPrismaClient from "./createPrismaClient"
 // An interactive transaction rolls back to the data as it was when it started, which it keeps
 // by reference: writes replace the data, its tables and its rows rather than change them.
 // These check a rollback also leaves the lookups by value describing that data
-describe.each([true, false])("rolling back an interactive transaction (enableIndexes: %s)", (enableIndexes) => {
+describe("rolling back an interactive transaction", () => {
   const data = {
     user: [
       { id: 1, uniqueField: "a" },
@@ -22,7 +22,7 @@ describe.each([true, false])("rolling back an interactive transaction (enableInd
     ).rejects.toThrow("rollback")
 
   test("undoes an update, and lookups by the old and new value", async () => {
-    const client = await createPrismaClient(data, { enableIndexes })
+    const client = await createPrismaClient(data)
     await rollback(client, (tx) => tx.user.update({ where: { uniqueField: "a" }, data: { uniqueField: "c" } }))
 
     expect(await client.user.findUnique({ where: { uniqueField: "c" } })).toBeNull()
@@ -31,7 +31,7 @@ describe.each([true, false])("rolling back an interactive transaction (enableInd
   })
 
   test("undoes a create", async () => {
-    const client = await createPrismaClient(data, { enableIndexes })
+    const client = await createPrismaClient(data)
     await rollback(client, (tx) => tx.user.create({ data: { id: 3, uniqueField: "c" } }))
 
     expect(await client.user.findUnique({ where: { id: 3 } })).toBeNull()
@@ -40,7 +40,7 @@ describe.each([true, false])("rolling back an interactive transaction (enableInd
   })
 
   test("undoes a delete", async () => {
-    const client = await createPrismaClient(data, { enableIndexes })
+    const client = await createPrismaClient(data)
     await rollback(client, (tx) => tx.user.delete({ where: { uniqueField: "b" } }))
 
     expect(await client.user.findUnique({ where: { uniqueField: "b" } })).toMatchObject({ id: 2 })
