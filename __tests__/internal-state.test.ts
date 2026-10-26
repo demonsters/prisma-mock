@@ -1,6 +1,7 @@
 // @ts-nocheck
 
 import createPrismaClient from "./createPrismaClient"
+import createPrismaMock from "../src"
 
 describe("PrismaClient $getInternalState", () => {
   // Should not run for postgresql
@@ -235,5 +236,33 @@ describe("PrismaClient $getInternalState", () => {
         "userAnswers": Array [],
       }
     `)
+  })
+
+  describe("$clear", () => {
+    test("keeps the empty tables, so updateMany and deleteMany work on a model with no rows", async () => {
+      const client = createPrismaMock()
+      client.$clear()
+
+      expect(await client.user.updateMany({ where: {}, data: { name: "x" } })).toEqual({ count: 0 })
+      expect(await client.user.deleteMany({ where: {} })).toEqual({ count: 0 })
+      expect(client.$getInternalState().user).toEqual([])
+    })
+
+    test("restores the initial data", async () => {
+      const client = createPrismaMock({
+        data: { user: [{ id: 1, name: "initial", uniqueField: "user1" }] },
+      })
+      await client.user.create({ data: { id: 2, uniqueField: "user2" } })
+      await client.user.updateMany({ where: {}, data: { name: "changed" } })
+      await client.post.create({ data: { title: "Post" } })
+
+      client.$clear()
+
+      expect(await client.user.findMany()).toEqual([
+        expect.objectContaining({ id: 1, name: "initial" }),
+      ])
+      expect(await client.post.findMany()).toEqual([])
+      expect(await client.post.deleteMany({ where: {} })).toEqual({ count: 0 })
+    })
   })
 })
