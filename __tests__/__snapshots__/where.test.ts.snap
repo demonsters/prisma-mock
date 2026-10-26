@@ -36,6 +36,7 @@ Array [
     "created": 2020-02-01T14:00:00.000Z,
     "id": 1,
     "published": false,
+    "tags": Array [],
     "title": "Piet",
     "updated": 2020-02-01T14:00:00.000Z,
   },
