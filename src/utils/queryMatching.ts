@@ -143,7 +143,8 @@ export default function createMatch({ prisma, getFieldRelationshipWhere, getDele
           caseInsensitive ||
           ("mode" in matchFilter && matchFilter.mode === "insensitive")
         ) {
-          val = val.toLowerCase ? val.toLowerCase() : val
+          const toLowerCase = (v) => v?.toLowerCase ? v.toLowerCase() : v
+          val = Array.isArray(val) ? val.map(toLowerCase) : toLowerCase(val)
           Object.keys(matchFilter).forEach((key) => {
             const value = matchFilter[key]
             if (value.toLowerCase) {
@@ -238,6 +239,19 @@ export default function createMatch({ prisma, getFieldRelationshipWhere, getDele
         }
         if ("notIn" in matchFilter && match) {
           match = !matchFilter.notIn.includes(val)
+        }
+        // Scalar list filters
+        if ("has" in matchFilter && match) {
+          match = Array.isArray(val) && val.some((v) => deepEqual(matchFilter.has, v))
+        }
+        if ("hasSome" in matchFilter && match) {
+          match = Array.isArray(val) && matchFilter.hasSome.some((f) => val.some((v) => deepEqual(f, v)))
+        }
+        if ("hasEvery" in matchFilter && match) {
+          match = Array.isArray(val) && matchFilter.hasEvery.every((f) => val.some((v) => deepEqual(f, v)))
+        }
+        if (isDefinedWithValue(matchFilter, "isEmpty") && match) {
+          match = Array.isArray(val) && (val.length === 0) === matchFilter.isEmpty
         }
         if (!match) {
           return false
