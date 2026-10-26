@@ -964,11 +964,17 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
 
       const result: any = {}
 
-      if (args?._count) {
+      if (args?._count === true) {
+        // _count: true counts the rows
+        result._count = items.length
+      } else if (args?._count) {
         result._count = {}
         for (const field of Object.keys(args._count)) {
-          if (args._count[field]) {
-            result._count[field] = items.length
+          if (field === "_all") {
+            result._count._all = items.length
+          } else if (args._count[field]) {
+            // A field's count leaves out its nulls
+            result._count[field] = items.filter(item => item[field] !== null && item[field] !== undefined).length
           }
         }
       }
@@ -1063,9 +1069,12 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
         })
 
         // Add aggregations
-        const countField = { ...havingFields._count, ..._count }
+        const countField = { ...havingFields._count, ...(_count === true ? {} : _count) }
         const countFields = Object.keys(countField)
-        if (countFields.length > 0) {
+        if (_count === true) {
+          // _count: true counts the rows of the group
+          groupObj._count = groupItems.length
+        } else if (countFields.length > 0) {
           groupObj._count = {}
           for (const field of countFields) {
             if (field === '_all') {

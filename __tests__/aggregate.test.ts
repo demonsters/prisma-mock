@@ -12,6 +12,37 @@ const setup = async () => {
   })
 }
 
+it("Should return the count of the rows with _count: true", async () => {
+  const client = await setup()
+
+  const result = await client.user.aggregate({
+    where: { age: { gt: 25 } },
+    _count: true,
+  })
+
+  expect(result._count).toBe(3)
+})
+
+it("Should leave out nulls from the count of a field", async () => {
+  const client = await createPrismaClient({
+    user: [
+      { id: 1, uniqueField: "1", clicks: 1 },
+      { id: 2, uniqueField: "2", clicks: null },
+      { id: 3, uniqueField: "3", clicks: 3 },
+    ],
+  })
+
+  const result = await client.user.aggregate({
+    _count: {
+      _all: true,
+      clicks: true,
+    },
+  })
+
+  expect(result._count).toEqual({ _all: 3, clicks: 2 })
+})
+
+
 it("Should return the average of the numbers", async () => {
   const client = await setup()
 
