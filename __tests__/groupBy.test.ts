@@ -46,6 +46,50 @@ Array [
 })
 
 
+test("Should group by name with _count: true", async () => {
+  const client = await setup()
+
+  const result = await client.user.groupBy({
+    by: ["name"],
+    _count: true,
+    orderBy: {
+      name: "asc",
+    },
+  })
+
+  expect(result).toEqual([
+    { name: "Jane", _count: 2 },
+    { name: "John", _count: 2 },
+  ])
+})
+
+test("Should group by name with the count of a field", async () => {
+  const client = await createPrismaClient({
+    user: [
+      { id: 1, uniqueField: "1", name: "John", clicks: 1 },
+      { id: 2, uniqueField: "2", name: "John", clicks: null },
+      { id: 3, uniqueField: "3", name: "Jane", clicks: 3 },
+    ],
+  })
+
+  const result = await client.user.groupBy({
+    by: ["name"],
+    _count: {
+      _all: true,
+      clicks: true,
+    },
+    orderBy: {
+      name: "asc",
+    },
+  })
+
+  expect(result).toEqual([
+    { name: "Jane", _count: { _all: 1, clicks: 1 } },
+    { name: "John", _count: { _all: 2, clicks: 1 } },
+  ])
+})
+
+
 test("Should group by name with avg", async () => {
   const client = await setup()
 
