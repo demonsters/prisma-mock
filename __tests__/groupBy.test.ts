@@ -141,3 +141,33 @@ Array [
   })
 
 })
+
+test("Should group by with the min and max of a DateTime as a Date", async () => {
+  const client = await createPrismaClient({
+    post: [
+      { id: 1, title: "A", created: new Date("2026-01-02T00:00:00Z") },
+      { id: 2, title: "A", created: new Date("2026-01-01T00:00:00Z") },
+      { id: 3, title: "B", created: new Date("2026-01-03T00:00:00Z") },
+    ],
+  })
+
+  const result = await client.post.groupBy({
+    by: ["title"],
+    _min: { created: true },
+    _max: { created: true },
+    orderBy: { title: "asc" },
+  })
+
+  expect(result).toEqual([
+    {
+      title: "A",
+      _min: { created: new Date("2026-01-01T00:00:00Z") },
+      _max: { created: new Date("2026-01-02T00:00:00Z") },
+    },
+    {
+      title: "B",
+      _min: { created: new Date("2026-01-03T00:00:00Z") },
+      _max: { created: new Date("2026-01-03T00:00:00Z") },
+    },
+  ])
+})

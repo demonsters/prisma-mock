@@ -956,6 +956,19 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
     }
 
     /**
+     * Returns the smallest (direction -1) or largest (direction 1) of the values, keeping its
+     * type: Math.min and Math.max turn Dates into numbers and strings into NaN
+     */
+    const extreme = (values: any[], direction: 1 | -1) => {
+      if (values.length === 0) return null
+      return values.reduce((best, value) => {
+        // Decimals compare by their value, not by the string valueOf() gives
+        const difference = typeof value?.comparedTo === "function" ? value.comparedTo(best) : value < best ? -1 : value > best ? 1 : 0
+        return difference * direction > 0 ? value : best
+      })
+    }
+
+    /**
      * Aggregates data based on the given arguments
      * Supports _count, _avg, _sum, _min, and _max
      */
@@ -998,7 +1011,7 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
         for (const field of Object.keys(args._min)) {
           if (args._min[field]) {
             const values = items.map(item => item[field]).filter(val => val !== null && val !== undefined)
-            result._min[field] = values.length > 0 ? Math.min(...values) : null
+            result._min[field] = extreme(values, -1)
           }
         }
       }
@@ -1008,7 +1021,7 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
         for (const field of Object.keys(args._max)) {
           if (args._max[field]) {
             const values = items.map(item => item[field]).filter(val => val !== null && val !== undefined)
-            result._max[field] = values.length > 0 ? Math.max(...values) : null
+            result._max[field] = extreme(values, 1)
           }
         }
       }
@@ -1107,7 +1120,7 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
           for (const field of minFields) {
             if (_min[field]) {
               const values = groupItems.map(item => item[field]).filter(val => val !== null && val !== undefined)
-              groupObj._min[field] = values.length > 0 ? Math.min(...values) : null
+              groupObj._min[field] = extreme(values, -1)
             }
           }
         }
@@ -1119,7 +1132,7 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
           for (const field of maxFields) {
             if (_max[field]) {
               const values = groupItems.map(item => item[field]).filter(val => val !== null && val !== undefined)
-              groupObj._max[field] = values.length > 0 ? Math.max(...values) : null
+              groupObj._max[field] = extreme(values, 1)
             }
           }
         }
