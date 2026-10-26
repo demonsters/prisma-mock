@@ -151,6 +151,8 @@ function createPrismaMock<PClient extends PrismaClient, P extends typeof Prisma 
     })
   })
 
+  // The state $clear() restores, including the empty tables added above
+  internalState = ref.data
 
   // Add method to access internal state for testing/debugging
   client['$getInternalState'] = () => ref.data
