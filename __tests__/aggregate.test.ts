@@ -12,6 +12,37 @@ const setup = async () => {
   })
 }
 
+it("Should return the count of the rows with _count: true", async () => {
+  const client = await setup()
+
+  const result = await client.user.aggregate({
+    where: { age: { gt: 25 } },
+    _count: true,
+  })
+
+  expect(result._count).toBe(3)
+})
+
+it("Should leave out nulls from the count of a field", async () => {
+  const client = await createPrismaClient({
+    user: [
+      { id: 1, uniqueField: "1", clicks: 1 },
+      { id: 2, uniqueField: "2", clicks: null },
+      { id: 3, uniqueField: "3", clicks: 3 },
+    ],
+  })
+
+  const result = await client.user.aggregate({
+    _count: {
+      _all: true,
+      clicks: true,
+    },
+  })
+
+  expect(result._count).toEqual({ _all: 3, clicks: 2 })
+})
+
+
 it("Should return the average of the numbers", async () => {
   const client = await setup()
 
@@ -70,4 +101,52 @@ it("Should return the max of the numbers", async () => {
   })
 
   expect(result._max.age).toBe(40)
+})
+it("Should return the min and max of a DateTime as a Date", async () => {
+  const client = await createPrismaClient({
+    post: [
+      { id: 1, title: "A", created: new Date("2026-01-02T00:00:00Z") },
+      { id: 2, title: "B", created: new Date("2026-01-01T00:00:00Z") },
+      { id: 3, title: "C", created: new Date("2026-01-03T00:00:00Z") },
+    ],
+  })
+
+  const result = await client.post.aggregate({
+    _min: { created: true },
+    _max: { created: true },
+  })
+
+  expect(result._min.created).toEqual(new Date("2026-01-01T00:00:00Z"))
+  expect(result._max.created).toEqual(new Date("2026-01-03T00:00:00Z"))
+})
+
+it("Should return the min and max of a String", async () => {
+  const client = await createPrismaClient({
+    post: [
+      { id: 1, title: "b" },
+      { id: 2, title: "a" },
+      { id: 3, title: "c" },
+    ],
+  })
+
+  const result = await client.post.aggregate({
+    _min: { title: true },
+    _max: { title: true },
+  })
+
+  expect(result._min.title).toBe("a")
+  expect(result._max.title).toBe("c")
+})
+
+it("Should return null as the min and max when no rows match", async () => {
+  const client = await setup()
+
+  const result = await client.user.aggregate({
+    where: { age: { gt: 100 } },
+    _min: { age: true },
+    _max: { age: true },
+  })
+
+  expect(result._min.age).toBeNull()
+  expect(result._max.age).toBeNull()
 })

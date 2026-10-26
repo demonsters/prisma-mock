@@ -736,4 +736,58 @@ describe("PrismaClient where", () => {
     })
     expect(users.length).toEqual(2)
   })
+
+  describe("Scalar lists", () => {
+    const listData = {
+      post: [
+        { id: 1, title: "x and y", tags: ["x", "y"] },
+        { id: 2, title: "y", tags: ["y"] },
+        { id: 3, title: "none", tags: [] },
+      ],
+    }
+
+    const findIds = async (where) => {
+      const client = await createPrismaClient(listData)
+      const posts = await client.post.findMany({ where, orderBy: { id: "asc" } })
+      return posts.map((post) => post.id)
+    }
+
+    test("has", async () => {
+      expect(await findIds({ tags: { has: "x" } })).toEqual([1])
+      expect(await findIds({ tags: { has: "y" } })).toEqual([1, 2])
+      expect(await findIds({ tags: { has: "z" } })).toEqual([])
+    })
+
+    test("hasSome", async () => {
+      expect(await findIds({ tags: { hasSome: ["x"] } })).toEqual([1])
+      expect(await findIds({ tags: { hasSome: ["x", "y"] } })).toEqual([1, 2])
+      expect(await findIds({ tags: { hasSome: [] } })).toEqual([])
+    })
+
+    test("hasEvery", async () => {
+      expect(await findIds({ tags: { hasEvery: ["x", "y"] } })).toEqual([1])
+      expect(await findIds({ tags: { hasEvery: ["y"] } })).toEqual([1, 2])
+      expect(await findIds({ tags: { hasEvery: [] } })).toEqual([1, 2, 3])
+    })
+
+    test("isEmpty", async () => {
+      expect(await findIds({ tags: { isEmpty: true } })).toEqual([3])
+      expect(await findIds({ tags: { isEmpty: false } })).toEqual([1, 2])
+    })
+
+    test("equals", async () => {
+      expect(await findIds({ tags: { equals: ["y"] } })).toEqual([2])
+    })
+
+    test("NOT has", async () => {
+      expect(await findIds({ NOT: { tags: { has: "x" } } })).toEqual([2, 3])
+    })
+
+    test("defaults to an empty list", async () => {
+      const client = await createPrismaClient()
+      const post = await client.post.create({ data: { title: "no tags" } })
+      expect(post.tags).toEqual([])
+      expect(await client.post.count({ where: { tags: { isEmpty: true } } })).toEqual(1)
+    })
+  })
 })

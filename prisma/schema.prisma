@@ -96,6 +96,7 @@ model Post {
   updated   DateTime  @updatedAt
   created   DateTime  @default(now())
   comments  Comment[]
+  tags      String[]
 
   // @@unique([created, authorId])
 }

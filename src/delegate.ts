@@ -627,7 +627,8 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
             if (field.kind !== "object") {
               inputData = {
                 ...inputData,
-                [field.name]: null,
+                // A scalar list without a value is empty, like Prisma returns it
+                [field.name]: field.isList ? [] : null,
               }
             }
           }
@@ -1018,11 +1019,17 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
 
         // Handle _count aggregation
         if (key === "_count") {
-          const select = obj[key]?.select
+          // _count: true counts every list relation
+          const select = obj[key] === true
+            ? Object.fromEntries(model.fields.filter((field) => field.relationName && field.isList).map((field) => [field.name, true]))
+            : obj[key]?.select || {}
 
           const subkeys = Object.keys(select)
           let _count = {}
           subkeys.forEach((subkey) => {
+            if (!select[subkey]) {
+              return
+            }
 
             const schema = model.fields.find((field) => {
               return field.name === subkey
@@ -1035,10 +1042,12 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
             // Get delegate for relation
             const delegate = getDelegateForFieldName(schema.type)
             const joinWhere = getFieldRelationshipWhere(item, schema, model)
+            // A filtered count: _count: { select: { posts: { where: { published: true } } } }
+            const where = select[subkey]?.where
 
             _count = {
               ..._count,
-              [subkey]: delegate.count({ where: joinWhere }),
+              [subkey]: delegate.count({ where: where ? { AND: [joinWhere, where] } : joinWhere }),
             }
           })
 
@@ -1248,6 +1257,19 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
     }
 
     /**
+     * Returns the smallest (direction -1) or largest (direction 1) of the values, keeping its
+     * type: Math.min and Math.max turn Dates into numbers and strings into NaN
+     */
+    const extreme = (values: any[], direction: 1 | -1) => {
+      if (values.length === 0) return null
+      return values.reduce((best, value) => {
+        // Decimals compare by their value, not by the string valueOf() gives
+        const difference = typeof value?.comparedTo === "function" ? value.comparedTo(best) : value < best ? -1 : value > best ? 1 : 0
+        return difference * direction > 0 ? value : best
+      })
+    }
+
+    /**
      * Aggregates data based on the given arguments
      * Supports _count, _avg, _sum, _min, and _max
      */
@@ -1256,11 +1278,17 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
 
       const result: any = {}
 
-      if (args?._count) {
+      if (args?._count === true) {
+        // _count: true counts the rows
+        result._count = items.length
+      } else if (args?._count) {
         result._count = {}
         for (const field of Object.keys(args._count)) {
-          if (args._count[field]) {
-            result._count[field] = items.length
+          if (field === "_all") {
+            result._count._all = items.length
+          } else if (args._count[field]) {
+            // A field's count leaves out its nulls
+            result._count[field] = items.filter(item => item[field] !== null && item[field] !== undefined).length
           }
         }
       }
@@ -1290,7 +1318,7 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
         for (const field of Object.keys(args._min)) {
           if (args._min[field]) {
             const values = items.map(item => item[field]).filter(val => val !== null && val !== undefined)
-            result._min[field] = values.length > 0 ? Math.min(...values) : null
+            result._min[field] = extreme(values, -1)
           }
         }
       }
@@ -1300,7 +1328,7 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
         for (const field of Object.keys(args._max)) {
           if (args._max[field]) {
             const values = items.map(item => item[field]).filter(val => val !== null && val !== undefined)
-            result._max[field] = values.length > 0 ? Math.max(...values) : null
+            result._max[field] = extreme(values, 1)
           }
         }
       }
@@ -1355,9 +1383,12 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
         })
 
         // Add aggregations
-        const countField = { ...havingFields._count, ..._count }
+        const countField = { ...havingFields._count, ...(_count === true ? {} : _count) }
         const countFields = Object.keys(countField)
-        if (countFields.length > 0) {
+        if (_count === true) {
+          // _count: true counts the rows of the group
+          groupObj._count = groupItems.length
+        } else if (countFields.length > 0) {
           groupObj._count = {}
           for (const field of countFields) {
             if (field === '_all') {
@@ -1399,7 +1430,7 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
           for (const field of minFields) {
             if (_min[field]) {
               const values = groupItems.map(item => item[field]).filter(val => val !== null && val !== undefined)
-              groupObj._min[field] = values.length > 0 ? Math.min(...values) : null
+              groupObj._min[field] = extreme(values, -1)
             }
           }
         }
@@ -1411,7 +1442,7 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
           for (const field of maxFields) {
             if (_max[field]) {
               const values = groupItems.map(item => item[field]).filter(val => val !== null && val !== undefined)
-              groupObj._max[field] = values.length > 0 ? Math.max(...values) : null
+              groupObj._max[field] = extreme(values, 1)
             }
           }
         }
