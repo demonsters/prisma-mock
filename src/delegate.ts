@@ -1019,11 +1019,17 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
 
         // Handle _count aggregation
         if (key === "_count") {
-          const select = obj[key]?.select
+          // _count: true counts every list relation
+          const select = obj[key] === true
+            ? Object.fromEntries(model.fields.filter((field) => field.relationName && field.isList).map((field) => [field.name, true]))
+            : obj[key]?.select || {}
 
           const subkeys = Object.keys(select)
           let _count = {}
           subkeys.forEach((subkey) => {
+            if (!select[subkey]) {
+              return
+            }
 
             const schema = model.fields.find((field) => {
               return field.name === subkey
@@ -1036,10 +1042,12 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
             // Get delegate for relation
             const delegate = getDelegateForFieldName(schema.type)
             const joinWhere = getFieldRelationshipWhere(item, schema, model)
+            // A filtered count: _count: { select: { posts: { where: { published: true } } } }
+            const where = select[subkey]?.where
 
             _count = {
               ..._count,
-              [subkey]: delegate.count({ where: joinWhere }),
+              [subkey]: delegate.count({ where: where ? { AND: [joinWhere, where] } : joinWhere }),
             }
           })
 
