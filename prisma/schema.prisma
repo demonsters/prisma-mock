@@ -95,6 +95,7 @@ model Post {
   authorId  Int?
   updated   DateTime @updatedAt
   created   DateTime @default(now())
+  tags      String[]
 
   // @@unique([created, authorId])
 }

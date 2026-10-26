@@ -539,7 +539,8 @@ export const createDelegate = <P extends typeof Prisma>({ ref, prisma, datamodel
             if (field.kind !== "object") {
               inputData = {
                 ...inputData,
-                [field.name]: null,
+                // A scalar list without a value is empty, like Prisma returns it
+                [field.name]: field.isList ? [] : null,
               }
             }
           }
